@@ -1,12 +1,21 @@
-import { rectContains, rectOf, rectsIntersect, segmentIntersectsRect } from './geom';
+import {
+  cellsIntersect,
+  rectContains,
+  rectOf,
+  rectsIntersect,
+  segmentIntersectsRect,
+} from './geom';
 import { type DiagramIndex, indexDiagram } from './helpers';
 import type { Id } from './ids';
-import type { Diagram } from './schema/diagram';
+import type { Diagram, LayoutSpec } from './schema/diagram';
 import { ANNOTATION_NODE_TYPES, type NodeType } from './schema/enums';
 import type { ValidationIssue } from './structural';
 
 const MAX_LABEL_CHARS = 60;
 const MAX_LABEL_LINES = 3;
+
+/** Layout strategies in which "no edges" means "disconnected"; elsewhere isolated nodes are the design. */
+const GRAPH_LAYOUTS: ReadonlySet<LayoutSpec['algorithm']> = new Set(['layered', 'radial']);
 
 /**
  * The only place a diagram type influences validation (spec 01 §6.2, D16 exception): four
@@ -45,6 +54,7 @@ export function qualityIssues(d: Diagram): ValidationIssue[] {
 }
 
 function orphanNodes(d: Diagram, index: DiagramIndex): ValidationIssue[] {
+  if (d.edges.length === 0 || !GRAPH_LAYOUTS.has(d.layout.algorithm)) return [];
   return d.nodes
     .filter(
       (n) =>
@@ -79,6 +89,8 @@ function overlaps(d: Diagram): ValidationIssue[] {
       const a = placed[i];
       const b = placed[j];
       if (!a || !b || a.node.parent !== b.node.parent) continue;
+      // Explicitly intersecting cells are intentional overlap (venn, callouts): not a defect.
+      if (a.node.cell && b.node.cell && cellsIntersect(a.node.cell, b.node.cell)) continue;
       if (rectsIntersect(a.rect, b.rect)) {
         issues.push(
           warn(

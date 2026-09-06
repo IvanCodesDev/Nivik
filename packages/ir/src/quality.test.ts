@@ -7,6 +7,19 @@ const warnings = (d: Parameters<typeof validateDiagram>[0], code?: string) =>
   validateDiagram(d).warnings.filter((issue) => code === undefined || issue.code === code);
 
 const box = (x: number, y: number, w = 100, h = 50) => ({ position: { x, y }, size: { w, h } });
+const grid = {
+  algorithm: 'grid',
+  direction: 'RIGHT',
+  spacing: 'normal',
+  edgeRouting: 'orthogonal',
+  autoLayout: true,
+} as const;
+const cell = (col: number, row: number, colSpan = 1, rowSpan = 1) => ({
+  col,
+  row,
+  colSpan,
+  rowSpan,
+});
 
 describe('validateDiagram — quality warnings', () => {
   it('reports no warnings for the order platform fixture and keeps ok=true', () => {
@@ -170,5 +183,68 @@ describe('validateDiagram — quality warnings', () => {
       edges: [edge('r1', 'users', 'cache', { type: 'relation', data: { cardinality: '1-n' } })],
     });
     expect(warnings(erd, 'W_TYPE_MISMATCH')).toEqual([expect.objectContaining({ ids: ['cache'] })]);
+  });
+
+  it('W_ORPHAN_NODE is silent for edge-less diagrams and non-graph layouts (spec 01 §6.2)', () => {
+    const noEdges = diagram({ type: 'swot', nodes: [node('a', 'A'), node('b', 'B')] });
+    expect(warnings(noEdges, 'W_ORPHAN_NODE')).toEqual([]);
+
+    const nodes = [node('a', 'A'), node('b', 'B'), node('lonely', 'Lonely')];
+    const edges = [edge('e1', 'a', 'b')];
+    expect(warnings(diagram({ layout: grid, nodes, edges }), 'W_ORPHAN_NODE')).toEqual([]);
+    expect(
+      warnings(
+        diagram({ layout: { ...grid, algorithm: 'sequence' }, nodes, edges }),
+        'W_ORPHAN_NODE',
+      ),
+    ).toEqual([]);
+    expect(
+      warnings(
+        diagram({ layout: { ...grid, algorithm: 'radial' }, nodes, edges }),
+        'W_ORPHAN_NODE',
+      ).map((issue) => issue.ids),
+    ).toEqual([['lonely']]);
+
+    const withLine = diagram({
+      nodes: [...nodes.slice(0, 2), node('axis', '', { type: 'line' })],
+      edges,
+    });
+    expect(warnings(withLine, 'W_ORPHAN_NODE')).toEqual([]);
+  });
+
+  it('W_OVERLAP skips siblings whose explicit cells intersect: that overlap is intentional', () => {
+    const d = diagram({
+      type: 'venn',
+      layout: grid,
+      nodes: [
+        node('a', 'A', { ...box(0, 0, 200, 200), cell: cell(0, 0, 2, 2) }),
+        node('b', 'B', { ...box(100, 0, 200, 200), cell: cell(1, 0, 2, 2) }),
+        node('c', 'C', { ...box(150, 150), cell: cell(5, 5) }),
+        node('d', 'D', box(160, 160)),
+      ],
+    });
+    expect(warnings(d, 'W_OVERLAP').map((issue) => issue.ids)).toEqual([
+      ['a', 'c'],
+      ['a', 'd'],
+      ['b', 'c'],
+      ['b', 'd'],
+      ['c', 'd'],
+    ]);
+  });
+
+  it('W_TYPE_MISMATCH knows only the four well-known strict types; open types and lines never mismatch', () => {
+    const swot = diagram({
+      type: 'swot',
+      nodes: [node('a', 'A', { type: 'text' }), node('b', 'B', { type: 'cylinder' })],
+    });
+    expect(warnings(swot, 'W_TYPE_MISMATCH')).toEqual([]);
+    const sequence = diagram({
+      type: 'sequence',
+      nodes: [
+        node('u', 'User', { type: 'participant', data: { kind: 'actor' } }),
+        node('axis', '', { type: 'line' }),
+      ],
+    });
+    expect(warnings(sequence, 'W_TYPE_MISMATCH')).toEqual([]);
   });
 });

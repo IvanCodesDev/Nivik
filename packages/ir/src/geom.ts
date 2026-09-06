@@ -1,4 +1,4 @@
-import type { Point, Rect, Size } from './schema/geometry';
+import type { Cell, Point, Rect, Size } from './schema/geometry';
 
 /** Bounding rect of a laid-out element, or null when position/size are not both present. */
 export function rectOf(element: { position?: Point; size?: Size }): Rect | null {
@@ -17,6 +17,16 @@ export function rectContains(outer: Rect, inner: Rect): boolean {
     inner.y >= outer.y &&
     inner.x + inner.w <= outer.x + outer.w &&
     inner.y + inner.h <= outer.y + outer.h
+  );
+}
+
+/** Do two cell ranges share at least one cell? Spans are counts, so `[col, col + colSpan)` is the range. */
+export function cellsIntersect(a: Cell, b: Cell): boolean {
+  return (
+    a.col < b.col + b.colSpan &&
+    b.col < a.col + a.colSpan &&
+    a.row < b.row + b.rowSpan &&
+    b.row < a.row + a.rowSpan
   );
 }
 

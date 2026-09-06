@@ -1,4 +1,4 @@
-import { DiagramSchema, DiagramTypeSchema, IdSchema, RendererIdSchema } from '@nivik/ir';
+import { DiagramSchema, IdSchema, RendererIdSchema } from '@nivik/ir';
 import { z } from 'zod';
 
 export const RUN_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
@@ -32,10 +32,16 @@ export const ResolvedSourceSchema = z.object({
 });
 export type ResolvedSource = z.infer<typeof ResolvedSourceSchema>;
 
-export const RunHintsSchema = z.object({
-  diagramType: DiagramTypeSchema.optional(),
-  renderer: RendererIdSchema,
-});
+/**
+ * Only what the agent cannot infer from the prompt and the document. The diagram type is
+ * deliberately absent: it is a plan-stage decision (spec 05 §3), never a client preset. Strict so
+ * a stray `diagramType` is rejected at the boundary instead of being silently dropped.
+ */
+export const RunHintsSchema = z
+  .object({
+    renderer: RendererIdSchema,
+  })
+  .strict();
 export type RunHints = z.infer<typeof RunHintsSchema>;
 
 /** Wire form of spec 05 §2 `RunInput`. Validated on both ends of the transport. */

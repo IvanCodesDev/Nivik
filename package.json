@@ -16,6 +16,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
+    "deps": "depcruise apps packages --config .dependency-cruiser.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepare": "node .githooks/install.mjs",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
+    "dependency-cruiser": "18.2.0",
     "typescript": "5.9.3",
     "vitest": "5.0.0"
   }

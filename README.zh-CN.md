@@ -122,6 +122,7 @@ pnpm dev:agent
 | `pnpm lint`        | 使用 Biome 检查格式和 Lint 规则。     |
 | `pnpm lint:fix`    | 应用安全的 Biome 格式化和 Lint 修复。   |
 | `pnpm test`        | 运行 Vitest 测试套件。             |
+| `pnpm deps`        | 使用 dependency-cruiser 校验包依赖方向。 |
 | `pnpm hooks:check` | 不创建提交，直接检查当前暂存区是否符合仓库策略。    |
 
 

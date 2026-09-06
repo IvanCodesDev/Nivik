@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./apps/web/*"]
+    }
+  },
+  "include": ["apps", "packages"],
+  "exclude": ["**/node_modules", "**/.next", "**/dist", "**/coverage"]
+}

@@ -113,6 +113,7 @@ pnpm dev:agent
 | `pnpm lint` | Check formatting and lint rules with Biome. |
 | `pnpm lint:fix` | Apply safe Biome formatting and lint fixes. |
 | `pnpm test` | Run the Vitest test suite. |
+| `pnpm deps` | Verify package dependency direction with dependency-cruiser. |
 | `pnpm hooks:check` | Run repository pre-commit policy checks without committing. |
 
 ## Configuration

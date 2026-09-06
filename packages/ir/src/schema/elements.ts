@@ -23,50 +23,57 @@ export const ElementMetaSchema = z.object({
 });
 export type ElementMeta = z.infer<typeof ElementMetaSchema>;
 
-const FreeFormDataSchema = z.record(z.string(), z.unknown());
+export const FreeFormDataSchema = z.record(z.string(), z.unknown());
 
-export const DiagramNodeSchema = z
-  .object({
-    id: IdSchema,
-    type: NodeTypeSchema,
-    label: z.string().max(200),
-    description: z.string().max(1000).optional(),
-    role: RoleSchema.optional(),
-    parent: IdSchema.nullable().default(null),
-    position: PointSchema.optional(),
-    size: SizeSchema.optional(),
-    pinned: z.boolean().default(false),
-    style: StyleTokensSchema.optional(),
-    data: FreeFormDataSchema.optional(),
-    semantic: z
-      .object({
-        tags: z.array(z.string().max(32)).max(16).optional(),
-        note: z.string().max(500).optional(),
-        sourceRef: z.string().max(200).optional(),
-      })
-      .optional(),
-    meta: ElementMetaSchema,
-  })
-  .superRefine((node, ctx) => refineTypedData(NODE_DATA_SCHEMAS, node, ctx));
+export const NodeSemanticSchema = z.object({
+  tags: z.array(z.string().max(32)).max(16).optional(),
+  note: z.string().max(500).optional(),
+  sourceRef: z.string().max(200).optional(),
+});
+
+/** Node shape without the per-type `data` refinement; the Change Set input variants derive from it. */
+export const DiagramNodeBaseSchema = z.object({
+  id: IdSchema,
+  type: NodeTypeSchema,
+  label: z.string().max(200),
+  description: z.string().max(1000).optional(),
+  role: RoleSchema.optional(),
+  parent: IdSchema.nullable().default(null),
+  position: PointSchema.optional(),
+  size: SizeSchema.optional(),
+  pinned: z.boolean().default(false),
+  style: StyleTokensSchema.optional(),
+  data: FreeFormDataSchema.optional(),
+  semantic: NodeSemanticSchema.optional(),
+  meta: ElementMetaSchema,
+});
+
+export const DiagramNodeSchema = DiagramNodeBaseSchema.superRefine((node, ctx) =>
+  refineTypedData(NODE_DATA_SCHEMAS, node, ctx),
+);
 export type DiagramNode = z.infer<typeof DiagramNodeSchema>;
 export type DiagramNodeInput = z.input<typeof DiagramNodeSchema>;
 
-export const DiagramEdgeSchema = z
-  .object({
-    id: IdSchema,
-    source: IdSchema,
-    target: IdSchema,
-    type: EdgeTypeSchema.default('flow'),
-    label: z.string().max(120).optional(),
-    direction: EdgeDirectionSchema.default('forward'),
-    sourceSide: SideSchema.default('auto'),
-    targetSide: SideSchema.default('auto'),
-    route: z.object({ points: z.array(PointSchema).min(2) }).optional(),
-    style: StyleTokensSchema.optional(),
-    data: FreeFormDataSchema.optional(),
-    meta: ElementMetaSchema,
-  })
-  .superRefine((edge, ctx) => refineTypedData(EDGE_DATA_SCHEMAS, edge, ctx));
+export const EdgeRouteSchema = z.object({ points: z.array(PointSchema).min(2) });
+
+export const DiagramEdgeBaseSchema = z.object({
+  id: IdSchema,
+  source: IdSchema,
+  target: IdSchema,
+  type: EdgeTypeSchema.default('flow'),
+  label: z.string().max(120).optional(),
+  direction: EdgeDirectionSchema.default('forward'),
+  sourceSide: SideSchema.default('auto'),
+  targetSide: SideSchema.default('auto'),
+  route: EdgeRouteSchema.optional(),
+  style: StyleTokensSchema.optional(),
+  data: FreeFormDataSchema.optional(),
+  meta: ElementMetaSchema,
+});
+
+export const DiagramEdgeSchema = DiagramEdgeBaseSchema.superRefine((edge, ctx) =>
+  refineTypedData(EDGE_DATA_SCHEMAS, edge, ctx),
+);
 export type DiagramEdge = z.infer<typeof DiagramEdgeSchema>;
 export type DiagramEdgeInput = z.input<typeof DiagramEdgeSchema>;
 

@@ -1,3 +1,4 @@
+export * from './changeset';
 export * from './geom';
 export * from './helpers';
 export * from './ids';

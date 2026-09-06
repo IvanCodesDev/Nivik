@@ -13,6 +13,7 @@
     "@nivik/agent": "workspace:*",
     "@nivik/ir": "workspace:*",
     "@nivik/protocol": "workspace:*",
+    "@nivik/templates": "workspace:*",
     "@nivik/ui": "workspace:*",
     "@phosphor-icons/react": "2.1.10",
     "next": "16.3.4",

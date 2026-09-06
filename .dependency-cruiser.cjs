@@ -60,6 +60,12 @@ module.exports = {
       to: { path: '^packages/', pathNot: '^packages/(storage|ir)/' },
     },
     {
+      name: 'templates-depend-only-on-ir',
+      severity: 'error',
+      from: { path: '^packages/templates/' },
+      to: { path: '^packages/', pathNot: '^packages/(templates|ir)/' },
+    },
+    {
       name: 'formats-depend-only-on-ir',
       severity: 'error',
       from: { path: '^packages/(format-[^/]+)/' },
@@ -94,7 +100,7 @@ module.exports = {
       name: 'isomorphic-packages-no-node-builtins',
       severity: 'error',
       comment: 'These packages run in browser Workers as well as Node; host access is injected.',
-      from: { path: '^packages/(agent|protocol|ir)/src/', pathNot: '\\.test\\.tsx?$' },
+      from: { path: '^packages/(agent|protocol|ir|templates)/src/', pathNot: '\\.test\\.tsx?$' },
       to: { dependencyTypes: ['core'] },
     },
   ],

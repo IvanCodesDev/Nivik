@@ -1,0 +1,607 @@
+{
+  "schema": "nivik.diagram/1",
+  "id": "tpl_journey",
+  "name": "Customer Journey Map",
+  "type": "flow",
+  "description": "Map the customer experience from awareness to advocacy, including touchpoints and customer actions.",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "awareness",
+      "type": "box",
+      "label": "Awareness",
+      "role": "stage",
+      "parent": null,
+      "position": {
+        "x": 10,
+        "y": 80
+      },
+      "size": {
+        "w": 184,
+        "h": 70
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "discover-product",
+      "type": "rounded",
+      "label": "Discover product",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 10,
+        "y": 230
+      },
+      "size": {
+        "w": 184,
+        "h": 84
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "ad-social-media",
+      "type": "rounded",
+      "label": "Ad / Social Media",
+      "role": "touchpoint",
+      "parent": null,
+      "position": {
+        "x": 10,
+        "y": 386
+      },
+      "size": {
+        "w": 184,
+        "h": 84
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "consideration",
+      "type": "box",
+      "label": "Consideration",
+      "role": "stage",
+      "parent": null,
+      "position": {
+        "x": 210,
+        "y": 80
+      },
+      "size": {
+        "w": 184,
+        "h": 70
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "compare-options",
+      "type": "rounded",
+      "label": "Compare options",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 210,
+        "y": 230
+      },
+      "size": {
+        "w": 184,
+        "h": 84
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "reviews-research",
+      "type": "rounded",
+      "label": "Reviews / Research",
+      "role": "touchpoint",
+      "parent": null,
+      "position": {
+        "x": 210,
+        "y": 386
+      },
+      "size": {
+        "w": 184,
+        "h": 84
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "purchase",
+      "type": "box",
+      "label": "Purchase",
+      "role": "stage",
+      "parent": null,
+      "position": {
+        "x": 410,
+        "y": 80
+      },
+      "size": {
+        "w": 184,
+        "h": 70
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "make-purchase",
+      "type": "rounded",
+      "label": "Make purchase",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 410,
+        "y": 230
+      },
+      "size": {
+        "w": 184,
+        "h": 84
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "checkout-process",
+      "type": "rounded",
+      "label": "Checkout Process",
+      "role": "touchpoint",
+      "parent": null,
+      "position": {
+        "x": 410,
+        "y": 386
+      },
+      "size": {
+        "w": 184,
+        "h": 84
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "retention",
+      "type": "box",
+      "label": "Retention",
+      "role": "stage",
+      "parent": null,
+      "position": {
+        "x": 610,
+        "y": 80
+      },
+      "size": {
+        "w": 184,
+        "h": 70
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "use-product",
+      "type": "rounded",
+      "label": "Use product",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 610,
+        "y": 230
+      },
+      "size": {
+        "w": 184,
+        "h": 84
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "support-help-center",
+      "type": "rounded",
+      "label": "Support / Help Center",
+      "role": "touchpoint",
+      "parent": null,
+      "position": {
+        "x": 610,
+        "y": 386
+      },
+      "size": {
+        "w": 184,
+        "h": 84
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "advocacy",
+      "type": "box",
+      "label": "Advocacy",
+      "role": "stage",
+      "parent": null,
+      "position": {
+        "x": 810,
+        "y": 80
+      },
+      "size": {
+        "w": 184,
+        "h": 70
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "recommend-product",
+      "type": "rounded",
+      "label": "Recommend product",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 810,
+        "y": 230
+      },
+      "size": {
+        "w": 184,
+        "h": 84
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "share-feedback",
+      "type": "rounded",
+      "label": "Share / Feedback",
+      "role": "touchpoint",
+      "parent": null,
+      "position": {
+        "x": 810,
+        "y": 386
+      },
+      "size": {
+        "w": 184,
+        "h": 84
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "awareness",
+      "target": "discover-product",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e2",
+      "source": "discover-product",
+      "target": "ad-social-media",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e3",
+      "source": "consideration",
+      "target": "compare-options",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e4",
+      "source": "compare-options",
+      "target": "reviews-research",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e5",
+      "source": "awareness",
+      "target": "consideration",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e6",
+      "source": "purchase",
+      "target": "make-purchase",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e7",
+      "source": "make-purchase",
+      "target": "checkout-process",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e8",
+      "source": "consideration",
+      "target": "purchase",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e9",
+      "source": "retention",
+      "target": "use-product",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e10",
+      "source": "use-product",
+      "target": "support-help-center",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e11",
+      "source": "purchase",
+      "target": "retention",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e12",
+      "source": "advocacy",
+      "target": "recommend-product",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e13",
+      "source": "recommend-product",
+      "target": "share-feedback",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e14",
+      "source": "retention",
+      "target": "advocacy",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "groups": [],
+  "layout": {
+    "algorithm": "layered",
+    "direction": "RIGHT",
+    "spacing": "normal",
+    "edgeRouting": "orthogonal",
+    "autoLayout": true
+  },
+  "theme": {
+    "preset": "nivik-soft",
+    "strokeStyle": "clean",
+    "fontScale": "m"
+  },
+  "renderer": {
+    "preferred": "excalidraw",
+    "state": {}
+  },
+  "sources": [],
+  "semantic": {
+    "tags": ["template", "customer-journey", "ux"]
+  },
+  "meta": {
+    "createdAt": 1788652800000,
+    "updatedAt": 1788652800000
+  }
+}

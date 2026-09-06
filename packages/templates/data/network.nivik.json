@@ -1,0 +1,213 @@
+{
+  "schema": "nivik.diagram/1",
+  "id": "tpl_network",
+  "name": "Infrastructure Network",
+  "type": "architecture",
+  "description": "A virtual private cloud with public, application, and database subnets protected by a firewall.",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "internet",
+      "type": "box",
+      "label": "Internet",
+      "role": "external",
+      "parent": null,
+      "position": {
+        "x": 380,
+        "y": 30
+      },
+      "size": {
+        "w": 240,
+        "h": 70
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "firewall",
+      "type": "box",
+      "label": "Firewall",
+      "role": "firewall",
+      "parent": null,
+      "position": {
+        "x": 380,
+        "y": 164
+      },
+      "size": {
+        "w": 240,
+        "h": 70
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "public-subnet",
+      "type": "rounded",
+      "label": "Public Subnet\nLoad Balancer",
+      "role": "lb",
+      "parent": null,
+      "position": {
+        "x": 50,
+        "y": 400
+      },
+      "size": {
+        "w": 270,
+        "h": 150
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "private-subnet",
+      "type": "rounded",
+      "label": "Private Subnet\nApp Servers",
+      "role": "service",
+      "parent": null,
+      "position": {
+        "x": 360,
+        "y": 400
+      },
+      "size": {
+        "w": 270,
+        "h": 150
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "db-subnet",
+      "type": "cylinder",
+      "label": "DB Subnet\nDatabase",
+      "role": "database",
+      "parent": null,
+      "position": {
+        "x": 680,
+        "y": 400
+      },
+      "size": {
+        "w": 270,
+        "h": 150
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "internet",
+      "target": "firewall",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e2",
+      "source": "firewall",
+      "target": "public-subnet",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e3",
+      "source": "public-subnet",
+      "target": "private-subnet",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e4",
+      "source": "private-subnet",
+      "target": "db-subnet",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "groups": [],
+  "layout": {
+    "algorithm": "layered",
+    "direction": "DOWN",
+    "spacing": "normal",
+    "edgeRouting": "orthogonal",
+    "autoLayout": true
+  },
+  "theme": {
+    "preset": "nivik-soft",
+    "strokeStyle": "clean",
+    "fontScale": "m"
+  },
+  "renderer": {
+    "preferred": "excalidraw",
+    "state": {}
+  },
+  "sources": [],
+  "semantic": {
+    "tags": ["template", "network", "vpc"]
+  },
+  "meta": {
+    "createdAt": 1788652800000,
+    "updatedAt": 1788652800000
+  }
+}

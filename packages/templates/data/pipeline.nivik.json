@@ -1,0 +1,279 @@
+{
+  "schema": "nivik.diagram/1",
+  "id": "tpl_pipeline",
+  "name": "CI/CD Pipeline",
+  "type": "flow",
+  "description": "Automate builds, tests, staging deployments, and release checks before shipping to production.",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "code-commit",
+      "type": "rounded",
+      "label": "Code Commit",
+      "role": "start",
+      "parent": null,
+      "position": {
+        "x": 30,
+        "y": 220
+      },
+      "size": {
+        "w": 140,
+        "h": 100
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "build",
+      "type": "rounded",
+      "label": "Build",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 220,
+        "y": 220
+      },
+      "size": {
+        "w": 120,
+        "h": 100
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "test",
+      "type": "rounded",
+      "label": "Test",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 390,
+        "y": 220
+      },
+      "size": {
+        "w": 120,
+        "h": 100
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "deploy-to-staging",
+      "type": "rounded",
+      "label": "Deploy to\nStaging",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 560,
+        "y": 220
+      },
+      "size": {
+        "w": 150,
+        "h": 100
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "tests-pass",
+      "type": "diamond",
+      "label": "Tests Pass?",
+      "role": "decision",
+      "parent": null,
+      "position": {
+        "x": 750,
+        "y": 204
+      },
+      "size": {
+        "w": 170,
+        "h": 132
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sand"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "production",
+      "type": "rounded",
+      "label": "Production",
+      "role": "end",
+      "parent": null,
+      "position": {
+        "x": 970,
+        "y": 220
+      },
+      "size": {
+        "w": 180,
+        "h": 100
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "code-commit",
+      "target": "build",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e2",
+      "source": "build",
+      "target": "test",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e3",
+      "source": "test",
+      "target": "deploy-to-staging",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e4",
+      "source": "deploy-to-staging",
+      "target": "tests-pass",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e5",
+      "source": "tests-pass",
+      "target": "production",
+      "type": "flow",
+      "label": "Yes",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e6",
+      "source": "tests-pass",
+      "target": "test",
+      "type": "flow",
+      "label": "No",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "groups": [],
+  "layout": {
+    "algorithm": "layered",
+    "direction": "RIGHT",
+    "spacing": "normal",
+    "edgeRouting": "orthogonal",
+    "autoLayout": true
+  },
+  "theme": {
+    "preset": "nivik-soft",
+    "strokeStyle": "clean",
+    "fontScale": "m"
+  },
+  "renderer": {
+    "preferred": "excalidraw",
+    "state": {}
+  },
+  "sources": [],
+  "semantic": {
+    "tags": ["template", "ci-cd", "devops"]
+  },
+  "meta": {
+    "createdAt": 1788652800000,
+    "updatedAt": 1788652800000
+  }
+}

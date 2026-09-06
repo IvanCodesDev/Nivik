@@ -1,0 +1,313 @@
+{
+  "schema": "nivik.diagram/1",
+  "id": "tpl_validation",
+  "name": "Data Validation Flow",
+  "type": "flow",
+  "description": "Validate incoming data, handle errors, and process clean results through a clear decision flow.",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "start",
+      "type": "ellipse",
+      "label": "Start",
+      "role": "start",
+      "parent": null,
+      "position": {
+        "x": 310,
+        "y": 20
+      },
+      "size": {
+        "w": 180,
+        "h": 60
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "input-data",
+      "type": "rounded",
+      "label": "Input Data",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 270,
+        "y": 140
+      },
+      "size": {
+        "w": 260,
+        "h": 70
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "is-data-valid",
+      "type": "diamond",
+      "label": "Is Data Valid?",
+      "role": "decision",
+      "parent": null,
+      "position": {
+        "x": 270,
+        "y": 290
+      },
+      "size": {
+        "w": 260,
+        "h": 116
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sand"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "show-error",
+      "type": "rounded",
+      "label": "Show Error",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 640,
+        "y": 312
+      },
+      "size": {
+        "w": 240,
+        "h": 72
+      },
+      "pinned": false,
+      "style": {
+        "palette": "rose"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "process-data",
+      "type": "rounded",
+      "label": "Process Data",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 270,
+        "y": 490
+      },
+      "size": {
+        "w": 260,
+        "h": 70
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "output-result",
+      "type": "rounded",
+      "label": "Output Result",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 270,
+        "y": 620
+      },
+      "size": {
+        "w": 260,
+        "h": 70
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "end",
+      "type": "ellipse",
+      "label": "End",
+      "role": "end",
+      "parent": null,
+      "position": {
+        "x": 310,
+        "y": 760
+      },
+      "size": {
+        "w": 180,
+        "h": 60
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "start",
+      "target": "input-data",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e2",
+      "source": "input-data",
+      "target": "is-data-valid",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e3",
+      "source": "is-data-valid",
+      "target": "show-error",
+      "type": "flow",
+      "label": "No",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e4",
+      "source": "is-data-valid",
+      "target": "process-data",
+      "type": "flow",
+      "label": "Yes",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e5",
+      "source": "process-data",
+      "target": "output-result",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e6",
+      "source": "output-result",
+      "target": "end",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e7",
+      "source": "show-error",
+      "target": "output-result",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "groups": [],
+  "layout": {
+    "algorithm": "layered",
+    "direction": "DOWN",
+    "spacing": "normal",
+    "edgeRouting": "orthogonal",
+    "autoLayout": true
+  },
+  "theme": {
+    "preset": "nivik-soft",
+    "strokeStyle": "clean",
+    "fontScale": "m"
+  },
+  "renderer": {
+    "preferred": "excalidraw",
+    "state": {}
+  },
+  "sources": [],
+  "semantic": {
+    "tags": ["template", "validation", "data"]
+  },
+  "meta": {
+    "createdAt": 1788652800000,
+    "updatedAt": 1788652800000
+  }
+}

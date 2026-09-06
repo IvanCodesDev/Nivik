@@ -69,7 +69,12 @@
   },
   "overrides": [
     {
-      "includes": ["packages/agent/src/**", "packages/protocol/src/**", "packages/ir/src/**"],
+      "includes": [
+        "packages/agent/src/**",
+        "packages/protocol/src/**",
+        "packages/ir/src/**",
+        "packages/templates/src/**"
+      ],
       "linter": {
         "rules": {
           "style": {

@@ -1,0 +1,262 @@
+{
+  "schema": "nivik.diagram/1",
+  "id": "tpl_database",
+  "name": "Database Schema (ERD)",
+  "type": "erd",
+  "description": "A relational schema for customers, orders, products, and line items with primary and foreign keys.",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "users",
+      "type": "entity",
+      "label": "users",
+      "parent": null,
+      "position": {
+        "x": 40,
+        "y": 50
+      },
+      "size": {
+        "w": 250,
+        "h": 280
+      },
+      "pinned": false,
+      "data": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "int",
+            "pk": true
+          },
+          {
+            "name": "name",
+            "type": "text"
+          },
+          {
+            "name": "email",
+            "type": "text"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp"
+          }
+        ]
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "orders",
+      "type": "entity",
+      "label": "orders",
+      "parent": null,
+      "position": {
+        "x": 380,
+        "y": 50
+      },
+      "size": {
+        "w": 250,
+        "h": 280
+      },
+      "pinned": false,
+      "data": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "int",
+            "pk": true
+          },
+          {
+            "name": "user_id",
+            "type": "int",
+            "fk": "users"
+          },
+          {
+            "name": "status",
+            "type": "text"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp"
+          }
+        ]
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "order-items",
+      "type": "entity",
+      "label": "order_items",
+      "parent": null,
+      "position": {
+        "x": 710,
+        "y": 50
+      },
+      "size": {
+        "w": 260,
+        "h": 280
+      },
+      "pinned": false,
+      "data": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "int",
+            "pk": true
+          },
+          {
+            "name": "order_id",
+            "type": "int",
+            "fk": "orders"
+          },
+          {
+            "name": "product_id",
+            "type": "int",
+            "fk": "products"
+          },
+          {
+            "name": "quantity",
+            "type": "int"
+          }
+        ]
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "products",
+      "type": "entity",
+      "label": "products",
+      "parent": null,
+      "position": {
+        "x": 710,
+        "y": 440
+      },
+      "size": {
+        "w": 260,
+        "h": 270
+      },
+      "pinned": false,
+      "data": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "int",
+            "pk": true
+          },
+          {
+            "name": "name",
+            "type": "text"
+          },
+          {
+            "name": "price",
+            "type": "numeric"
+          },
+          {
+            "name": "stock",
+            "type": "int"
+          }
+        ]
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "users",
+      "target": "orders",
+      "type": "relation",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "data": {
+        "cardinality": "1-n"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e2",
+      "source": "orders",
+      "target": "order-items",
+      "type": "relation",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "data": {
+        "cardinality": "1-n"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e3",
+      "source": "order-items",
+      "target": "products",
+      "type": "relation",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "data": {
+        "cardinality": "n-1"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "groups": [],
+  "layout": {
+    "algorithm": "layered",
+    "direction": "RIGHT",
+    "spacing": "normal",
+    "edgeRouting": "orthogonal",
+    "autoLayout": true
+  },
+  "theme": {
+    "preset": "nivik-soft",
+    "strokeStyle": "clean",
+    "fontScale": "m"
+  },
+  "renderer": {
+    "preferred": "excalidraw",
+    "state": {}
+  },
+  "sources": [],
+  "semantic": {
+    "tags": ["template", "erd", "orders"]
+  },
+  "meta": {
+    "createdAt": 1788652800000,
+    "updatedAt": 1788652800000
+  }
+}

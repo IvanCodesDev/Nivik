@@ -1,0 +1,310 @@
+{
+  "schema": "nivik.diagram/1",
+  "id": "tpl_authentication",
+  "name": "User Authentication Flow",
+  "type": "flow",
+  "description": "A secure sign-in flow with credential validation, session creation, and error handling.",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "start",
+      "type": "ellipse",
+      "label": "Start",
+      "role": "start",
+      "parent": null,
+      "position": {
+        "x": 320,
+        "y": 20
+      },
+      "size": {
+        "w": 190,
+        "h": 60
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "enter-credentials",
+      "type": "rounded",
+      "label": "Enter credentials",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 270,
+        "y": 136
+      },
+      "size": {
+        "w": 290,
+        "h": 70
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "valid-user",
+      "type": "diamond",
+      "label": "Valid user?",
+      "role": "decision",
+      "parent": null,
+      "position": {
+        "x": 274,
+        "y": 278
+      },
+      "size": {
+        "w": 284,
+        "h": 116
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sand"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "show-error",
+      "type": "rounded",
+      "label": "Show error",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 660,
+        "y": 300
+      },
+      "size": {
+        "w": 240,
+        "h": 76
+      },
+      "pinned": false,
+      "style": {
+        "palette": "rose"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "create-session",
+      "type": "rounded",
+      "label": "Create session",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 270,
+        "y": 476
+      },
+      "size": {
+        "w": 290,
+        "h": 70
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "redirect-to-dashboard",
+      "type": "rounded",
+      "label": "Redirect to dashboard",
+      "role": "process",
+      "parent": null,
+      "position": {
+        "x": 230,
+        "y": 620
+      },
+      "size": {
+        "w": 370,
+        "h": 70
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "end",
+      "type": "ellipse",
+      "label": "End",
+      "role": "end",
+      "parent": null,
+      "position": {
+        "x": 320,
+        "y": 760
+      },
+      "size": {
+        "w": 190,
+        "h": 60
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "start",
+      "target": "enter-credentials",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e2",
+      "source": "enter-credentials",
+      "target": "valid-user",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e3",
+      "source": "valid-user",
+      "target": "show-error",
+      "type": "flow",
+      "label": "No",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e4",
+      "source": "valid-user",
+      "target": "create-session",
+      "type": "flow",
+      "label": "Yes",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e5",
+      "source": "create-session",
+      "target": "redirect-to-dashboard",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e6",
+      "source": "redirect-to-dashboard",
+      "target": "end",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e7",
+      "source": "show-error",
+      "target": "enter-credentials",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "groups": [],
+  "layout": {
+    "algorithm": "layered",
+    "direction": "DOWN",
+    "spacing": "normal",
+    "edgeRouting": "orthogonal",
+    "autoLayout": true
+  },
+  "theme": {
+    "preset": "nivik-soft",
+    "strokeStyle": "clean",
+    "fontScale": "m"
+  },
+  "renderer": {
+    "preferred": "excalidraw",
+    "state": {}
+  },
+  "sources": [],
+  "semantic": {
+    "tags": ["template", "auth", "login"]
+  },
+  "meta": {
+    "createdAt": 1788652800000,
+    "updatedAt": 1788652800000
+  }
+}

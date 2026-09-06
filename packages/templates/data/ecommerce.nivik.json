@@ -1,0 +1,465 @@
+{
+  "schema": "nivik.diagram/1",
+  "id": "tpl_ecommerce",
+  "name": "E-commerce System",
+  "type": "architecture",
+  "description": "A scalable storefront connecting product, order, and payment services to a shared data layer.",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "users",
+      "type": "rounded",
+      "label": "Users",
+      "role": "user",
+      "parent": null,
+      "position": {
+        "x": 400,
+        "y": 20
+      },
+      "size": {
+        "w": 200,
+        "h": 70
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "load-balancer",
+      "type": "rounded",
+      "label": "Load Balancer",
+      "role": "lb",
+      "parent": null,
+      "position": {
+        "x": 350,
+        "y": 150
+      },
+      "size": {
+        "w": 300,
+        "h": 76
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "web-app",
+      "type": "rounded",
+      "label": "Web App",
+      "role": "web",
+      "parent": "services",
+      "position": {
+        "x": 30,
+        "y": 310
+      },
+      "size": {
+        "w": 210,
+        "h": 76
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "product-service",
+      "type": "rounded",
+      "label": "Product Service",
+      "role": "service",
+      "parent": "services",
+      "position": {
+        "x": 270,
+        "y": 310
+      },
+      "size": {
+        "w": 210,
+        "h": 76
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "order-service",
+      "type": "rounded",
+      "label": "Order Service",
+      "role": "service",
+      "parent": "services",
+      "position": {
+        "x": 510,
+        "y": 310
+      },
+      "size": {
+        "w": 210,
+        "h": 76
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "payment-service",
+      "type": "rounded",
+      "label": "Payment Service",
+      "role": "service",
+      "parent": "services",
+      "position": {
+        "x": 750,
+        "y": 310
+      },
+      "size": {
+        "w": 220,
+        "h": 76
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "database",
+      "type": "cylinder",
+      "label": "Database",
+      "role": "database",
+      "parent": "data",
+      "position": {
+        "x": 30,
+        "y": 494
+      },
+      "size": {
+        "w": 210,
+        "h": 76
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "cache",
+      "type": "cylinder",
+      "label": "Cache",
+      "role": "cache",
+      "parent": "data",
+      "position": {
+        "x": 270,
+        "y": 494
+      },
+      "size": {
+        "w": 210,
+        "h": 76
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "message-queue",
+      "type": "hexagon",
+      "label": "Message Queue",
+      "role": "queue",
+      "parent": "data",
+      "position": {
+        "x": 510,
+        "y": 494
+      },
+      "size": {
+        "w": 210,
+        "h": 76
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "file-storage",
+      "type": "cylinder",
+      "label": "File Storage",
+      "role": "storage",
+      "parent": "data",
+      "position": {
+        "x": 750,
+        "y": 494
+      },
+      "size": {
+        "w": 220,
+        "h": 76
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "users",
+      "target": "load-balancer",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e2",
+      "source": "load-balancer",
+      "target": "web-app",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e3",
+      "source": "load-balancer",
+      "target": "product-service",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e4",
+      "source": "load-balancer",
+      "target": "order-service",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e5",
+      "source": "load-balancer",
+      "target": "payment-service",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e6",
+      "source": "web-app",
+      "target": "database",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e7",
+      "source": "product-service",
+      "target": "cache",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e8",
+      "source": "order-service",
+      "target": "message-queue",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e9",
+      "source": "payment-service",
+      "target": "file-storage",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "services",
+      "label": "Services",
+      "role": "layer",
+      "parent": null,
+      "position": {
+        "x": 10,
+        "y": 290
+      },
+      "size": {
+        "w": 980,
+        "h": 116
+      },
+      "collapsed": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "data",
+      "label": "Data Layer",
+      "role": "layer",
+      "parent": null,
+      "position": {
+        "x": 10,
+        "y": 474
+      },
+      "size": {
+        "w": 980,
+        "h": 116
+      },
+      "collapsed": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "layout": {
+    "algorithm": "layered",
+    "direction": "DOWN",
+    "spacing": "normal",
+    "edgeRouting": "orthogonal",
+    "autoLayout": true
+  },
+  "theme": {
+    "preset": "nivik-soft",
+    "strokeStyle": "clean",
+    "fontScale": "m"
+  },
+  "renderer": {
+    "preferred": "excalidraw",
+    "state": {}
+  },
+  "sources": [],
+  "semantic": {
+    "tags": ["template", "ecommerce"]
+  },
+  "meta": {
+    "createdAt": 1788652800000,
+    "updatedAt": 1788652800000
+  }
+}

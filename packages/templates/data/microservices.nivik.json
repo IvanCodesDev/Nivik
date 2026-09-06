@@ -1,0 +1,664 @@
+{
+  "schema": "nivik.diagram/1",
+  "id": "tpl_microservices",
+  "name": "Microservices System Architecture",
+  "type": "architecture",
+  "description": "A comprehensive architecture for a scalable microservices system with API gateway, service mesh, data layer, and observability.",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "web-app",
+      "type": "rounded",
+      "label": "Web App",
+      "role": "web",
+      "parent": "clients",
+      "position": {
+        "x": 90,
+        "y": 50
+      },
+      "size": {
+        "w": 220,
+        "h": 90
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "mobile-app",
+      "type": "rounded",
+      "label": "Mobile App",
+      "role": "mobile",
+      "parent": "clients",
+      "position": {
+        "x": 390,
+        "y": 50
+      },
+      "size": {
+        "w": 220,
+        "h": 90
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "admin-portal",
+      "type": "rounded",
+      "label": "Admin Portal",
+      "role": "web",
+      "parent": "clients",
+      "position": {
+        "x": 690,
+        "y": 50
+      },
+      "size": {
+        "w": 220,
+        "h": 90
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "api-gateway",
+      "type": "rounded",
+      "label": "API Gateway",
+      "role": "gateway",
+      "parent": null,
+      "position": {
+        "x": 330,
+        "y": 224
+      },
+      "size": {
+        "w": 340,
+        "h": 90
+      },
+      "pinned": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "user-service",
+      "type": "rounded",
+      "label": "User Service",
+      "role": "service",
+      "parent": "services",
+      "position": {
+        "x": 40,
+        "y": 430
+      },
+      "size": {
+        "w": 200,
+        "h": 96
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "order-service",
+      "type": "rounded",
+      "label": "Order Service",
+      "role": "service",
+      "parent": "services",
+      "position": {
+        "x": 280,
+        "y": 430
+      },
+      "size": {
+        "w": 200,
+        "h": 96
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "payment-service",
+      "type": "rounded",
+      "label": "Payment Service",
+      "role": "service",
+      "parent": "services",
+      "position": {
+        "x": 520,
+        "y": 430
+      },
+      "size": {
+        "w": 200,
+        "h": 96
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sand"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "inventory-service",
+      "type": "rounded",
+      "label": "Inventory Service",
+      "role": "service",
+      "parent": "services",
+      "position": {
+        "x": 760,
+        "y": 430
+      },
+      "size": {
+        "w": 200,
+        "h": 96
+      },
+      "pinned": false,
+      "style": {
+        "palette": "rose"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "postgresql",
+      "type": "cylinder",
+      "label": "PostgreSQL",
+      "role": "database",
+      "parent": "data",
+      "position": {
+        "x": 70,
+        "y": 660
+      },
+      "size": {
+        "w": 250,
+        "h": 96
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "redis-cache",
+      "type": "cylinder",
+      "label": "Redis Cache",
+      "role": "cache",
+      "parent": "data",
+      "position": {
+        "x": 380,
+        "y": 660
+      },
+      "size": {
+        "w": 240,
+        "h": 96
+      },
+      "pinned": false,
+      "style": {
+        "palette": "rose"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "s3-storage",
+      "type": "cylinder",
+      "label": "S3 Storage",
+      "role": "storage",
+      "parent": "data",
+      "position": {
+        "x": 680,
+        "y": 660
+      },
+      "size": {
+        "w": 250,
+        "h": 96
+      },
+      "pinned": false,
+      "style": {
+        "palette": "mint"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "kubernetes",
+      "type": "box",
+      "label": "Kubernetes",
+      "role": "platform",
+      "parent": "platform",
+      "position": {
+        "x": 60,
+        "y": 860
+      },
+      "size": {
+        "w": 270,
+        "h": 90
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "docker-registry",
+      "type": "box",
+      "label": "Docker Registry",
+      "role": "registry",
+      "parent": "platform",
+      "position": {
+        "x": 370,
+        "y": 860
+      },
+      "size": {
+        "w": 270,
+        "h": 90
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "ci-cd-pipeline",
+      "type": "box",
+      "label": "CI/CD Pipeline",
+      "role": "job",
+      "parent": "platform",
+      "position": {
+        "x": 680,
+        "y": 860
+      },
+      "size": {
+        "w": 270,
+        "h": 90
+      },
+      "pinned": false,
+      "style": {
+        "palette": "sky"
+      },
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "web-app",
+      "target": "api-gateway",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e2",
+      "source": "mobile-app",
+      "target": "api-gateway",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e3",
+      "source": "admin-portal",
+      "target": "api-gateway",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e4",
+      "source": "api-gateway",
+      "target": "user-service",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e5",
+      "source": "api-gateway",
+      "target": "order-service",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e6",
+      "source": "api-gateway",
+      "target": "payment-service",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e7",
+      "source": "api-gateway",
+      "target": "inventory-service",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e8",
+      "source": "user-service",
+      "target": "postgresql",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e9",
+      "source": "order-service",
+      "target": "redis-cache",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e10",
+      "source": "payment-service",
+      "target": "s3-storage",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e11",
+      "source": "postgresql",
+      "target": "kubernetes",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e12",
+      "source": "redis-cache",
+      "target": "docker-registry",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "e13",
+      "source": "s3-storage",
+      "target": "ci-cd-pipeline",
+      "type": "flow",
+      "direction": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "clients",
+      "label": "Clients",
+      "role": "layer",
+      "parent": null,
+      "position": {
+        "x": 66,
+        "y": 26
+      },
+      "size": {
+        "w": 868,
+        "h": 138
+      },
+      "collapsed": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "services",
+      "label": "Services",
+      "role": "layer",
+      "parent": null,
+      "position": {
+        "x": 16,
+        "y": 406
+      },
+      "size": {
+        "w": 968,
+        "h": 144
+      },
+      "collapsed": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "data",
+      "label": "Data Layer",
+      "role": "layer",
+      "parent": null,
+      "position": {
+        "x": 46,
+        "y": 636
+      },
+      "size": {
+        "w": 908,
+        "h": 144
+      },
+      "collapsed": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    },
+    {
+      "id": "platform",
+      "label": "Platform",
+      "role": "layer",
+      "parent": null,
+      "position": {
+        "x": 36,
+        "y": 836
+      },
+      "size": {
+        "w": 938,
+        "h": 138
+      },
+      "collapsed": false,
+      "meta": {
+        "createdBy": "import",
+        "createdAt": 1788652800000,
+        "updatedAt": 1788652800000,
+        "rev": 0
+      }
+    }
+  ],
+  "layout": {
+    "algorithm": "layered",
+    "direction": "DOWN",
+    "spacing": "normal",
+    "edgeRouting": "orthogonal",
+    "autoLayout": true
+  },
+  "theme": {
+    "preset": "nivik-soft",
+    "strokeStyle": "clean",
+    "fontScale": "m"
+  },
+  "renderer": {
+    "preferred": "excalidraw",
+    "state": {}
+  },
+  "sources": [],
+  "semantic": {
+    "tags": ["template", "microservices", "cloud"]
+  },
+  "meta": {
+    "createdAt": 1788652800000,
+    "updatedAt": 1788652800000
+  }
+}

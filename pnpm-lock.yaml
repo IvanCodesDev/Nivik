@@ -66,6 +66,9 @@ importers:
       '@nivik/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      '@nivik/templates':
+        specifier: workspace:*
+        version: link:../../packages/templates
       '@nivik/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -144,6 +147,16 @@ importers:
       zod:
         specifier: 4.5.4
         version: 4.5.4
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/templates:
+    dependencies:
+      '@nivik/ir':
+        specifier: workspace:*
+        version: link:../ir
     devDependencies:
       typescript:
         specifier: 5.9.3

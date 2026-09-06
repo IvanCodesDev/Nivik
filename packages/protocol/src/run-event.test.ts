@@ -162,6 +162,19 @@ describe('RunEventSchema', () => {
     ).toBe(true);
   });
 
+  it('lets the plan classify a diagram with a type outside the well-known vocabulary', () => {
+    const plan = {
+      intent: 'generate',
+      diagramType: 'customer-journey',
+      scope: { kind: 'all' },
+      summary: 'Customer journey for onboarding',
+      steps: [],
+      layout: { algorithm: 'grid' },
+      estimatedNodes: 12,
+    };
+    expect(RunEventSchema.safeParse({ type: 'plan', plan }).success).toBe(true);
+  });
+
   it('rejects unknown event types and stages', () => {
     expect(RunEventSchema.safeParse({ type: 'progress', value: 1 }).success).toBe(false);
     expect(RunEventSchema.safeParse({ type: 'status', stage: 'thinking' }).success).toBe(false);

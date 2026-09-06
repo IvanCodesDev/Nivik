@@ -13,6 +13,7 @@ import { type AgentDeps, createDefaultDeps } from '../deps';
 import { createRunContext } from '../harness/context';
 import { runPipeline, runStage } from '../harness/pipeline';
 import type { Stage } from '../harness/stage';
+import { diagramPatchFromPlan } from '../stages/plan-patch';
 import { splitSteps } from './steps';
 
 export interface MockAgentOptions {
@@ -44,9 +45,12 @@ export function createMockAgent(
       ctx.budget.addTokens({ inputTokens: estimateTokens(request.prompt), outputTokens: 60 });
 
       const steps = splitSteps(request.prompt);
+      const intent = request.diagram.nodes.length > 0 ? 'edit' : 'generate';
       const plan: Plan = {
-        intent: request.diagram.nodes.length > 0 ? 'edit' : 'generate',
-        diagramType: request.hints.diagramType ?? request.diagram.type,
+        intent,
+        // Classifying the diagram is the plan's job (spec 05 §3). The script always draws a step
+        // chain, so a fresh document becomes a flow; editing keeps whatever the diagram already is.
+        diagramType: intent === 'generate' ? 'flow' : request.diagram.type,
         scope: request.selection.length > 0 ? { kind: 'selection' } : { kind: 'all' },
         summary: `Sketch ${steps.length} step${steps.length === 1 ? '' : 's'} from your prompt`,
         steps: steps.map((step) => `Add "${step}"`),
@@ -70,6 +74,17 @@ export function createMockAgent(
       const ids = freshIds(request.diagram);
       const actions: AgentAction[] = [];
       let index = 0;
+
+      // The plan's classification and layout choice land in the IR as the first action of the same
+      // change set (spec 05 §4.5, 03 §3), so a `generic` fresh document is typed by the run that
+      // fills it and a convert carries its layout with it.
+      const fromPlan = diagramPatchFromPlan(plan, request.diagram);
+      if (fromPlan) {
+        const setDiagram: AgentAction = { op: 'setDiagram', patch: fromPlan };
+        actions.push(setDiagram);
+        yield { type: 'action', index: index++, action: setDiagram, ok: true };
+      }
+
       // Editing an existing diagram continues from its last node.
       let previous: Id | null = request.diagram.nodes.at(-1)?.id ?? null;
 

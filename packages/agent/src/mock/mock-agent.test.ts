@@ -12,8 +12,9 @@ const deps = createDefaultDeps({
   now: () => NOW,
 });
 
+/** A fresh canvas document: `generic` until the agent's plan classifies it. */
 const emptyDiagram = () =>
-  createDiagram({ name: 'Mock', type: 'flow', id: 'd_mock0001', now: NOW });
+  createDiagram({ name: 'Mock', type: 'generic', id: 'd_mock0001', now: NOW });
 
 function request(prompt: string, extra: Record<string, unknown> = {}) {
   return RunRequestSchema.parse({
@@ -79,6 +80,7 @@ describe('createMockAgent', () => {
 
     const actions = events.filter((e) => e.type === 'action');
     expect(actions.map((e) => e.type === 'action' && e.action.op)).toEqual([
+      'setDiagram',
       'addNode',
       'addNode',
       'addEdge',
@@ -114,6 +116,8 @@ describe('createMockAgent', () => {
     const events = await collect(agent.run(request('Sign up → Verify email → Onboard')));
     const next = applyTo(emptyDiagram(), events);
 
+    // The plan's classification is carried into the document by the same change set.
+    expect(next.type).toBe('flow');
     expect(next.nodes.map((n) => [n.id, n.label, n.type])).toEqual([
       ['n1', 'Sign up', 'rounded'],
       ['n2', 'Verify email', 'rounded'],
@@ -135,6 +139,7 @@ describe('createMockAgent', () => {
   it('honours a client-supplied runId and extends an existing diagram without id collisions', async () => {
     const existing: Diagram = {
       ...emptyDiagram(),
+      type: 'architecture',
       version: 4,
       nodes: [
         {
@@ -153,18 +158,21 @@ describe('createMockAgent', () => {
         request('Add a retry step', {
           runId: 'run_client_007',
           diagram: existing,
-          hints: { renderer: 'drawio', diagramType: 'sequence' },
+          hints: { renderer: 'drawio' },
         }),
       ),
     );
+    // An edit keeps the diagram's classification, so no `setDiagram` is emitted.
     const plan = events.find((e) => e.type === 'plan');
     expect(plan?.type === 'plan' && plan.plan).toMatchObject({
       intent: 'edit',
-      diagramType: 'sequence',
+      diagramType: 'architecture',
     });
+    expect(changeSetOf(events).actions.map((a) => a.op)).toEqual(['addNode', 'addEdge']);
     expect(changeSetOf(events).baseVersion).toBe(4);
 
     const next = applyTo(existing, events);
+    expect(next.type).toBe('architecture');
     expect(next.nodes.map((n) => n.id)).toEqual(['n1', 'n2']);
     expect(next.edges.map((e) => [e.source, e.target])).toEqual([['n1', 'n2']]);
     expect(events.at(-1)).toEqual({ type: 'done', runId: 'run_client_007' });

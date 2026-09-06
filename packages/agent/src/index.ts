@@ -19,3 +19,4 @@ export { redact } from './harness/redact';
 export type { Stage, StageContext, StageName } from './harness/stage';
 export { createMockAgent, type MockAgentOptions } from './mock/mock-agent';
 export { splitSteps } from './mock/steps';
+export { diagramPatchFromPlan } from './stages/plan-patch';

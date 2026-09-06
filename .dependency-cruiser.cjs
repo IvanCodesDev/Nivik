@@ -54,10 +54,11 @@ module.exports = {
       to: { path: '^packages/', pathNot: '^packages/(layout|ir)/' },
     },
     {
-      name: 'storage-depends-only-on-ir',
+      name: 'storage-depends-only-on-ir-protocol',
       severity: 'error',
+      comment: 'Storage persists IR documents and run records (protocol wire types); nothing else.',
       from: { path: '^packages/storage/' },
-      to: { path: '^packages/', pathNot: '^packages/(storage|ir)/' },
+      to: { path: '^packages/', pathNot: '^packages/(storage|ir|protocol)/' },
     },
     {
       name: 'templates-depend-only-on-ir',
@@ -100,7 +101,10 @@ module.exports = {
       name: 'isomorphic-packages-no-node-builtins',
       severity: 'error',
       comment: 'These packages run in browser Workers as well as Node; host access is injected.',
-      from: { path: '^packages/(agent|protocol|ir|templates)/src/', pathNot: '\\.test\\.tsx?$' },
+      from: {
+        path: '^packages/(agent|protocol|ir|templates|storage)/src/',
+        pathNot: '\\.test\\.tsx?$',
+      },
       to: { dependencyTypes: ['core'] },
     },
   ],

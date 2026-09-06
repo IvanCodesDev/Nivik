@@ -1,5 +1,5 @@
 import { DIAGRAM_SCHEMA_VERSION, type Diagram, DiagramSchema } from './schema/diagram';
-import { DiagramTypeSchema, EdgeTypeSchema, NodeTypeSchema } from './schema/enums';
+import { EdgeTypeSchema, NodeTypeSchema } from './schema/enums';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -27,9 +27,9 @@ export function parseDiagram(json: unknown): Diagram {
       `Unsupported diagram schema ${JSON.stringify(json.schema)}; expected "${DIAGRAM_SCHEMA_VERSION}"`,
     );
   }
+  // `type` is an open label (spec 01 §3.1): a well-formed slug from a newer client is kept as-is.
   return DiagramSchema.parse({
     ...json,
-    type: downgrade(json.type, DiagramTypeSchema.options, 'generic'),
     nodes: downgradeElements(json.nodes, NodeTypeSchema.options, 'box'),
     edges: downgradeElements(json.edges, EdgeTypeSchema.options, 'link'),
   });

@@ -1,18 +1,61 @@
 import { z } from 'zod';
 
-export const DiagramTypeSchema = z.enum([
-  'architecture',
-  'flow',
-  'dataflow',
-  'sequence',
-  'erd',
-  'state',
-  'class',
-  'mindmap',
-  'network',
-  'generic',
-]);
+/**
+ * A diagram's type is an open label the model chooses (spec 01 §3.1, D16): a lowercase slug of
+ * 1–40 chars. Code never branches on it except the Mermaid export template and the four soft
+ * `W_TYPE_MISMATCH` checks; layout, validation and rendering bind to primitives instead.
+ */
+export const DIAGRAM_TYPE_PATTERN = /^[a-z][a-z0-9-]{0,39}$/;
+export const DiagramTypeSchema = z
+  .string()
+  .regex(DIAGRAM_TYPE_PATTERN, 'Expected a lowercase slug such as "flow" or "customer-journey"');
 export type DiagramType = z.infer<typeof DiagramTypeSchema>;
+
+/**
+ * Well-known types grouped by spatial arrangement family. Suggestions for the model and keys for
+ * optional hint packs — not a closed list. `generic` belongs to no family.
+ */
+export const DIAGRAM_FAMILIES = {
+  graph: [
+    'architecture',
+    'flow',
+    'dataflow',
+    'network',
+    'deployment',
+    'component',
+    'c4',
+    'usecase',
+    'dependency',
+    'pipeline',
+    'state',
+    'activity',
+    'decision-tree',
+    'erd',
+    'class',
+    'concept',
+    'fishbone',
+  ],
+  tree: ['mindmap', 'orgchart', 'tree', 'sitemap', 'wbs'],
+  time: ['sequence', 'timeline', 'gantt', 'roadmap'],
+  grid: ['swimlane', 'bpmn', 'journey', 'kanban', 'swot', 'matrix', 'quadrant', 'raci', 'canvas'],
+  arrangement: ['cycle', 'pyramid', 'funnel', 'venn', 'infographic'],
+} as const satisfies Record<string, readonly string[]>;
+export type DiagramFamily = keyof typeof DIAGRAM_FAMILIES;
+export type WellKnownDiagramType = (typeof DIAGRAM_FAMILIES)[DiagramFamily][number] | 'generic';
+
+export const WELL_KNOWN_DIAGRAM_TYPES: readonly WellKnownDiagramType[] = [
+  ...Object.values(DIAGRAM_FAMILIES).flat(),
+  'generic',
+];
+
+const FAMILY_BY_TYPE: ReadonlyMap<string, DiagramFamily> = new Map(
+  (Object.keys(DIAGRAM_FAMILIES) as DiagramFamily[]).flatMap((family) =>
+    DIAGRAM_FAMILIES[family].map((type): [string, DiagramFamily] => [type, family]),
+  ),
+);
+
+/** Arrangement family of a well-known type; `null` for `generic` and anything outside the vocabulary. */
+export const familyOf = (type: string): DiagramFamily | null => FAMILY_BY_TYPE.get(type) ?? null;
 
 export const NodeTypeSchema = z.enum([
   'box',

@@ -12,7 +12,8 @@ import type { Rect } from './schema/geometry';
 
 export interface CreateDiagramInit {
   name: string;
-  type: DiagramType;
+  /** Open label (spec 01 §3.1); defaults to `'generic'` until the plan stage classifies the diagram. */
+  type?: DiagramType;
   id?: Id;
   /** Epoch ms used for `meta.createdAt` / `updatedAt`; defaults to `Date.now()`. */
   now?: number;
@@ -25,7 +26,7 @@ export function createDiagram(init: CreateDiagramInit): Diagram {
     schema: DIAGRAM_SCHEMA_VERSION,
     id: init.id ?? newDiagramId(),
     name: init.name,
-    type: init.type,
+    type: init.type ?? 'generic',
     version: 1,
     nodes: [],
     edges: [],

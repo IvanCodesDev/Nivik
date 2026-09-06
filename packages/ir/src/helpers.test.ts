@@ -35,6 +35,11 @@ describe('createDiagram', () => {
   it('honours an explicit id', () => {
     expect(createDiagram({ name: 'X', type: 'generic', id: 'my-diagram' }).id).toBe('my-diagram');
   });
+
+  it('defaults the type to generic until the plan stage classifies the diagram', () => {
+    expect(createDiagram({ name: 'Blank' }).type).toBe('generic');
+    expect(createDiagram({ name: 'Open', type: 'customer-journey' }).type).toBe('customer-journey');
+  });
 });
 
 describe('indexDiagram', () => {

@@ -27,7 +27,7 @@ describe('RunRequestSchema', () => {
     });
   });
 
-  it('requires a real Diagram IR and a known diagram type hint', () => {
+  it('requires a real Diagram IR', () => {
     const base = { prompt: 'x', hints: { renderer: 'excalidraw' } };
     expect(RunRequestSchema.safeParse({ ...base, diagram: {} }).success).toBe(false);
     expect(
@@ -35,21 +35,20 @@ describe('RunRequestSchema', () => {
         .success,
     ).toBe(false);
     expect(
-      RunRequestSchema.safeParse({
-        ...base,
-        diagram: diagram(),
-        hints: { renderer: 'excalidraw', diagramType: 'mindmap' },
-      }).success,
-    ).toBe(true);
-    expect(
-      RunRequestSchema.safeParse({
-        ...base,
-        diagram: diagram(),
-        hints: { renderer: 'excalidraw', diagramType: 'org-chart' },
-      }).success,
-    ).toBe(false);
-    expect(
       RunRequestSchema.safeParse({ ...base, diagram: diagram(), selection: ['bad id!'] }).success,
+    ).toBe(false);
+  });
+
+  it('refuses a client-side diagram type: classifying the diagram is the plan stage job', () => {
+    const base = { prompt: 'x', diagram: diagram() };
+    expect(RunRequestSchema.safeParse({ ...base, hints: { renderer: 'excalidraw' } }).success).toBe(
+      true,
+    );
+    expect(
+      RunRequestSchema.safeParse({
+        ...base,
+        hints: { renderer: 'excalidraw', diagramType: 'flow' },
+      }).success,
     ).toBe(false);
   });
 
@@ -155,7 +154,8 @@ describe('RunEventSchema', () => {
       layout: {},
       estimatedNodes: 1,
     };
-    expect(ok({ type: 'plan', plan: { ...plan, diagramType: 'treemap' } })).toBe(false);
+    expect(ok({ type: 'plan', plan: { ...plan, diagramType: 'treemap' } })).toBe(true);
+    expect(ok({ type: 'plan', plan: { ...plan, diagramType: 'Tree Map' } })).toBe(false);
     expect(ok({ type: 'plan', plan: { ...plan, layout: { direction: 'SIDEWAYS' } } })).toBe(false);
     expect(
       ok({ type: 'plan', plan: { ...plan, layout: { algorithm: 'radial', direction: 'DOWN' } } }),

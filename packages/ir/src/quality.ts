@@ -2,14 +2,17 @@ import { rectContains, rectOf, rectsIntersect, segmentIntersectsRect } from './g
 import { type DiagramIndex, indexDiagram } from './helpers';
 import type { Id } from './ids';
 import type { Diagram } from './schema/diagram';
-import { ANNOTATION_NODE_TYPES, type DiagramType, type NodeType } from './schema/enums';
+import { ANNOTATION_NODE_TYPES, type NodeType } from './schema/enums';
 import type { ValidationIssue } from './structural';
 
 const MAX_LABEL_CHARS = 60;
 const MAX_LABEL_LINES = 3;
 
-/** Diagram types that constrain which node types may appear (spec 01 §6.2 W_TYPE_MISMATCH). */
-const EXPECTED_NODE_TYPE: Partial<Record<DiagramType, NodeType>> = {
+/**
+ * The only place a diagram type influences validation (spec 01 §6.2, D16 exception): four
+ * well-known types whose node vocabulary is fixed. Every other type accepts every shape.
+ */
+const EXPECTED_NODE_TYPE: Readonly<Record<string, NodeType>> = {
   sequence: 'participant',
   erd: 'entity',
   state: 'state',

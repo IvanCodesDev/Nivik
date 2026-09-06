@@ -10,7 +10,7 @@ describe('parseDiagram', () => {
     expect(parseDiagram(json)).toEqual(DiagramSchema.parse(json));
   });
 
-  it('downgrades enum values unknown to this client instead of failing', () => {
+  it('keeps unknown diagram types (open label) but downgrades unknown node / edge types', () => {
     const json = JSON.parse(
       JSON.stringify(
         diagram({
@@ -24,9 +24,14 @@ describe('parseDiagram', () => {
     json.edges[0].type = 'wire';
 
     const parsed = parseDiagram(json);
-    expect(parsed.type).toBe('generic');
+    expect(parsed.type).toBe('swimlane');
     expect(parsed.nodes[0]?.type).toBe('box');
     expect(parsed.edges[0]?.type).toBe('link');
+  });
+
+  it('still rejects a diagram type that is not a slug', () => {
+    const json = { ...JSON.parse(JSON.stringify(orderPlatform())), type: 'Order Platform' };
+    expect(() => parseDiagram(json)).toThrow();
   });
 
   it('rejects documents with an unsupported schema version', () => {

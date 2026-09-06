@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DIAGRAM_FAMILIES,
   DIAGRAM_SCHEMA_VERSION,
   DiagramEdgeSchema,
   DiagramGroupSchema,
   DiagramNodeSchema,
   DiagramSchema,
+  DiagramTypeSchema,
+  familyOf,
   ROLE_VOCABULARY,
   StyleTokensSchema,
+  WELL_KNOWN_DIAGRAM_TYPES,
 } from './schema';
 import { diagram, edge, meta, node } from './testing/builders';
 import { orderPlatform } from './testing/order-platform';
@@ -175,5 +179,47 @@ describe('role vocabulary', () => {
     expect(ROLE_VOCABULARY).toContain('database');
     const result = DiagramNodeSchema.safeParse(node('x', 'X', { role: 'toaster' }));
     expect(result.success).toBe(true);
+  });
+});
+
+describe('diagram type (open label, spec 01 §3.1)', () => {
+  it('accepts any lowercase slug, well-known or not', () => {
+    for (const type of ['flow', 'customer-journey', 'c4', 'x', 'a'.repeat(40)]) {
+      expect(DiagramTypeSchema.safeParse(type).success, type).toBe(true);
+    }
+  });
+
+  it('rejects malformed labels', () => {
+    for (const type of ['', 'Bad Type', 'Flow', '-flow', '1flow', 'flow_chart', 'a'.repeat(41)]) {
+      expect(DiagramTypeSchema.safeParse(type).success, type).toBe(false);
+    }
+  });
+
+  it('maps well-known types to their arrangement family and everything else to null', () => {
+    expect(familyOf('architecture')).toBe('graph');
+    expect(familyOf('mindmap')).toBe('tree');
+    expect(familyOf('sequence')).toBe('time');
+    expect(familyOf('swot')).toBe('grid');
+    expect(familyOf('venn')).toBe('arrangement');
+    expect(familyOf('generic')).toBeNull();
+    expect(familyOf('wardley-map')).toBeNull();
+    expect(familyOf('x')).toBeNull();
+  });
+
+  it('lists every family member plus generic exactly once, all valid slugs', () => {
+    const fromFamilies = Object.values(DIAGRAM_FAMILIES).flat();
+    expect(WELL_KNOWN_DIAGRAM_TYPES).toEqual([...fromFamilies, 'generic']);
+    expect(new Set(WELL_KNOWN_DIAGRAM_TYPES).size).toBe(WELL_KNOWN_DIAGRAM_TYPES.length);
+    for (const type of WELL_KNOWN_DIAGRAM_TYPES) {
+      expect(DiagramTypeSchema.safeParse(type).success, type).toBe(true);
+    }
+    expect(fromFamilies).toHaveLength(17 + 5 + 4 + 9 + 5);
+  });
+
+  it('accepts a whole diagram whose type is outside the vocabulary', () => {
+    expect(DiagramSchema.safeParse({ ...diagram(), type: 'wardley-map' }).success).toBe(true);
+    expect(issuePaths(DiagramSchema.safeParse({ ...diagram(), type: 'Wardley Map' }))).toEqual([
+      'type',
+    ]);
   });
 });

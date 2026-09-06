@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ANNOTATION_NODE_TYPES,
   DIAGRAM_FAMILIES,
   DIAGRAM_SCHEMA_VERSION,
   DiagramEdgeSchema,
@@ -8,6 +9,7 @@ import {
   DiagramSchema,
   DiagramTypeSchema,
   familyOf,
+  NodeTypeSchema,
   ROLE_VOCABULARY,
   StyleTokensSchema,
   WELL_KNOWN_DIAGRAM_TYPES,
@@ -170,6 +172,40 @@ describe('style tokens', () => {
     expect(
       StyleTokensSchema.safeParse({ palette: 'mint', override: { fill: '#AABBCC' } }).success,
     ).toBe(true);
+  });
+
+  it('accepts the fill token and rejects values outside it', () => {
+    expect(StyleTokensSchema.safeParse({ fill: 'translucent' }).success).toBe(true);
+    expect(StyleTokensSchema.safeParse({ fill: 'none' }).success).toBe(true);
+    expect(issuePaths(StyleTokensSchema.safeParse({ fill: 'hatched' }))).toEqual(['fill']);
+  });
+});
+
+describe('line nodes (spec 01 §3.2, §4.4)', () => {
+  it('is a node type and an annotation type, and accepts an empty label', () => {
+    expect(NodeTypeSchema.options).toContain('line');
+    expect(ANNOTATION_NODE_TYPES.has('line')).toBe(true);
+    expect(DiagramNodeSchema.safeParse(node('axis', '', { type: 'line' })).success).toBe(true);
+  });
+
+  it('validates axis and arrow and rejects unknown data keys', () => {
+    const ok = node('l', '', { type: 'line', data: { axis: 'vertical', arrow: 'end' } });
+    expect(DiagramNodeSchema.safeParse(ok).success).toBe(true);
+    expect(
+      issuePaths(
+        DiagramNodeSchema.safeParse(node('l', '', { type: 'line', data: { axis: 'curvy' } })),
+      ),
+    ).toEqual(['data.axis']);
+    expect(
+      issuePaths(
+        DiagramNodeSchema.safeParse(node('l', '', { type: 'line', data: { arrow: 'start' } })),
+      ),
+    ).toEqual(['data.arrow']);
+    expect(
+      issuePaths(
+        DiagramNodeSchema.safeParse(node('l', '', { type: 'line', data: { thickness: 2 } })),
+      ),
+    ).toEqual(['data']);
   });
 });
 

@@ -21,6 +21,7 @@ import {
 import { PointSchema, SizeSchema } from '../schema/geometry';
 import {
   EmphasisSchema,
+  FillStyleSchema,
   HexColorSchema,
   IconNameSchema,
   PaletteSchema,
@@ -106,6 +107,7 @@ export const StylePatchSchema = z
     palette: clearable(PaletteSchema),
     emphasis: clearable(EmphasisSchema),
     stroke: clearable(StrokeStyleSchema),
+    fill: clearable(FillStyleSchema),
     icon: clearable(IconNameSchema),
     override: clearable(
       z

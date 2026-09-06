@@ -43,6 +43,14 @@ export const ImageDataSchema = z
   .strict();
 export type ImageData = z.infer<typeof ImageDataSchema>;
 
+export const LineAxisSchema = z.enum(['horizontal', 'vertical', 'diagonal-down', 'diagonal-up']);
+export const LineArrowSchema = z.enum(['none', 'end', 'both']);
+/** Free-standing line / arrow / divider (spec 01 §4.4). Defaults (`horizontal`, `none`) are implied, not stored. */
+export const LineDataSchema = z
+  .object({ axis: LineAxisSchema.optional(), arrow: LineArrowSchema.optional() })
+  .strict();
+export type LineData = z.infer<typeof LineDataSchema>;
+
 export const MessageDataSchema = z
   .object({
     order: z.number().int().nonnegative(),
@@ -75,6 +83,7 @@ export const NODE_DATA_SCHEMAS: Partial<Record<NodeType, z.ZodType>> = {
   state: StateDataSchema,
   class: ClassDataSchema,
   image: ImageDataSchema,
+  line: LineDataSchema,
 };
 
 export const EDGE_DATA_SCHEMAS: Partial<Record<EdgeType, z.ZodType>> = {

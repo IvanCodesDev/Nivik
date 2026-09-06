@@ -68,6 +68,7 @@ export const NodeTypeSchema = z.enum([
   'note',
   'text',
   'image',
+  'line',
   'entity',
   'participant',
   'state',
@@ -76,7 +77,12 @@ export const NodeTypeSchema = z.enum([
 export type NodeType = z.infer<typeof NodeTypeSchema>;
 
 /** Node types that annotate rather than participate in the graph (exempt from orphan / type-mismatch checks). */
-export const ANNOTATION_NODE_TYPES: ReadonlySet<NodeType> = new Set(['note', 'text', 'image']);
+export const ANNOTATION_NODE_TYPES: ReadonlySet<NodeType> = new Set([
+  'note',
+  'text',
+  'image',
+  'line',
+]);
 
 export const EdgeTypeSchema = z.enum([
   'flow',

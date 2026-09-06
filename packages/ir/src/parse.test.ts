@@ -29,6 +29,15 @@ describe('parseDiagram', () => {
     expect(parsed.edges[0]?.type).toBe('link');
   });
 
+  it('keeps line nodes (a type this client knows) intact', () => {
+    const json = JSON.parse(
+      JSON.stringify(
+        diagram({ nodes: [node('axis', '', { type: 'line', data: { arrow: 'end' } })] }),
+      ),
+    );
+    expect(parseDiagram(json).nodes[0]).toMatchObject({ type: 'line', data: { arrow: 'end' } });
+  });
+
   it('still rejects a diagram type that is not a slug', () => {
     const json = { ...JSON.parse(JSON.stringify(orderPlatform())), type: 'Order Platform' };
     expect(() => parseDiagram(json)).toThrow();

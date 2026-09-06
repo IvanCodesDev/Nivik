@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Diagram } from '../schema';
-import { diagram, group, node } from '../testing/builders';
+import { diagram, edge, group, node } from '../testing/builders';
 import { orderPlatform, orderPlatformLaidOut } from '../testing/order-platform';
 import { specExampleChangeSet } from '../testing/spec-example';
 import { validateDiagram } from '../validate';
@@ -792,5 +792,22 @@ describe('spec §9 example', () => {
     });
     expect(nodeOf(result.diagram, 'pay').pinned).toBe(true);
     expect(result.diagram.version).toBe(13);
+  });
+});
+
+describe('fill token through setStyle', () => {
+  it('applies, inverts and clears the fill token', () => {
+    const d = diagram({ nodes: [node('a', 'A'), node('b', 'B')], edges: [edge('e1', 'a', 'b')] });
+    const forward = roundTrip(
+      d,
+      aiChangeSet(d, [{ op: 'setStyle', targets: ['a'], style: { fill: 'translucent' } }]),
+    );
+    expect(nodeOf(forward.diagram, 'a').style).toEqual({ fill: 'translucent' });
+
+    const cleared = roundTrip(
+      forward.diagram,
+      aiChangeSet(forward.diagram, [{ op: 'setStyle', targets: ['a'], style: { fill: null } }]),
+    );
+    expect(nodeOf(cleared.diagram, 'a').style).toBeUndefined();
   });
 });

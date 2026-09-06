@@ -15,6 +15,8 @@ export type Palette = z.infer<typeof PaletteSchema>;
 export const HexColorSchema = z.string().regex(/^#[0-9a-f]{6}$/i, 'Expected #rrggbb');
 export const EmphasisSchema = z.enum(['muted', 'default', 'strong']);
 export const StrokeStyleSchema = z.enum(['solid', 'dashed', 'dotted']);
+export const FillStyleSchema = z.enum(['solid', 'translucent', 'none']);
+export type FillStyle = z.infer<typeof FillStyleSchema>;
 export const IconNameSchema = z.string().max(48);
 
 export const StyleOverrideSchema = z
@@ -32,6 +34,7 @@ export const StyleTokensSchema = z
     palette: PaletteSchema.optional(),
     emphasis: EmphasisSchema.optional(),
     stroke: StrokeStyleSchema.optional(),
+    fill: FillStyleSchema.optional(),
     icon: IconNameSchema.optional(),
     override: StyleOverrideSchema.optional(),
   })

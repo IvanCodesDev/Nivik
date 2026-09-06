@@ -77,6 +77,110 @@ describe('toReadout — syntax', () => {
     );
   });
 
+  it('reproduces the spec §7.4 SWOT example (grid layout, cells on groups only) byte for byte', () => {
+    const frame = (id: string, label: string, col: number, row: number) =>
+      group(id, label, { role: 'frame', cell: { col, row, colSpan: 1, rowSpan: 1 } });
+    const text = (id: string, label: string, parent: string) =>
+      node(id, label, { type: 'text', parent });
+    const swot = diagram({
+      name: 'Q3 SWOT',
+      type: 'swot',
+      version: 3,
+      layout: {
+        algorithm: 'grid',
+        direction: 'RIGHT',
+        spacing: 'normal',
+        edgeRouting: 'orthogonal',
+        autoLayout: true,
+      },
+      groups: [
+        frame('s', 'Strengths', 0, 0),
+        frame('w', 'Weaknesses', 1, 0),
+        frame('o', 'Opportunities', 0, 1),
+        frame('t', 'Threats', 1, 1),
+      ],
+      nodes: [
+        text('s1', 'Strong brand', 's'),
+        text('s2', 'Low churn', 's'),
+        text('w1', 'Single supplier', 'w'),
+        text('w2', 'Thin margins', 'w'),
+        text('o1', 'New markets', 'o'),
+        text('o2', 'Partnerships', 'o'),
+        text('t1', 'Price war', 't'),
+        text('t2', 'Regulation', 't'),
+      ],
+    });
+    expect(toReadout(swot).text).toBe(
+      [
+        '# Q3 SWOT | type=swot | layout=grid | v=3 | nodes=8 edges=0 groups=4',
+        '## groups',
+        'group s "Strengths" role=frame cell=0,0',
+        'group w "Weaknesses" role=frame cell=1,0',
+        'group o "Opportunities" role=frame cell=0,1',
+        'group t "Threats" role=frame cell=1,1',
+        '## nodes',
+        'node s1 "Strong brand" type=text in=s',
+        'node s2 "Low churn" type=text in=s',
+        'node w1 "Single supplier" type=text in=w',
+        'node w2 "Thin margins" type=text in=w',
+        'node o1 "New markets" type=text in=o',
+        'node o2 "Partnerships" type=text in=o',
+        'node t1 "Price war" type=text in=t',
+        'node t2 "Regulation" type=text in=t',
+      ].join('\n'),
+    );
+  });
+
+  it('shows non-default layout in the header, spans on cells, and line axis / arrow', () => {
+    const gridLayout = {
+      algorithm: 'grid',
+      direction: 'RIGHT',
+      spacing: 'normal',
+      edgeRouting: 'orthogonal',
+      autoLayout: true,
+    } as const;
+    const roadmap = diagram({
+      name: 'Roadmap',
+      type: 'roadmap',
+      version: 2,
+      layout: gridLayout,
+      nodes: [
+        node('q1', 'Q1', { type: 'box', cell: { col: 0, row: 0, colSpan: 1, rowSpan: 1 } }),
+        node('q2', 'Q2', { type: 'box', cell: { col: 1, row: 0, colSpan: 2, rowSpan: 1 } }),
+        node('axis', '', {
+          type: 'line',
+          cell: { col: 0, row: 1, colSpan: 3, rowSpan: 1 },
+          data: { arrow: 'end' },
+        }),
+        node('div', '', { type: 'line', data: { axis: 'vertical', arrow: 'none' }, pinned: true }),
+      ],
+    });
+    expect(toReadout(roadmap).text).toBe(
+      [
+        '# Roadmap | type=roadmap | layout=grid | v=2 | nodes=4 edges=0 groups=0',
+        '## nodes',
+        'node q1 "Q1" type=box cell=0,0',
+        'node q2 "Q2" type=box cell=1,0+2x1',
+        'node axis "" type=line arrow=end cell=0,1+3x1',
+        'node div "" type=line axis=vertical pinned',
+      ].join('\n'),
+    );
+
+    const down = diagram({
+      name: 'Down',
+      type: 'flow',
+      layout: { ...gridLayout, algorithm: 'layered', direction: 'DOWN' },
+      nodes: [node('a', 'A', { cell: { col: 0, row: 0, colSpan: 1, rowSpan: 1 } })],
+    });
+    expect(toReadout(down).text).toBe(
+      [
+        '# Down | type=flow | layout=layered DOWN | v=1 | nodes=1 edges=0 groups=0',
+        '## nodes',
+        'node a "A" type=rounded',
+      ].join('\n'),
+    );
+  });
+
   it('escapes quotes, backslashes and newlines inside strings', () => {
     const d = diagram({
       nodes: [

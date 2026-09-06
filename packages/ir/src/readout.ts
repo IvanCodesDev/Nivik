@@ -1,7 +1,7 @@
 import { type DiagramIndex, descendantsOf, indexDiagram, neighborhood } from './helpers';
 import type { Id } from './ids';
 import { qualityIssues } from './quality';
-import type { Diagram, DiagramEdge, DiagramGroup, DiagramNode } from './schema';
+import type { Cell, Diagram, DiagramEdge, DiagramGroup, DiagramNode } from './schema';
 
 export type ReadoutScope = 'all' | { selection: Id[]; hops: 1 | 2 };
 
@@ -113,6 +113,8 @@ const oneLine = (s: string) => s.replace(/\s*\r?\n\s*/g, ' ').trim();
 function render(d: Diagram, s: Settings): Omit<Readout, 'truncated' | 'degraded'> {
   const index = indexDiagram(d);
   const scoped = s.scope !== 'all';
+  // Cells are structure under the grid strategy and noise everywhere else (spec 01 §7.1).
+  const showCells = d.layout.algorithm === 'grid';
 
   // --- which nodes ------------------------------------------------------------------------
   const shownNodes = new Set<Id>();
@@ -145,8 +147,13 @@ function render(d: Diagram, s: Settings): Omit<Readout, 'truncated' | 'degraded'
   const shownIds = new Set<Id>([...shownNodes, ...shownEdges.map((e) => e.id), ...listedGroups]);
 
   // --- header -------------------------------------------------------------------------------
+  const { algorithm, direction } = d.layout;
+  const layoutTag =
+    algorithm === 'layered' && direction === 'RIGHT'
+      ? ''
+      : ` | layout=${algorithm}${direction === 'RIGHT' ? '' : ` ${direction}`}`;
   let header =
-    `# ${oneLine(d.name)} | type=${d.type} | v=${d.version}` +
+    `# ${oneLine(d.name)} | type=${d.type}${layoutTag} | v=${d.version}` +
     ` | nodes=${d.nodes.length} edges=${d.edges.length} groups=${d.groups.length}`;
   if (s.scope !== 'all') {
     const hops = s.scope.hops;
@@ -157,7 +164,7 @@ function render(d: Diagram, s: Settings): Omit<Readout, 'truncated' | 'degraded'
   // --- groups -------------------------------------------------------------------------------
   const groupLines = d.groups.map((g) => {
     const summarised = scoped && !listedGroups.has(g.id);
-    return groupLine(d, index, g, summarised);
+    return groupLine(d, index, g, summarised, showCells);
   });
   if (groupLines.length) out.push('## groups', ...groupLines);
 
@@ -165,7 +172,7 @@ function render(d: Diagram, s: Settings): Omit<Readout, 'truncated' | 'degraded'
   const nodeLines: string[] = [];
   for (const n of d.nodes) {
     if (!shownNodes.has(n.id)) continue;
-    nodeLines.push(nodeLine(n, s));
+    nodeLines.push(nodeLine(n, s, showCells));
     const extra = nodeExtraLine(n);
     if (extra) nodeLines.push(extra);
   }
@@ -209,11 +216,24 @@ function render(d: Diagram, s: Settings): Omit<Readout, 'truncated' | 'degraded'
   };
 }
 
-function groupLine(d: Diagram, index: DiagramIndex, g: DiagramGroup, summarised: boolean): string {
+/** `cell=<col>,<row>[+<colSpan>x<rowSpan>]`; a 1×1 span is the default and omitted. */
+const cellTag = (cell: Cell) =>
+  `cell=${cell.col},${cell.row}${
+    cell.colSpan > 1 || cell.rowSpan > 1 ? `+${cell.colSpan}x${cell.rowSpan}` : ''
+  }`;
+
+function groupLine(
+  d: Diagram,
+  index: DiagramIndex,
+  g: DiagramGroup,
+  summarised: boolean,
+  showCells: boolean,
+): string {
   const parts = ['group', g.id];
   if (g.label !== undefined) parts.push(quoted(g.label));
   if (g.parent) parts.push(`parent=${g.parent}`);
   if (g.role !== 'cluster') parts.push(`role=${g.role}`);
+  if (showCells && g.cell) parts.push(cellTag(g.cell));
   if (summarised) {
     const count = descendantsOf(d, g.id).filter((id) => index.nodes.has(id)).length;
     parts.push(`nodes=${count}`);
@@ -221,12 +241,19 @@ function groupLine(d: Diagram, index: DiagramIndex, g: DiagramGroup, summarised:
   return parts.join(' ');
 }
 
-function nodeLine(n: DiagramNode, s: Settings): string {
+function nodeLine(n: DiagramNode, s: Settings, showCells: boolean): string {
   const parts = ['node', n.id, quoted(n.label), `type=${n.type}`];
   const kind = (n.type === 'participant' || n.type === 'state') && n.data?.kind;
   if (typeof kind === 'string') parts.push(`kind=${kind}`);
+  if (n.type === 'line') {
+    const axis = n.data?.axis;
+    if (typeof axis === 'string' && axis !== 'horizontal') parts.push(`axis=${axis}`);
+    const arrow = n.data?.arrow;
+    if (typeof arrow === 'string' && arrow !== 'none') parts.push(`arrow=${arrow}`);
+  }
   if (n.role) parts.push(`role=${n.role}`);
   if (n.parent) parts.push(`in=${n.parent}`);
+  if (showCells && n.cell) parts.push(cellTag(n.cell));
   if (n.pinned) parts.push('pinned');
   if (s.includeDescriptions && n.description) {
     const text = oneLine(n.description);

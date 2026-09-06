@@ -1,0 +1,95 @@
+/*
+ * Nivik design tokens (spec 07 §5.1).
+ * Extracted from the design prototypes and unified: one accent, one ink, one muted,
+ * one page background, one card surface. Everything in apps/web and packages/ui
+ * must reference these variables instead of raw colors.
+ */
+:root {
+  /* brand */
+  --nv-accent: #875dff;
+  --nv-accent-strong: #7955ff;
+  --nv-accent-soft: #eee7fb;
+  --nv-accent-tint: #f4efff;
+
+  /* text */
+  --nv-ink: #242629;
+  --nv-ink-soft: #465066;
+  --nv-muted: #858ca5;
+  --nv-muted-soft: #a0a3b3;
+
+  /* surfaces */
+  --nv-page: #faf9fb;
+  --nv-card: rgba(255, 255, 255, 0.84);
+  --nv-card-border: #eaeaf0;
+  --nv-surface: rgba(255, 255, 255, 0.85);
+  --nv-surface-border: #e8e7ec;
+  --nv-surface-shadow: 0 3px 9px rgba(40, 43, 55, 0.035);
+  --nv-line: #eeedf3;
+  --nv-control-bg: #fff;
+  --nv-control-border: #e9e9f0;
+  --nv-control-border-hover: #dadce4;
+  --nv-control-border-focus: #cfd1d9;
+
+  /* feedback */
+  --nv-success: #3caf88;
+  --nv-success-soft: #ecf8f3;
+  --nv-danger: #e36b72;
+  --nv-danger-soft: #fff2f2;
+  --nv-danger-border: #ffe3e3;
+  --nv-warning-text: #a69069;
+  --nv-warning-soft: #fffcf6;
+  --nv-warning-border: #f3ecdf;
+
+  /* effects */
+  --nv-focus-ring: rgba(129, 93, 255, 0.42);
+  --nv-grid-dot: rgba(166, 169, 181, 0.2);
+  --nv-grid-size: 18px;
+  --nv-gradient-primary: linear-gradient(105deg, #b298f5, #a180ee);
+  --nv-gradient-primary-hover: linear-gradient(105deg, #a788ec, #926ee4);
+  --nv-gradient-avatar: linear-gradient(135deg, #cbb0ff, #a887f5 62%, #b9a0fb);
+  --nv-gradient-tab-active: linear-gradient(110deg, #f4efff, #f3edfd);
+  --nv-dialog-backdrop: rgba(245, 242, 248, 0.56);
+  --nv-shadow-card: 0 2px 6px rgba(48, 51, 73, 0.01);
+  --nv-shadow-float: 0 12px 30px rgba(49, 51, 72, 0.09);
+  --nv-shadow-pop: 0 25px 80px rgba(70, 57, 86, 0.13);
+  --nv-shadow-menu:
+    0 18px 48px rgba(99, 84, 145, 0.1), 0 0 0 5px rgba(190, 151, 255, 0.055),
+    8px 12px 34px rgba(255, 224, 135, 0.08);
+
+  /* geometry */
+  --nv-radius-s: 6px;
+  --nv-radius-m: 10px;
+  --nv-radius-l: 14px;
+  --nv-radius-xl: 18px;
+  --nv-radius-2xl: 24px;
+  --nv-topbar-height: 78px;
+
+  /* typography */
+  --nv-font: var(--font-inter, Inter), "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  /* semantic palettes (IR StyleTokens.palette → render colors); shared by UI and canvas */
+  --nv-pal-lavender-fill: #ede7f7;
+  --nv-pal-lavender-stroke: #b59add;
+  --nv-pal-lavender-text: #3b2f5c;
+  --nv-pal-mint-fill: #eff9f5;
+  --nv-pal-mint-stroke: #91b9a9;
+  --nv-pal-mint-text: #2f4f44;
+  --nv-pal-sky-fill: #eef4fb;
+  --nv-pal-sky-stroke: #9cbbd9;
+  --nv-pal-sky-text: #2f4360;
+  --nv-pal-coral-fill: #fdf0ec;
+  --nv-pal-coral-stroke: #dcae9e;
+  --nv-pal-coral-text: #5c3a30;
+  --nv-pal-sand-fill: #fff9ed;
+  --nv-pal-sand-stroke: #d9c39a;
+  --nv-pal-sand-text: #5a4a2a;
+  --nv-pal-rose-fill: #fbeef3;
+  --nv-pal-rose-stroke: #d7a3b6;
+  --nv-pal-rose-text: #5a3344;
+  --nv-pal-sage-fill: #eef5f0;
+  --nv-pal-sage-stroke: #9fb8a6;
+  --nv-pal-sage-text: #34493b;
+  --nv-pal-neutral-fill: #f4f4f7;
+  --nv-pal-neutral-stroke: #cfd1d9;
+  --nv-pal-neutral-text: #3a3d48;
+}

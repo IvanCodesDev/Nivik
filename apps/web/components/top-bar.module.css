@@ -1,0 +1,177 @@
+.topbar {
+  position: relative;
+  z-index: 10;
+  height: var(--nv-topbar-height);
+  background: transparent;
+}
+
+.brand {
+  position: absolute;
+  top: 15px;
+  left: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 12px;
+}
+
+.logo {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.brandName {
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.6px;
+  line-height: 46px;
+  white-space: nowrap;
+}
+
+.openPage {
+  position: absolute;
+  top: 15px;
+  left: 158px;
+  width: 174px;
+  height: 44px;
+  padding: 0 15px;
+  white-space: nowrap;
+}
+
+.openPage.isOpen {
+  border-color: rgba(155, 110, 255, 0.36);
+  box-shadow:
+    0 0 0 1px rgba(172, 123, 255, 0.1),
+    0 8px 24px rgba(109, 80, 157, 0.08);
+}
+
+.chevron {
+  display: flex;
+  margin-left: auto;
+  transition: transform 0.16s ease;
+}
+
+.openPage.isOpen .chevron {
+  transform: rotate(180deg);
+}
+
+.right {
+  position: absolute;
+  top: 15px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  height: 46px;
+}
+
+.bell {
+  width: 48px;
+  height: 44px;
+  border-radius: 16px;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--nv-gradient-avatar);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar:focus-visible {
+  outline: 2px solid var(--nv-focus-ring);
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    height: 68px;
+  }
+
+  .brand {
+    top: 12px;
+    left: 14px;
+    height: 42px;
+  }
+
+  .logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brandName {
+    font-size: 19px;
+    line-height: 42px;
+  }
+
+  .openPage {
+    top: 12px;
+    left: 145px;
+    width: 154px;
+    height: 42px;
+    font-size: 14px;
+  }
+
+  .right {
+    top: 12px;
+    right: 14px;
+    height: 42px;
+  }
+
+  .bell {
+    display: none;
+  }
+
+  .avatar {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand {
+    left: 8px;
+    gap: 5px;
+  }
+
+  .brandName {
+    font-size: 18px;
+  }
+
+  .openPage {
+    left: 126px;
+    width: 145px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .right {
+    right: 10px;
+  }
+}

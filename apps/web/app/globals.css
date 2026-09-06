@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/* Expose Nivik tokens (imported from @nivik/ui/tokens.css in layout.tsx) as Tailwind theme values. */
+@theme inline {
+  --color-accent: var(--nv-accent);
+  --color-accent-strong: var(--nv-accent-strong);
+  --color-accent-soft: var(--nv-accent-soft);
+  --color-ink: var(--nv-ink);
+  --color-ink-soft: var(--nv-ink-soft);
+  --color-muted: var(--nv-muted);
+  --color-line: var(--nv-line);
+  --color-page: var(--nv-page);
+  --font-sans: var(--nv-font);
+  --radius-s: var(--nv-radius-s);
+  --radius-m: var(--nv-radius-m);
+  --radius-l: var(--nv-radius-l);
+  --radius-xl: var(--nv-radius-xl);
+}
+
+@layer base {
+  html {
+    color: var(--nv-ink);
+    background: var(--nv-page);
+    font-family: var(--nv-font);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    scrollbar-gutter: stable both-edges;
+  }
+
+  body {
+    min-height: 100dvh;
+    margin: 0;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--nv-focus-ring);
+    outline-offset: 3px;
+  }
+}
+
+/* Dotted paper behind every shell page. */
+.nv-paper {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 46% 60% at 97% 2%, rgba(230, 196, 254, 0.045), transparent 75%),
+    radial-gradient(ellipse 43% 55% at 3% 100%, rgba(197, 243, 253, 0.04), transparent 78%),
+    var(--nv-page);
+}
+
+.nv-paper::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(circle, var(--nv-grid-dot) 0.68px, transparent 0.86px);
+  background-size: var(--nv-grid-size) var(--nv-grid-size);
+  pointer-events: none;
+}
+
+/* Shared page column used by Library / Templates / Integrations. */
+.nv-page-main {
+  position: relative;
+  z-index: 2;
+  width: calc(100% - 72px);
+  max-width: 1458px;
+  margin: 0 auto;
+  padding: 31px 0 58px;
+}
+
+.nv-page-heading h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 680;
+  letter-spacing: -0.85px;
+  line-height: 1.2;
+}
+
+.nv-page-heading p {
+  margin: 10px 0 0;
+  color: var(--nv-muted);
+  font-size: 18px;
+  letter-spacing: -0.2px;
+  line-height: 1.35;
+}
+
+@media (max-width: 700px) {
+  .nv-page-main {
+    width: calc(100% - 40px);
+    padding-top: 28px;
+  }
+
+  .nv-page-heading h1 {
+    font-size: 27px;
+  }
+
+  .nv-page-heading p {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: must beat every component's animation shorthand */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: same as above */
+    transition-duration: 0.01ms !important;
+  }
+}

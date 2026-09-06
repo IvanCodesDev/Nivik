@@ -1,0 +1,6 @@
+#!/bin/sh
+# Nivik git policy (see .githooks/policy.json). Logic lives in lib/run.mjs.
+# post-commit cannot reject, it only warns loudly; pre-push is the hard gate.
+dir=$(cd "$(dirname "$0")" && pwd)
+node "$dir/lib/run.mjs" post-commit "$@"
+exit 0

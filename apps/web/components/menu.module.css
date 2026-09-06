@@ -1,0 +1,126 @@
+/* Floating glass menu shared by the page switcher and the account menu (PRD 4.1). */
+.menu {
+  z-index: 120;
+  width: 268px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--nv-shadow-menu);
+  backdrop-filter: blur(24px) saturate(115%);
+  -webkit-backdrop-filter: blur(24px) saturate(115%);
+  outline: none;
+  animation: menu-in 0.16s ease-out both;
+}
+
+.menu.compact {
+  width: 232px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 52px;
+  padding: 0 19px;
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  color: #343843;
+  font-size: 16px;
+  font-weight: 520;
+  letter-spacing: -0.18px;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.item:hover,
+.item[data-highlighted] {
+  background: rgba(248, 245, 252, 0.88);
+  transform: translateX(1px);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--nv-focus-ring);
+  outline-offset: -2px;
+}
+
+.item.active {
+  background: linear-gradient(105deg, rgba(250, 246, 255, 0.98), rgba(248, 240, 255, 0.9));
+  color: #252831;
+}
+
+.icon {
+  display: flex;
+  flex: none;
+  color: #4b4f5e;
+  opacity: 0.78;
+}
+
+.item.active .icon {
+  color: var(--nv-accent);
+  opacity: 1;
+}
+
+.compact .item {
+  gap: 14px;
+  height: 46px;
+  padding: 0 15px;
+  font-size: 14px;
+}
+
+.separator {
+  height: 1px;
+  margin: 6px 12px;
+  background: var(--nv-line);
+}
+
+.header {
+  padding: 12px 15px 8px;
+}
+
+.headerName {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.headerNote {
+  display: block;
+  margin-top: 3px;
+  color: var(--nv-muted);
+  font-size: 11px;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 520px) {
+  .menu {
+    width: min(268px, calc(100vw - 24px));
+  }
+
+  .item {
+    height: 50px;
+  }
+}

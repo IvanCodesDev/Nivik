@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+  - packages/*
+
+autoInstallPeers: true
+strictPeerDependencies: false
+
+onlyBuiltDependencies:
+  - '@biomejs/biome'
+  - '@tailwindcss/oxide'
+  - esbuild
+  - sharp
+  - unrs-resolver

@@ -1,0 +1,17 @@
+# Normalize line endings to LF in the repository (matches .editorconfig).
+* text=auto eol=lf
+
+# Hook entry points are run by sh — CRLF would break them on checkout with core.autocrlf=true.
+.githooks/** text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary

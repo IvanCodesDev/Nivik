@@ -1,0 +1,4 @@
+#!/bin/sh
+# Nivik git policy (see .githooks/policy.json). Logic lives in lib/run.mjs.
+dir=$(cd "$(dirname "$0")" && pwd)
+exec node "$dir/lib/run.mjs" commit-msg "$@"

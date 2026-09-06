@@ -1,0 +1,45 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+*.log
+
+# env / credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# internal documents — never published (also enforced by .githooks)
+docs/
+
+# coding-agent artifacts — never published (also enforced by .githooks)
+AGENTS.md
+CLAUDE.md
+.cursor/
+.claude/
+.codex/
+.agents/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# legacy QA artifacts (browser automation) — not part of the product
+chromedriver/
+se-metadata.json
+qa/
+.edge-headless-profile*/

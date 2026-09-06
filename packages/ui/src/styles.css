@@ -1,0 +1,779 @@
+/*
+ * @nivik/ui component styles. Plain CSS with an `nv-` prefix so the package can be consumed
+ * by any bundler without CSS-module resolution. Only tokens from tokens.css and a handful of
+ * derived tints are used here.
+ */
+
+/* ---------------------------------------------------------------------------------------- */
+/* Button                                                                                    */
+/* ---------------------------------------------------------------------------------------- */
+
+.nv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 15px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.1s,
+    filter 0.15s;
+}
+
+.nv-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.nv-btn:focus-visible {
+  outline: 2px solid var(--nv-focus-ring);
+  outline-offset: 3px;
+}
+
+.nv-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.nv-btn--xs {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.nv-btn--sm {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 11px;
+}
+
+.nv-btn--md {
+  min-height: 38px;
+}
+
+.nv-btn--lg {
+  min-height: 44px;
+  gap: 10px;
+  padding: 0 15px;
+  border-radius: 16px;
+  font-size: 15px;
+}
+
+.nv-btn--block {
+  width: 100%;
+}
+
+.nv-btn--icon {
+  padding: 0;
+  aspect-ratio: 1;
+}
+
+.nv-btn--surface {
+  border-color: var(--nv-surface-border);
+  background: var(--nv-surface);
+  box-shadow: var(--nv-surface-shadow);
+}
+
+.nv-btn--surface:hover:not(:disabled) {
+  filter: brightness(0.98);
+}
+
+.nv-btn--primary {
+  border-color: transparent;
+  background: var(--nv-gradient-primary);
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(172, 142, 238, 0.075);
+}
+
+.nv-btn--primary:hover:not(:disabled) {
+  background: var(--nv-gradient-primary-hover);
+}
+
+.nv-btn--secondary {
+  border-color: var(--nv-control-border);
+  background: #fff;
+}
+
+.nv-btn--secondary:hover:not(:disabled) {
+  border-color: #dcdae5;
+  background: #f9f8fc;
+}
+
+.nv-btn--ghost {
+  border-color: transparent;
+}
+
+.nv-btn--ghost:hover:not(:disabled) {
+  background: #f3f1f8;
+}
+
+.nv-btn--danger {
+  border-color: var(--nv-danger-border);
+  background: var(--nv-danger-soft);
+  color: var(--nv-danger);
+}
+
+.nv-btn--danger:hover:not(:disabled) {
+  border-color: #f9d5d5;
+  background: #ffebeb;
+}
+
+.nv-btn--soft {
+  min-height: 46px;
+  justify-content: flex-start;
+  padding: 14px;
+  border-color: #e8e4ef;
+  border-radius: 13px;
+  background: #fcfbff;
+  font-size: 14px;
+  font-weight: 450;
+  line-height: 1.3;
+  text-align: left;
+  white-space: normal;
+}
+
+.nv-btn--soft:hover:not(:disabled) {
+  border-color: #d5c3f8;
+  background: #faf7ff;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* Dialog                                                                                    */
+/* ---------------------------------------------------------------------------------------- */
+
+.nv-dialog__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  overflow: auto;
+  background: var(--nv-dialog-backdrop);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: nv-fade-in 0.16s ease-out;
+}
+
+.nv-dialog {
+  position: relative;
+  width: min(470px, 100%);
+  padding: 28px;
+  border: 1px solid #ebe8ef;
+  border-radius: var(--nv-radius-2xl);
+  background: #fff;
+  color: var(--nv-ink);
+  box-shadow: var(--nv-shadow-pop);
+  outline: none;
+  animation: nv-pop-in 0.18s ease-out;
+}
+
+.nv-dialog--lg {
+  width: min(960px, calc(100vw - 48px));
+  max-height: calc(100dvh - 50px);
+  padding: 30px;
+  border-radius: 20px;
+  overflow: auto;
+}
+
+.nv-dialog__close {
+  position: absolute;
+  top: 19px;
+  right: 19px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: #f6f4f8;
+  color: var(--nv-ink);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.nv-dialog__close:hover {
+  background: #eeebf2;
+}
+
+.nv-dialog__close:focus-visible {
+  outline: 2px solid var(--nv-focus-ring);
+  outline-offset: 2px;
+}
+
+.nv-dialog__title {
+  margin: 0 40px 8px 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  line-height: 1.25;
+}
+
+.nv-dialog__text {
+  margin: 0;
+  color: #828697;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.nv-dialog__actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 21px;
+}
+
+.nv-dialog__actions--grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.nv-dialog__actions--stack {
+  grid-template-columns: 1fr;
+}
+
+.nv-dialog__actions--row {
+  display: flex;
+}
+
+.nv-dialog__actions--row > * {
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .nv-dialog {
+    padding: 24px;
+  }
+
+  .nv-dialog__actions--grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* Toast                                                                                     */
+/* ---------------------------------------------------------------------------------------- */
+
+.nv-toast {
+  position: fixed;
+  left: 50%;
+  z-index: 200;
+  max-width: calc(100vw - 32px);
+  padding: 11px 18px;
+  border-radius: 13px;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: nv-toast-in 0.18s ease-out;
+}
+
+.nv-toast--dark {
+  background: #17161a;
+  color: #fff;
+}
+
+.nv-toast--light {
+  border: 1px solid #e8e4f1;
+  background: #fff;
+  color: #858198;
+  box-shadow: 0 8px 24px rgba(68, 65, 88, 0.07);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* Switch                                                                                    */
+/* ---------------------------------------------------------------------------------------- */
+
+.nv-switch {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  background: #e1e2e8;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.nv-switch[data-state="checked"] {
+  background: linear-gradient(110deg, #a17af9, #936afa);
+}
+
+.nv-switch:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.nv-switch:focus-visible {
+  outline: 2px solid var(--nv-focus-ring);
+  outline-offset: 3px;
+}
+
+.nv-switch__thumb {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(80, 66, 107, 0.11);
+  transform: translateX(3px);
+  transition: transform 0.15s;
+}
+
+.nv-switch__thumb[data-state="checked"] {
+  transform: translateX(23px);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* Select                                                                                    */
+/* ---------------------------------------------------------------------------------------- */
+
+.nv-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 13px;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 13px;
+  border: 1px solid var(--nv-control-border);
+  border-radius: var(--nv-radius-m);
+  background: var(--nv-control-bg);
+  color: var(--nv-ink-soft);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.nv-select:hover:not(:disabled) {
+  border-color: var(--nv-control-border-hover);
+}
+
+.nv-select:focus-visible,
+.nv-select[data-state="open"] {
+  outline: 0;
+  border-color: var(--nv-control-border-focus);
+}
+
+.nv-select:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.nv-select__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nv-select__caret {
+  display: flex;
+  flex: none;
+  opacity: 0.72;
+  transition: transform 0.15s;
+}
+
+.nv-select[data-state="open"] .nv-select__caret {
+  transform: rotate(180deg);
+}
+
+.nv-select__menu {
+  z-index: 200;
+  width: var(--radix-select-trigger-width);
+  max-height: min(232px, var(--radix-select-content-available-height));
+  padding: 6px;
+  border: 1px solid #e7e7ee;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: var(--nv-shadow-float);
+  overflow: hidden;
+  animation: nv-pop-in 0.14s ease-out;
+}
+
+.nv-select__viewport {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nv-select__option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 35px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: #566076;
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+  user-select: none;
+  outline: 0;
+}
+
+.nv-select__option[data-highlighted] {
+  background: #f6f5f9;
+}
+
+.nv-select__option[data-state="checked"] {
+  background: #f3effa;
+  color: #8064ae;
+}
+
+.nv-select__option[data-disabled] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.nv-select__check {
+  display: flex;
+  color: var(--nv-accent);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* Small primitives                                                                          */
+/* ---------------------------------------------------------------------------------------- */
+
+.nv-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #f6f3fa;
+  color: #9b8dac;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.nv-kbd {
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: #f7f6f9;
+  color: #8b8d9b;
+  font: 11px var(--nv-font);
+  white-space: nowrap;
+}
+
+.nv-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 42px;
+  padding: 0 18px;
+  border: 1px solid #e5e4e8;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.66);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.16s,
+    border-color 0.16s,
+    color 0.16s;
+}
+
+.nv-chip:hover {
+  border-color: #cbc7d3;
+  background: #fff;
+}
+
+.nv-chip:focus-visible {
+  outline: 2px solid var(--nv-focus-ring);
+  outline-offset: 3px;
+}
+
+.nv-chip--ink.is-active {
+  border-color: #080809;
+  background: #080809;
+  color: #fff;
+}
+
+.nv-chip--accent {
+  height: 44px;
+  padding: 0 15px;
+  border-color: #eae8ef;
+  border-radius: var(--nv-radius-l);
+  background: rgba(255, 255, 255, 0.61);
+  box-shadow: 0 3px 7px rgba(54, 48, 71, 0.012);
+  font-size: 12px;
+}
+
+.nv-chip--accent.is-active {
+  border-color: #d7c8ff;
+  background: linear-gradient(#fcfaff, #f2edff);
+  color: var(--nv-accent);
+  box-shadow: 0 2px 5px rgba(121, 85, 237, 0.043);
+}
+
+.nv-input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 13px;
+  border: 1px solid var(--nv-control-border);
+  border-radius: var(--nv-radius-m);
+  background: var(--nv-control-bg);
+  color: var(--nv-ink-soft);
+  font: inherit;
+  font-size: 12px;
+  transition: border-color 0.15s;
+}
+
+.nv-input::placeholder {
+  color: #a4a8b7;
+}
+
+.nv-input:hover {
+  border-color: var(--nv-control-border-hover);
+}
+
+.nv-input:focus {
+  outline: none;
+  border-color: var(--nv-control-border-focus);
+}
+
+.nv-input:disabled {
+  opacity: 0.5;
+}
+
+.nv-card {
+  border: 1px solid var(--nv-card-border);
+  border-radius: 15px;
+  background: var(--nv-card);
+  box-shadow: var(--nv-shadow-card);
+}
+
+.nv-card--rows {
+  padding: 0 30px;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* Folder card                                                                               */
+/* ---------------------------------------------------------------------------------------- */
+
+.nv-folder {
+  position: relative;
+  width: 280px;
+  height: 276px;
+  transition: transform 0.18s;
+}
+
+.nv-folder:hover {
+  transform: translateY(-4px);
+}
+
+/* Invisible hit area covering the whole card; carries the accessible name. */
+.nv-folder__open {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: 0;
+  border: 0;
+  border-radius: 22px;
+  background: none;
+  cursor: pointer;
+}
+
+.nv-folder__open:focus-visible {
+  outline: 2px solid var(--nv-focus-ring);
+  outline-offset: 4px;
+}
+
+.nv-folder__tab {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  z-index: 0;
+  width: 124px;
+  height: 48px;
+  clip-path: path("M14 0 H87 C98 0 102 5 108 14 L124 32 V48 H0 V14 C0 6 6 0 14 0 Z");
+  background: linear-gradient(
+    90deg,
+    var(--folder-tab) 0%,
+    color-mix(in srgb, var(--folder-tab) 76%, #fff) 56%,
+    color-mix(in srgb, var(--folder-tab) 34%, #fff) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.56);
+  opacity: 0.96;
+}
+
+.nv-folder__border {
+  position: absolute;
+  top: 30px;
+  left: 0;
+  z-index: 2;
+  width: 280px;
+  height: 246px;
+  clip-path: path(
+    "M20 0 H73 C85 0 92 11 106 11 H260 C271 11 280 20 280 31 V226 C280 237 271 246 260 246 H20 C9 246 0 237 0 226 V20 C0 9 9 0 20 0 Z"
+  );
+  background: rgba(255, 255, 255, 0.82);
+  filter: drop-shadow(0 8px 15px rgba(80, 90, 120, 0.08))
+    drop-shadow(0 2px 4px rgba(80, 90, 120, 0.04));
+}
+
+.nv-folder__body {
+  position: absolute;
+  inset: 1px;
+  clip-path: path(
+    "M19 0 H72 C84 0 91 10 105 10 H258 C269 10 278 19 278 30 V224 C278 235 269 244 258 244 H19 C8 244 0 236 0 225 V19 C0 8 8 0 19 0 Z"
+  );
+  overflow: hidden;
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(255, 255, 255, 0.16) 68%,
+      rgba(255, 255, 255, 0.52) 78%,
+      rgba(255, 255, 255, 0.86) 88%,
+      rgba(255, 255, 255, 0.92) 100%
+    ),
+    radial-gradient(
+      ellipse 92% 82% at 72% 66%,
+      rgba(255, 255, 255, 0.3),
+      rgba(255, 255, 255, 0) 72%
+    ),
+    linear-gradient(
+      to bottom,
+      var(--folder-top) 0%,
+      var(--folder-top) 36%,
+      var(--folder-mid) 66%,
+      var(--folder-bottom) 100%
+    );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.nv-folder__more {
+  position: absolute;
+  top: 58px;
+  right: 17px;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--nv-ink);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.nv-folder__more:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.nv-folder__more:focus-visible {
+  outline: 2px solid var(--nv-focus-ring);
+  outline-offset: 2px;
+}
+
+.nv-folder__copy {
+  position: absolute;
+  right: 15px;
+  bottom: 17px;
+  left: 16px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.nv-folder__title {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.3px;
+  line-height: 19px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nv-folder__meta {
+  margin-top: 8px;
+  color: #83889d;
+  font-size: 12px;
+  line-height: 15px;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* Motion                                                                                    */
+/* ---------------------------------------------------------------------------------------- */
+
+@keyframes nv-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes nv-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes nv-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nv-dialog__overlay,
+  .nv-dialog,
+  .nv-toast,
+  .nv-select__menu {
+    animation: none;
+  }
+
+  .nv-btn,
+  .nv-chip,
+  .nv-switch,
+  .nv-switch__thumb,
+  .nv-folder {
+    transition: none;
+  }
+}

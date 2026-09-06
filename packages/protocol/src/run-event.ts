@@ -1,3 +1,11 @@
+import {
+  AgentActionSchema,
+  ChangeSetSchema,
+  DiagramTypeSchema,
+  IdSchema,
+  LayoutPatchSchema,
+  ValidationResultSchema,
+} from '@nivik/ir';
 import { z } from 'zod';
 import { RunErrorCodeSchema } from './error-codes';
 import { RunIdSchema } from './run-request';
@@ -26,29 +34,21 @@ export const PLAN_INTENTS = [
 export const PlanIntentSchema = z.enum(PLAN_INTENTS);
 export type PlanIntent = z.infer<typeof PlanIntentSchema>;
 
-/**
- * Spec 05 §3. `diagramType` / `layout` are loose strings here; `@nivik/ir` narrows them to the
- * DiagramType / LayoutSpec enums once it lands (task 0.3) — the wire shape stays identical.
- */
+/** Spec 05 §3; `diagramType` and `layout` use the IR vocabularies. */
 export const PlanSchema = z.object({
   intent: PlanIntentSchema,
-  diagramType: z.string().min(1),
+  diagramType: DiagramTypeSchema,
   scope: z.object({
     kind: z.enum(['all', 'selection', 'ids']),
-    ids: z.array(z.string().min(1)).optional(),
+    ids: z.array(IdSchema).optional(),
   }),
   summary: z.string().max(200),
   steps: z.array(z.string().max(120)).max(8),
-  layout: z.object({ algorithm: z.string().optional(), direction: z.string().optional() }),
+  layout: LayoutPatchSchema.pick({ algorithm: true, direction: true }),
   estimatedNodes: z.number().int().min(0).max(300),
   needsClarification: z.string().max(200).optional(),
 });
 export type Plan = z.infer<typeof PlanSchema>;
-
-/** Placeholders for spec 02 / 01 payloads, swapped for `@nivik/ir` schemas in tasks 0.3–0.5. */
-export const ActionPayloadSchema = z.object({ type: z.string().min(1) }).catchall(z.unknown());
-export const ChangeSetPayloadSchema = z.record(z.string(), z.unknown());
-export const ValidationPayloadSchema = z.record(z.string(), z.unknown());
 
 export const ReviewIssueSchema = z.object({
   severity: z.enum(['info', 'warning', 'error']),
@@ -71,7 +71,8 @@ export const RunEventSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('action'),
     index: z.number().int().min(0),
-    action: ActionPayloadSchema,
+    /** One model-emitted action (spec 02 §3); user / system ops never travel on this event. */
+    action: AgentActionSchema,
     ok: z.boolean(),
     error: z.string().optional(),
   }),
@@ -80,8 +81,8 @@ export const RunEventSchema = z.discriminatedUnion('type', [
     attempted: z.number().int().min(0),
     fixed: z.number().int().min(0),
   }),
-  z.object({ type: z.literal('changeSet'), changeSet: ChangeSetPayloadSchema }),
-  z.object({ type: z.literal('validation'), result: ValidationPayloadSchema }),
+  z.object({ type: z.literal('changeSet'), changeSet: ChangeSetSchema }),
+  z.object({ type: z.literal('validation'), result: ValidationResultSchema }),
   z.object({ type: z.literal('review'), issues: z.array(ReviewIssueSchema) }),
   z.object({ type: z.literal('usage'), usage: UsageSchema }),
   z.object({ type: z.literal('tool'), name: z.string().min(1), durationMs: z.number().min(0) }),

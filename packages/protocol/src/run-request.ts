@@ -1,18 +1,12 @@
+import { DiagramSchema, DiagramTypeSchema, IdSchema, RendererIdSchema } from '@nivik/ir';
 import { z } from 'zod';
 
 export const RUN_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 export const RunIdSchema = z.string().regex(RUN_ID_PATTERN, 'runId must be 8–64 url-safe chars');
 
-export const RENDERER_IDS = ['excalidraw', 'drawio', 'mermaid', 'nivik'] as const;
-export const RendererIdSchema = z.enum(RENDERER_IDS);
-export type RendererId = z.infer<typeof RendererIdSchema>;
-
-/**
- * Placeholder for the Diagram IR (spec 01). Replaced by `DiagramSchema` from `@nivik/ir`
- * in roadmap task 0.3; until then any JSON object is accepted so the transport can be built.
- */
-export const DiagramPayloadSchema = z.record(z.string(), z.unknown());
-export type DiagramPayload = z.infer<typeof DiagramPayloadSchema>;
+/** Renderer vocabulary is owned by the IR (`diagram.renderer.preferred`); re-exported for hosts. */
+export { type RendererId, RendererIdSchema } from '@nivik/ir';
+export const RENDERER_IDS = RendererIdSchema.options;
 
 export const ModelRefSchema = z.union([
   z.literal('auto'),
@@ -39,17 +33,19 @@ export const ResolvedSourceSchema = z.object({
 export type ResolvedSource = z.infer<typeof ResolvedSourceSchema>;
 
 export const RunHintsSchema = z.object({
-  diagramType: z.string().min(1).optional(),
+  diagramType: DiagramTypeSchema.optional(),
   renderer: RendererIdSchema,
 });
+export type RunHints = z.infer<typeof RunHintsSchema>;
 
 /** Wire form of spec 05 §2 `RunInput`. Validated on both ends of the transport. */
 export const RunRequestSchema = z.object({
   /** Client-generated so it can cancel before the first event arrives; runtime mints one if absent. */
   runId: RunIdSchema.optional(),
-  diagram: DiagramPayloadSchema,
+  /** The full Diagram IR (spec 01); structural rules are enforced at parse time. */
+  diagram: DiagramSchema,
   prompt: z.string().trim().min(1).max(8_000),
-  selection: z.array(z.string().min(1)).max(2_000).default([]),
+  selection: z.array(IdSchema).max(2_000).default([]),
   sources: z.array(ResolvedSourceSchema).max(20).default([]),
   hints: RunHintsSchema,
   model: ModelRefSchema.default('auto'),

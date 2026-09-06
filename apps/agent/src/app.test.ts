@@ -1,4 +1,5 @@
 import { createDefaultDeps, createMockAgent } from '@nivik/agent';
+import { createDiagram } from '@nivik/ir';
 import {
   HealthResponseSchema,
   parseNdjsonStream,
@@ -34,7 +35,16 @@ async function readEvents(response: Response): Promise<RunEvent[]> {
   return events;
 }
 
-const VALID = { diagram: {}, prompt: 'Login → Verify → Home', hints: { renderer: 'excalidraw' } };
+const VALID = {
+  diagram: createDiagram({
+    name: 'Login',
+    type: 'flow',
+    id: 'd_app_test01',
+    now: 1_700_000_000_000,
+  }),
+  prompt: 'Login → Verify → Home',
+  hints: { renderer: 'excalidraw' },
+};
 
 describe('GET /healthz', () => {
   it('reports service identity, protocol version and run counts', async () => {
@@ -73,7 +83,7 @@ describe('POST /v1/runs', () => {
     const body = RuntimeErrorSchema.parse(await invalid.json());
     expect(body.error.code).toBe('BAD_REQUEST');
     expect(body.error.issues?.map((i) => i.path)).toEqual(
-      expect.arrayContaining(['prompt', 'hints.renderer']),
+      expect.arrayContaining(['diagram.schema', 'prompt', 'hints.renderer']),
     );
 
     const notJson = await postRun(app, '{nope');

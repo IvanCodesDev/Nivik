@@ -1,14 +1,23 @@
+import { applyChangeSet, createDiagram, type Diagram } from '@nivik/ir';
 import { isTerminalEvent, type RunEvent, RunEventSchema, RunRequestSchema } from '@nivik/protocol';
 import { describe, expect, it } from 'vitest';
 import { createDefaultDeps } from '../deps';
 import { createMockAgent } from './mock-agent';
 import { splitSteps } from './steps';
 
-const deps = createDefaultDeps({ sleep: async () => {}, newRunId: () => 'run_mock_00001' });
+const NOW = 1_700_000_000_000;
+const deps = createDefaultDeps({
+  sleep: async () => {},
+  newRunId: () => 'run_mock_00001',
+  now: () => NOW,
+});
+
+const emptyDiagram = () =>
+  createDiagram({ name: 'Mock', type: 'flow', id: 'd_mock0001', now: NOW });
 
 function request(prompt: string, extra: Record<string, unknown> = {}) {
   return RunRequestSchema.parse({
-    diagram: {},
+    diagram: emptyDiagram(),
     prompt,
     hints: { renderer: 'excalidraw' },
     ...extra,
@@ -20,6 +29,18 @@ async function collect(iterable: AsyncIterable<RunEvent>): Promise<RunEvent[]> {
   for await (const event of iterable) out.push(event);
   return out;
 }
+
+const changeSetOf = (events: RunEvent[]) => {
+  const event = events.find((e) => e.type === 'changeSet');
+  if (event?.type !== 'changeSet') throw new Error('no changeSet event');
+  return event.changeSet;
+};
+
+const applyTo = (diagram: Diagram, events: RunEvent[]) => {
+  const result = applyChangeSet(diagram, changeSetOf(events));
+  if (!result.ok) throw new Error(JSON.stringify(result.error));
+  return result.diagram;
+};
 
 describe('splitSteps', () => {
   it('splits on arrows, newlines, semicolons and "then"', () => {
@@ -57,7 +78,7 @@ describe('createMockAgent', () => {
     ]);
 
     const actions = events.filter((e) => e.type === 'action');
-    expect(actions.map((e) => e.type === 'action' && e.action.type)).toEqual([
+    expect(actions.map((e) => e.type === 'action' && e.action.op)).toEqual([
       'addNode',
       'addNode',
       'addEdge',
@@ -72,11 +93,13 @@ describe('createMockAgent', () => {
       estimatedNodes: 3,
     });
 
-    const changeSet = events.find((e) => e.type === 'changeSet');
-    expect(changeSet?.type === 'changeSet' && changeSet.changeSet).toMatchObject({
+    expect(changeSetOf(events)).toMatchObject({
+      id: 'cs_run_mock_00001',
+      diagramId: 'd_mock0001',
       runId: 'run_mock_00001',
       origin: 'ai',
-      baseVersion: 0,
+      baseVersion: 1,
+      createdAt: NOW,
     });
 
     const usage = events.find((e) => e.type === 'usage');
@@ -86,13 +109,50 @@ describe('createMockAgent', () => {
     expect(events.at(-1)).toEqual({ type: 'done', runId: 'run_mock_00001' });
   });
 
-  it('honours a client-supplied runId and detects edits of an existing diagram', async () => {
+  it('produces a change set that applies cleanly and validates as a linear flow', async () => {
+    const agent = createMockAgent(deps);
+    const events = await collect(agent.run(request('Sign up → Verify email → Onboard')));
+    const next = applyTo(emptyDiagram(), events);
+
+    expect(next.nodes.map((n) => [n.id, n.label, n.type])).toEqual([
+      ['n1', 'Sign up', 'rounded'],
+      ['n2', 'Verify email', 'rounded'],
+      ['n3', 'Onboard', 'rounded'],
+    ]);
+    expect(next.edges.map((e) => [e.id, e.source, e.target])).toEqual([
+      ['e1', 'n1', 'n2'],
+      ['e2', 'n2', 'n3'],
+    ]);
+
+    const validation = events.find((e) => e.type === 'validation');
+    expect(validation?.type === 'validation' && validation.result).toEqual({
+      ok: true,
+      errors: [],
+      warnings: [],
+    });
+  });
+
+  it('honours a client-supplied runId and extends an existing diagram without id collisions', async () => {
+    const existing: Diagram = {
+      ...emptyDiagram(),
+      version: 4,
+      nodes: [
+        {
+          id: 'n1',
+          type: 'rounded',
+          label: 'Existing',
+          parent: null,
+          pinned: false,
+          meta: { createdBy: 'user', createdAt: NOW, updatedAt: NOW, rev: 0 },
+        },
+      ],
+    };
     const agent = createMockAgent(deps);
     const events = await collect(
       agent.run(
         request('Add a retry step', {
           runId: 'run_client_007',
-          diagram: { version: 4, nodes: [{ id: 'n1' }] },
+          diagram: existing,
           hints: { renderer: 'drawio', diagramType: 'sequence' },
         }),
       ),
@@ -102,8 +162,11 @@ describe('createMockAgent', () => {
       intent: 'edit',
       diagramType: 'sequence',
     });
-    const changeSet = events.find((e) => e.type === 'changeSet');
-    expect(changeSet?.type === 'changeSet' && changeSet.changeSet.baseVersion).toBe(4);
+    expect(changeSetOf(events).baseVersion).toBe(4);
+
+    const next = applyTo(existing, events);
+    expect(next.nodes.map((n) => n.id)).toEqual(['n1', 'n2']);
+    expect(next.edges.map((e) => [e.source, e.target])).toEqual([['n1', 'n2']]);
     expect(events.at(-1)).toEqual({ type: 'done', runId: 'run_client_007' });
   });
 

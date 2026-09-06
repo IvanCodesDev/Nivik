@@ -12,6 +12,7 @@
   "dependencies": {
     "@hono/node-server": "2.1.1",
     "@nivik/agent": "workspace:*",
+    "@nivik/ir": "workspace:*",
     "@nivik/protocol": "workspace:*",
     "hono": "4.13.7",
     "zod": "4.5.4"

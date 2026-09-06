@@ -1,6 +1,7 @@
 'use client';
 
 import { splitSteps } from '@nivik/agent';
+import { createDiagram, isId } from '@nivik/ir';
 import type { RunStage } from '@nivik/protocol';
 import { Button, cn, IconButton, useToast } from '@nivik/ui';
 import {
@@ -117,7 +118,12 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
     try {
       const events = client.start(
         {
-          diagram: {},
+          // Until diagrams are persisted (task 0.7) every run starts from an empty IR document.
+          diagram: createDiagram({
+            name: template?.title ?? 'Untitled diagram',
+            type: 'flow',
+            id: isId(diagramId) ? diagramId : undefined,
+          }),
           prompt: text,
           hints: { renderer: renderer?.id ?? 'excalidraw' },
           settings: {
@@ -133,8 +139,8 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
       for await (const event of events) {
         if (event.type === 'status') {
           setRun((current) => current && { ...current, stage: event.stage });
-        } else if (event.type === 'action' && event.ok && event.action.type === 'addNode') {
-          if (typeof event.action.label === 'string') labels.push(event.action.label);
+        } else if (event.type === 'action' && event.ok && event.action.op === 'addNode') {
+          labels.push(event.action.node.label);
           setSteps([...labels]);
           setRun((current) => current && { ...current, actions: current.actions + 1 });
         } else if (event.type === 'error' && !event.recoverable) {

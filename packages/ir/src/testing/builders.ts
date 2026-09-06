@@ -55,11 +55,11 @@ export const edge = (
 
 export const group = (
   id: Id,
-  label: string,
+  label: string | undefined,
   overrides: Partial<Omit<DiagramGroup, 'id' | 'label'>> = {},
 ): DiagramGroup => ({
   id,
-  label,
+  ...(label !== undefined ? { label } : {}),
   role: 'cluster',
   parent: null,
   collapsed: false,

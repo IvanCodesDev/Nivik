@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@nivik/agent": "workspace:*",
+    "@nivik/ir": "workspace:*",
     "@nivik/protocol": "workspace:*",
     "@nivik/ui": "workspace:*",
     "@phosphor-icons/react": "2.1.10",

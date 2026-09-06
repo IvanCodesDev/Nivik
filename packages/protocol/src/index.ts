@@ -15,8 +15,6 @@ export {
   parseNdjsonText,
 } from './ndjson';
 export {
-  ActionPayloadSchema,
-  ChangeSetPayloadSchema,
   isTerminalEvent,
   PLAN_INTENTS,
   type Plan,
@@ -33,11 +31,8 @@ export {
   RunStageSchema,
   type Usage,
   UsageSchema,
-  ValidationPayloadSchema,
 } from './run-event';
 export {
-  type DiagramPayload,
-  DiagramPayloadSchema,
   type ModelRef,
   ModelRefSchema,
   RENDERER_IDS,
@@ -46,6 +41,7 @@ export {
   type ResolvedSource,
   ResolvedSourceSchema,
   RUN_ID_PATTERN,
+  type RunHints,
   RunHintsSchema,
   RunIdSchema,
   type RunRequest,

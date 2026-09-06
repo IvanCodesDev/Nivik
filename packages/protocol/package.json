@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@nivik/ir": "workspace:*",
     "zod": "4.5.4"
   },
   "devDependencies": {

@@ -1,14 +1,25 @@
+import { z } from 'zod';
+import { IdSchema } from './ids';
 import { qualityIssues } from './quality';
 import type { Diagram } from './schema/diagram';
 import { structuralIssues, type ValidationIssue } from './structural';
 
 export type { IssueSeverity, ValidationIssue } from './structural';
 
-export interface ValidationResult {
-  ok: boolean;
-  errors: ValidationIssue[];
-  warnings: ValidationIssue[];
-}
+/** Wire form of a validation issue (spec 01 §6), shared with `@nivik/protocol`. */
+export const ValidationIssueSchema = z.object({
+  code: z.string().min(1),
+  severity: z.enum(['error', 'warning']),
+  ids: z.array(IdSchema),
+  message: z.string(),
+}) satisfies z.ZodType<ValidationIssue>;
+
+export const ValidationResultSchema = z.object({
+  ok: z.boolean(),
+  errors: z.array(ValidationIssueSchema),
+  warnings: z.array(ValidationIssueSchema),
+});
+export type ValidationResult = z.infer<typeof ValidationResultSchema>;
 
 /**
  * Pure validation of an in-memory diagram (spec 01 §6): structural errors block, quality warnings

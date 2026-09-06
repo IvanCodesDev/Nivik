@@ -1,15 +1,20 @@
+import { createDiagram } from '@nivik/ir';
 import { describe, expect, it } from 'vitest';
 import { isTerminalEvent, RunEventSchema } from './run-event';
-import { RunRequestSchema } from './run-request';
+import { RENDERER_IDS, RunRequestSchema } from './run-request';
+
+const diagram = () =>
+  createDiagram({ name: 'Login', type: 'flow', id: 'd_test0001', now: 1_700_000_000_000 });
 
 describe('RunRequestSchema', () => {
   it('applies defaults for optional collections and settings', () => {
     const parsed = RunRequestSchema.parse({
-      diagram: {},
+      diagram: diagram(),
       prompt: '  Draw a login flow  ',
       hints: { renderer: 'excalidraw' },
     });
     expect(parsed.prompt).toBe('Draw a login flow');
+    expect(parsed.diagram).toEqual(diagram());
     expect(parsed.selection).toEqual([]);
     expect(parsed.sources).toEqual([]);
     expect(parsed.model).toBe('auto');
@@ -22,8 +27,34 @@ describe('RunRequestSchema', () => {
     });
   });
 
+  it('requires a real Diagram IR and a known diagram type hint', () => {
+    const base = { prompt: 'x', hints: { renderer: 'excalidraw' } };
+    expect(RunRequestSchema.safeParse({ ...base, diagram: {} }).success).toBe(false);
+    expect(
+      RunRequestSchema.safeParse({ ...base, diagram: { ...diagram(), nodes: [{ id: 'n1' }] } })
+        .success,
+    ).toBe(false);
+    expect(
+      RunRequestSchema.safeParse({
+        ...base,
+        diagram: diagram(),
+        hints: { renderer: 'excalidraw', diagramType: 'mindmap' },
+      }).success,
+    ).toBe(true);
+    expect(
+      RunRequestSchema.safeParse({
+        ...base,
+        diagram: diagram(),
+        hints: { renderer: 'excalidraw', diagramType: 'org-chart' },
+      }).success,
+    ).toBe(false);
+    expect(
+      RunRequestSchema.safeParse({ ...base, diagram: diagram(), selection: ['bad id!'] }).success,
+    ).toBe(false);
+  });
+
   it('rejects blank prompts, unknown renderers and malformed run ids', () => {
-    const base = { diagram: {}, hints: { renderer: 'excalidraw' } };
+    const base = { diagram: diagram(), hints: { renderer: 'excalidraw' } };
     expect(RunRequestSchema.safeParse({ ...base, prompt: '   ' }).success).toBe(false);
     expect(
       RunRequestSchema.safeParse({ ...base, prompt: 'x', hints: { renderer: 'visio' } }).success,
@@ -35,9 +66,31 @@ describe('RunRequestSchema', () => {
       RunRequestSchema.safeParse({ ...base, prompt: 'x', runId: 'run_0123456789' }).success,
     ).toBe(true);
   });
+
+  it('shares the renderer vocabulary with the IR (including plantuml)', () => {
+    expect(RENDERER_IDS).toEqual(['excalidraw', 'drawio', 'nivik', 'mermaid', 'plantuml']);
+    const base = { diagram: diagram(), prompt: 'x' };
+    expect(RunRequestSchema.safeParse({ ...base, hints: { renderer: 'plantuml' } }).success).toBe(
+      true,
+    );
+  });
 });
 
 describe('RunEventSchema', () => {
+  const addNode = {
+    op: 'addNode',
+    node: { id: 'n1', type: 'rounded', label: 'Start', parent: null },
+  };
+  const changeSet = {
+    id: 'cs_0001',
+    diagramId: 'd_test0001',
+    baseVersion: 1,
+    origin: 'ai',
+    runId: 'run_0123456789',
+    actions: [addNode],
+    createdAt: 1_700_000_000_000,
+  };
+
   it('round-trips every event kind through JSON', () => {
     const events = [
       { type: 'status', stage: 'planning' },
@@ -53,10 +106,18 @@ describe('RunEventSchema', () => {
           estimatedNodes: 6,
         },
       },
-      { type: 'action', index: 0, action: { type: 'addNode', label: 'Start' }, ok: true },
+      { type: 'action', index: 0, action: addNode, ok: true },
       { type: 'repair', attempted: 2, fixed: 1 },
-      { type: 'changeSet', changeSet: { actions: [] } },
-      { type: 'validation', result: { errors: [], warnings: [] } },
+      { type: 'changeSet', changeSet },
+      { type: 'validation', result: { ok: true, errors: [], warnings: [] } },
+      {
+        type: 'validation',
+        result: {
+          ok: false,
+          errors: [{ code: 'E_UNKNOWN_REF', severity: 'error', ids: ['e1'], message: 'dangling' }],
+          warnings: [],
+        },
+      },
       { type: 'review', issues: [{ severity: 'warning', message: 'Orphan node', ids: ['n1'] }] },
       { type: 'usage', usage: { inputTokens: 10, outputTokens: 5, calls: 1 } },
       { type: 'tool', name: 'findNodes', durationMs: 3 },
@@ -67,6 +128,38 @@ describe('RunEventSchema', () => {
       const parsed = RunEventSchema.parse(JSON.parse(JSON.stringify(event)));
       expect(parsed).toEqual(event);
     }
+  });
+
+  it('validates action, change-set and plan payloads with the IR schemas', () => {
+    const ok = (event: unknown) => RunEventSchema.safeParse(event).success;
+    expect(
+      ok({ type: 'action', index: 0, action: { type: 'addNode', label: 'Start' }, ok: true }),
+    ).toBe(false);
+    expect(
+      ok({
+        type: 'action',
+        index: 0,
+        action: { op: 'moveNode', id: 'n1', position: { x: 0, y: 0 } },
+        ok: true,
+      }),
+    ).toBe(false);
+    expect(ok({ type: 'changeSet', changeSet: { actions: [] } })).toBe(false);
+    expect(ok({ type: 'changeSet', changeSet: { ...changeSet, runId: undefined } })).toBe(false);
+    expect(ok({ type: 'validation', result: { errors: [], warnings: [] } })).toBe(false);
+    const plan = {
+      intent: 'generate',
+      diagramType: 'flow',
+      scope: { kind: 'all' },
+      summary: 's',
+      steps: [],
+      layout: {},
+      estimatedNodes: 1,
+    };
+    expect(ok({ type: 'plan', plan: { ...plan, diagramType: 'treemap' } })).toBe(false);
+    expect(ok({ type: 'plan', plan: { ...plan, layout: { direction: 'SIDEWAYS' } } })).toBe(false);
+    expect(
+      ok({ type: 'plan', plan: { ...plan, layout: { algorithm: 'radial', direction: 'DOWN' } } }),
+    ).toBe(true);
   });
 
   it('rejects unknown event types and stages', () => {

@@ -1,8 +1,10 @@
 export * from './changeset';
+export * from './diff';
 export * from './geom';
 export * from './helpers';
 export * from './ids';
 export * from './parse';
+export * from './readout';
 export * from './schema';
 export type { StructuralIssue } from './structural';
 export { structuralIssues } from './structural';

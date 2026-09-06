@@ -1,3 +1,12 @@
+import {
+  type AgentAction,
+  applyChangeSet,
+  type ChangeSet,
+  type Diagram,
+  type Id,
+  type ValidationResult,
+  validateDiagram,
+} from '@nivik/ir';
 import type { Plan, RunEvent, RunRequest } from '@nivik/protocol';
 import type { Agent, RunOptions } from '../agent';
 import { type AgentDeps, createDefaultDeps } from '../deps';
@@ -11,21 +20,12 @@ export interface MockAgentOptions {
   paceMs?: number;
 }
 
-// A type alias (not an interface) so it is assignable to the protocol's open action payload.
-type MockAction = {
-  type: 'addNode' | 'addEdge';
-  id: string;
-  label?: string;
-  from?: string;
-  to?: string;
-};
-
 const NO_RETRY = { attempts: 0, on: [] } as const;
 
 /**
  * Scripted agent: no model calls, deterministic output derived from the prompt. It exercises the
- * real harness (stages, budget, cancellation, terminal events) so hosts and the UI can be built
- * and tested before the provider-backed stages land (tasks 1.5–1.7).
+ * real harness (stages, budget, cancellation, terminal events) and emits a genuine Change Set so
+ * hosts and the UI can be built and tested before the provider-backed stages land (tasks 1.5–1.7).
  */
 export function createMockAgent(
   deps: AgentDeps = createDefaultDeps(),
@@ -44,10 +44,9 @@ export function createMockAgent(
       ctx.budget.addTokens({ inputTokens: estimateTokens(request.prompt), outputTokens: 60 });
 
       const steps = splitSteps(request.prompt);
-      const existingNodes = Array.isArray(request.diagram.nodes) ? request.diagram.nodes.length : 0;
       const plan: Plan = {
-        intent: existingNodes > 0 ? 'edit' : 'generate',
-        diagramType: request.hints.diagramType ?? 'flow',
+        intent: request.diagram.nodes.length > 0 ? 'edit' : 'generate',
+        diagramType: request.hints.diagramType ?? request.diagram.type,
         scope: request.selection.length > 0 ? { kind: 'selection' } : { kind: 'all' },
         summary: `Sketch ${steps.length} step${steps.length === 1 ? '' : 's'} from your prompt`,
         steps: steps.map((step) => `Add "${step}"`),
@@ -60,38 +59,61 @@ export function createMockAgent(
     },
   };
 
-  const buildStage: Stage<{ request: RunRequest; plan: Plan }, MockAction[]> = {
+  const buildStage: Stage<{ request: RunRequest; plan: Plan }, ChangeSet> = {
     name: 'build',
     budget: { maxTokens: 16_000, maxCalls: 1, timeoutMs: 60_000 },
     retry: NO_RETRY,
-    async *run(ctx, { request }) {
+    async *run(ctx, { request, plan }) {
       yield { type: 'status', stage: 'building' };
       ctx.budget.addCall();
       const steps = splitSteps(request.prompt);
-      const actions: MockAction[] = [];
+      const ids = freshIds(request.diagram);
+      const actions: AgentAction[] = [];
       let index = 0;
-      for (const [i, label] of steps.entries()) {
+      // Editing an existing diagram continues from its last node.
+      let previous: Id | null = request.diagram.nodes.at(-1)?.id ?? null;
+
+      for (const label of steps) {
         await ctx.sleep(paceMs);
-        const node: MockAction = { type: 'addNode', id: `n${i + 1}`, label };
-        actions.push(node);
+        const id = ids.next('n');
+        const addNode: AgentAction = {
+          op: 'addNode',
+          node: { id, type: 'rounded', label, parent: null },
+        };
+        actions.push(addNode);
         ctx.budget.addTokens({ inputTokens: 0, outputTokens: estimateTokens(label) + 8 });
-        yield { type: 'action', index: index++, action: node, ok: true };
-        if (i > 0) {
-          const edge: MockAction = { type: 'addEdge', id: `e${i}`, from: `n${i}`, to: `n${i + 1}` };
-          actions.push(edge);
-          yield { type: 'action', index: index++, action: edge, ok: true };
+        yield { type: 'action', index: index++, action: addNode, ok: true };
+        if (previous) {
+          const addEdge: AgentAction = {
+            op: 'addEdge',
+            edge: {
+              id: ids.next('e'),
+              source: previous,
+              target: id,
+              type: 'flow',
+              direction: 'forward',
+              sourceSide: 'auto',
+              targetSide: 'auto',
+            },
+          };
+          actions.push(addEdge);
+          yield { type: 'action', index: index++, action: addEdge, ok: true };
         }
+        previous = id;
       }
-      yield {
-        type: 'changeSet',
-        changeSet: {
-          runId: ctx.runId,
-          origin: 'ai',
-          baseVersion: typeof request.diagram.version === 'number' ? request.diagram.version : 0,
-          actions,
-        },
+
+      const changeSet: ChangeSet = {
+        id: `cs_${ctx.runId}`,
+        diagramId: request.diagram.id,
+        baseVersion: request.diagram.version,
+        origin: 'ai',
+        runId: ctx.runId,
+        actions,
+        summary: plan.summary,
+        createdAt: deps.now(),
       };
-      return actions;
+      yield { type: 'changeSet', changeSet };
+      return changeSet;
     },
   };
 
@@ -110,14 +132,48 @@ export function createMockAgent(
 
       return runPipeline(ctx, async function* program() {
         const plan = yield* runStage(ctx, planStage, request);
-        yield* runStage(ctx, buildStage, { request, plan });
+        const changeSet = yield* runStage(ctx, buildStage, { request, plan });
         // Connecting (layout + render) belongs to the orchestrator; the core only announces it.
         yield { type: 'status', stage: 'connecting' };
         await deps.sleep(paceMs, ctx.signal);
         yield { type: 'status', stage: 'validating' };
-        yield { type: 'validation', result: { errors: [], warnings: [] } };
+        yield { type: 'validation', result: validate(request.diagram, changeSet) };
         yield { type: 'status', stage: 'done' };
       });
+    },
+  };
+}
+
+/** The validation the orchestrator will run: apply the change set, then check the result. */
+function validate(diagram: Diagram, changeSet: ChangeSet): ValidationResult {
+  const result = applyChangeSet(diagram, changeSet);
+  if (result.ok) return validateDiagram(result.diagram);
+  return {
+    ok: false,
+    errors: [
+      { code: result.error.code, severity: 'error', ids: [], message: result.error.message },
+    ],
+    warnings: [],
+  };
+}
+
+/** Sequential `n1, n2, …` / `e1, e2, …` ids that skip anything already in the diagram. */
+function freshIds(diagram: Diagram) {
+  const used = new Set<Id>(
+    [...diagram.nodes, ...diagram.edges, ...diagram.groups].map((x) => x.id),
+  );
+  const counters: Record<string, number> = {};
+  return {
+    next(prefix: string): Id {
+      let n = counters[prefix] ?? 0;
+      let id: Id;
+      do {
+        n += 1;
+        id = `${prefix}${n}`;
+      } while (used.has(id));
+      counters[prefix] = n;
+      used.add(id);
+      return id;
     },
   };
 }

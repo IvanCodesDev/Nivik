@@ -155,6 +155,9 @@ function layoutRequestFor(
   }
   if (ctx.fullRelayout) return { scope: 'all', reason: 'structural', hints };
   if (ctx.structural) {
+    // Under the cell layout every column / row is measured from all its members, so any structural
+    // change re-flows the whole grid (spec 02 §4.3).
+    if (next.layout.algorithm === 'grid') return { scope: 'all', reason: 'structural', hints };
     return {
       scope: neighborhood(next, structuralSeeds(ctx, affected), 1),
       reason: 'structural',

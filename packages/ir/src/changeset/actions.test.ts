@@ -24,6 +24,29 @@ describe('AgentActionSchema (what the LLM may output)', () => {
     }
   });
 
+  it('accepts a cell on addNode / addGroup and a nullable cell in node / group patches', () => {
+    const accepted = [
+      {
+        op: 'addNode',
+        node: { id: 'n1', type: 'box', label: 'N', cell: { col: 1, row: 0, colSpan: 2 } },
+      },
+      { op: 'addGroup', group: { id: 'g1', cell: { col: 0, row: 0 } } },
+      { op: 'updateNode', id: 'n1', patch: { cell: { col: 3, row: 3 } } },
+      { op: 'updateNode', id: 'n1', patch: { cell: null } },
+      { op: 'updateGroup', id: 'g1', patch: { cell: { col: 0, row: 1, rowSpan: 2 } } },
+      { op: 'updateGroup', id: 'g1', patch: { cell: null } },
+    ];
+    for (const action of accepted) {
+      expect(AgentActionSchema.safeParse(action).success, JSON.stringify(action)).toBe(true);
+    }
+    expect(
+      AgentActionSchema.safeParse({
+        op: 'addNode',
+        node: { id: 'n1', type: 'box', label: 'N', cell: { col: 64, row: 0 } },
+      }).success,
+    ).toBe(false);
+  });
+
   it('does not accept user-only or system-only ops', () => {
     expect(
       AgentActionSchema.safeParse({ op: 'moveNode', id: 'a', position: { x: 0, y: 0 } }).success,

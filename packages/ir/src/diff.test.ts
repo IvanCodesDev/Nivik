@@ -319,6 +319,26 @@ describe('diffDiagrams — geometry', () => {
   });
 });
 
+describe('diffDiagrams — cell', () => {
+  it('expresses cell changes as updateNode / updateGroup patches, null when removed', () => {
+    const a = diagram({
+      nodes: [node('a', 'A', { cell: { col: 0, row: 0, colSpan: 1, rowSpan: 1 } }), node('b', 'B')],
+      groups: [group('g', 'G', { cell: { col: 1, row: 1, colSpan: 1, rowSpan: 1 } })],
+    });
+    const b = diagram({
+      nodes: [node('a', 'A'), node('b', 'B', { cell: { col: 2, row: 0, colSpan: 2, rowSpan: 1 } })],
+      groups: [group('g', 'G', { cell: { col: 1, row: 2, colSpan: 1, rowSpan: 1 } })],
+    });
+    const cs = diffDiagrams(a, b);
+    expect(cs?.actions).toEqual([
+      { op: 'updateGroup', id: 'g', patch: { cell: { col: 1, row: 2, colSpan: 1, rowSpan: 1 } } },
+      { op: 'updateNode', id: 'a', patch: { cell: null } },
+      { op: 'updateNode', id: 'b', patch: { cell: { col: 2, row: 0, colSpan: 2, rowSpan: 1 } } },
+    ]);
+    expect(normalize(applied(a, cs))).toEqual(normalize(b));
+  });
+});
+
 describe.each([1, 20260905, 424242])('diffDiagrams — property (seed %i)', (seed) => {
   it('diff(a, apply(a, cs)) applied to a reproduces the target for random change sets', () => {
     const generator = randomChangeSets(seed);

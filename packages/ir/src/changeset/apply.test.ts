@@ -795,6 +795,153 @@ describe('spec §9 example', () => {
   });
 });
 
+describe('cell placement (spec 02 §2.3, §4.2–4.3)', () => {
+  const gridLayout = {
+    algorithm: 'grid',
+    direction: 'RIGHT',
+    spacing: 'normal',
+    edgeRouting: 'orthogonal',
+    autoLayout: true,
+  } as const;
+  const placed = (x: number, y: number) => ({ position: { x, y }, size: { w: 100, h: 50 } });
+  const cell = (col: number, row: number, colSpan = 1, rowSpan = 1) => ({
+    col,
+    row,
+    colSpan,
+    rowSpan,
+  });
+  const groupOf = (d: Diagram, id: string) => {
+    const found = d.groups.find((g) => g.id === id);
+    if (!found) throw new Error(`group ${id} missing`);
+    return found;
+  };
+
+  it('addNode accepts a cell (intent, not pixels) and asks for a full grid re-layout', () => {
+    const d = diagram({ type: 'swot', layout: gridLayout });
+    const result = applyOk(
+      d,
+      aiChangeSet(d, [
+        {
+          op: 'addNode',
+          node: { id: 's', label: 'Strengths', type: 'box', cell: { col: 0, row: 0 } },
+        },
+      ]),
+    );
+    expect(nodeOf(result.diagram, 's').cell).toEqual(cell(0, 0));
+    expect(nodeOf(result.diagram, 's').position).toBeUndefined();
+    expect(result.layoutRequest).toEqual({ scope: 'all', reason: 'structural', hints: {} });
+  });
+
+  it('updateNode with a new cell clears the stale position, is structural, and undoes cleanly', () => {
+    const d = diagram({
+      type: 'swot',
+      layout: gridLayout,
+      nodes: [
+        node('a', 'A', { cell: cell(0, 0), ...placed(0, 0) }),
+        node('b', 'B', placed(200, 0)),
+      ],
+    });
+    const forward = roundTrip(
+      d,
+      aiChangeSet(d, [{ op: 'updateNode', id: 'a', patch: { cell: { col: 1, row: 0 } } }]),
+    );
+    const a = nodeOf(forward.diagram, 'a');
+    expect(a.cell).toEqual(cell(1, 0));
+    expect(a.position).toBeUndefined();
+    expect(a.size).toEqual({ w: 100, h: 50 });
+    expect(nodeOf(forward.diagram, 'b').position).toEqual({ x: 200, y: 0 });
+    expect(forward.layoutRequest).toEqual({ scope: 'all', reason: 'structural', hints: {} });
+  });
+
+  it('updateNode keeps a pinned node where the user put it even when its cell changes', () => {
+    const d = diagram({
+      layout: gridLayout,
+      nodes: [node('a', 'A', { cell: cell(0, 0), pinned: true, ...placed(7, 7) })],
+    });
+    const forward = roundTrip(
+      d,
+      aiChangeSet(d, [{ op: 'updateNode', id: 'a', patch: { cell: { col: 2, row: 2 } } }]),
+    );
+    expect(nodeOf(forward.diagram, 'a')).toMatchObject({
+      cell: cell(2, 2),
+      position: { x: 7, y: 7 },
+    });
+  });
+
+  it('cell:null removes the cell; an identical cell changes nothing about layout', () => {
+    const d = diagram({
+      layout: gridLayout,
+      nodes: [node('a', 'A', { cell: cell(2, 1), ...placed(0, 0) })],
+    });
+    const cleared = roundTrip(
+      d,
+      aiChangeSet(d, [{ op: 'updateNode', id: 'a', patch: { cell: null } }]),
+    );
+    expect(nodeOf(cleared.diagram, 'a').cell).toBeUndefined();
+    expect(nodeOf(cleared.diagram, 'a').position).toBeUndefined();
+
+    const same = applyOk(
+      d,
+      aiChangeSet(d, [{ op: 'updateNode', id: 'a', patch: { cell: { col: 2, row: 1 } } }]),
+    );
+    expect(nodeOf(same.diagram, 'a').position).toEqual({ x: 0, y: 0 });
+    expect(same.layoutRequest).toBeNull();
+  });
+
+  it('updateGroup with a new cell clears the group and its descendants, except pinned nodes and outsiders', () => {
+    const d = diagram({
+      layout: gridLayout,
+      groups: [
+        group('g', 'G', { cell: cell(0, 0), ...placed(0, 0) }),
+        group('inner', 'Inner', { parent: 'g', ...placed(10, 10) }),
+      ],
+      nodes: [
+        node('a', 'A', { parent: 'g', ...placed(20, 20) }),
+        node('b', 'B', { parent: 'inner', ...placed(30, 30) }),
+        node('p', 'P', { parent: 'g', pinned: true, ...placed(40, 40) }),
+        node('out', 'Out', placed(500, 0)),
+      ],
+    });
+    const forward = roundTrip(
+      d,
+      aiChangeSet(d, [
+        { op: 'updateGroup', id: 'g', patch: { cell: { col: 1, row: 1, colSpan: 2 } } },
+      ]),
+    );
+    expect(groupOf(forward.diagram, 'g').cell).toEqual(cell(1, 1, 2, 1));
+    expect(groupOf(forward.diagram, 'g').position).toBeUndefined();
+    expect(groupOf(forward.diagram, 'g').size).toEqual({ w: 100, h: 50 });
+    expect(groupOf(forward.diagram, 'inner').position).toBeUndefined();
+    expect(nodeOf(forward.diagram, 'a').position).toBeUndefined();
+    expect(nodeOf(forward.diagram, 'b').position).toBeUndefined();
+    expect(nodeOf(forward.diagram, 'p').position).toEqual({ x: 40, y: 40 });
+    expect(nodeOf(forward.diagram, 'out').position).toEqual({ x: 500, y: 0 });
+    expect(forward.layoutRequest).toEqual({ scope: 'all', reason: 'structural', hints: {} });
+  });
+
+  it('structural changes stay local under layered layout but re-flow everything under grid', () => {
+    const base = diagram({
+      nodes: [node('a', 'A'), node('b', 'B'), node('c', 'C')],
+      edges: [edge('e1', 'a', 'b'), edge('e2', 'b', 'c')],
+    });
+    const add = (d: Diagram) =>
+      aiChangeSet(d, [
+        { op: 'addNode', node: { id: 'n', label: 'N', type: 'box' } },
+        { op: 'addEdge', edge: { id: 'e3', source: 'c', target: 'n' } },
+      ]);
+    const layered = applyOk(base, add(base));
+    expect(layered.layoutRequest?.scope).toEqual(expect.arrayContaining(['n', 'c']));
+    expect(layered.layoutRequest?.scope).not.toContain('a');
+
+    const grid: Diagram = { ...base, layout: { ...base.layout, algorithm: 'grid' } };
+    expect(applyOk(grid, add(grid)).layoutRequest).toEqual({
+      scope: 'all',
+      reason: 'structural',
+      hints: {},
+    });
+  });
+});
+
 describe('fill token through setStyle', () => {
   it('applies, inverts and clears the fill token', () => {
     const d = diagram({ nodes: [node('a', 'A'), node('b', 'B')], edges: [edge('e1', 'a', 'b')] });

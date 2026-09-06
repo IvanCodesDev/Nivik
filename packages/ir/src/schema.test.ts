@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ANNOTATION_NODE_TYPES,
+  CellSchema,
   DIAGRAM_FAMILIES,
   DIAGRAM_SCHEMA_VERSION,
   DiagramEdgeSchema,
@@ -178,6 +179,33 @@ describe('style tokens', () => {
     expect(StyleTokensSchema.safeParse({ fill: 'translucent' }).success).toBe(true);
     expect(StyleTokensSchema.safeParse({ fill: 'none' }).success).toBe(true);
     expect(issuePaths(StyleTokensSchema.safeParse({ fill: 'hatched' }))).toEqual(['fill']);
+  });
+});
+
+describe('cell (grid placement, spec 01 §3.4)', () => {
+  it('fills span defaults and round-trips on nodes and groups', () => {
+    expect(CellSchema.parse({ col: 2, row: 1 })).toEqual({
+      col: 2,
+      row: 1,
+      colSpan: 1,
+      rowSpan: 1,
+    });
+    const n = DiagramNodeSchema.parse({ ...node('a', 'A'), cell: { col: 0, row: 0, colSpan: 2 } });
+    expect(n.cell).toEqual({ col: 0, row: 0, colSpan: 2, rowSpan: 1 });
+    const g = DiagramGroupSchema.parse({ id: 'g', meta: meta(), cell: { col: 1, row: 1 } });
+    expect(g.cell).toEqual({ col: 1, row: 1, colSpan: 1, rowSpan: 1 });
+    const d = diagram({
+      nodes: [{ ...node('a', 'A'), cell: { col: 3, row: 4, colSpan: 1, rowSpan: 2 } }],
+    });
+    expect(DiagramSchema.parse(JSON.parse(JSON.stringify(d)))).toEqual(d);
+  });
+
+  it('rejects out-of-range, zero-span and fractional cells', () => {
+    expect(issuePaths(CellSchema.safeParse({ col: 64, row: 0 }))).toEqual(['col']);
+    expect(issuePaths(CellSchema.safeParse({ col: 0, row: -1 }))).toEqual(['row']);
+    expect(issuePaths(CellSchema.safeParse({ col: 0, row: 0, colSpan: 0 }))).toEqual(['colSpan']);
+    expect(issuePaths(CellSchema.safeParse({ col: 0, row: 0, rowSpan: 65 }))).toEqual(['rowSpan']);
+    expect(issuePaths(CellSchema.safeParse({ col: 0.5, row: 0 }))).toEqual(['col']);
   });
 });
 

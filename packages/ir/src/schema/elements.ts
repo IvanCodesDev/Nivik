@@ -10,7 +10,7 @@ import {
   RoleSchema,
   SideSchema,
 } from './enums';
-import { PointSchema, SizeSchema } from './geometry';
+import { CellSchema, PointSchema, SizeSchema } from './geometry';
 import { StyleTokensSchema } from './style';
 
 /** Maintained by `applyChangeSet`; never written by the LLM or the UI directly. */
@@ -39,6 +39,7 @@ export const DiagramNodeBaseSchema = z.object({
   description: z.string().max(1000).optional(),
   role: RoleSchema.optional(),
   parent: IdSchema.nullable().default(null),
+  cell: CellSchema.optional(),
   position: PointSchema.optional(),
   size: SizeSchema.optional(),
   pinned: z.boolean().default(false),
@@ -83,6 +84,7 @@ export const DiagramGroupSchema = z.object({
   role: GroupRoleSchema.default('cluster'),
   parent: IdSchema.nullable().default(null),
   collapsed: z.boolean().default(false),
+  cell: CellSchema.optional(),
   position: PointSchema.optional(),
   size: SizeSchema.optional(),
   style: StyleTokensSchema.optional(),

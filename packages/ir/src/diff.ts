@@ -42,7 +42,8 @@ const same = (x: unknown, y: unknown) => JSON.stringify(x) === JSON.stringify(y)
 /**
  * Minimal change set turning `a` into `b` (spec 02 section 5.2): renderer reconcile, import merge and the
  * version-compare view share it. `meta` and edge `route`s are ignored. Returns `null` when the two
- * diagrams are equivalent.
+ * diagrams are equivalent. A cell change clears the element's position on apply; `b`'s pixels are
+ * re-derived by the layout engine, not carried by the diff.
  */
 export function diffDiagrams(a: Diagram, b: Diagram, opts: DiffOptions = {}): ChangeSet | null {
   const origin = opts.origin ?? 'user';
@@ -217,6 +218,7 @@ const nodePatch = (x: DiagramNode, y: DiagramNode) =>
     'type',
     'data',
     'semantic',
+    'cell',
   ]) as NodePatch | null;
 const edgePatch = (x: DiagramEdge, y: DiagramEdge) =>
   fieldPatch(x, y, [
@@ -230,7 +232,7 @@ const edgePatch = (x: DiagramEdge, y: DiagramEdge) =>
     'target',
   ]) as EdgePatch | null;
 const groupPatch = (x: DiagramGroup, y: DiagramGroup) =>
-  fieldPatch(x, y, ['label', 'role', 'collapsed']) as GroupPatch | null;
+  fieldPatch(x, y, ['label', 'role', 'collapsed', 'cell']) as GroupPatch | null;
 
 function stylePatch(
   before: StyleTokens | undefined,

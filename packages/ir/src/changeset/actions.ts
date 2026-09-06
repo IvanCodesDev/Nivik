@@ -18,7 +18,7 @@ import {
   RoleSchema,
   SideSchema,
 } from '../schema/enums';
-import { PointSchema, SizeSchema } from '../schema/geometry';
+import { CellSchema, PointSchema, SizeSchema } from '../schema/geometry';
 import {
   EmphasisSchema,
   FillStyleSchema,
@@ -75,6 +75,8 @@ export const NodePatchSchema = z
     type: NodeTypeSchema.optional(),
     data: clearable(FreeFormDataSchema),
     semantic: clearable(NodeSemanticSchema),
+    /** Grid placement intent (spec 02 §2.3); `null` returns the node to auto-fill. */
+    cell: clearable(CellSchema),
   })
   .strict();
 export type NodePatch = z.infer<typeof NodePatchSchema>;
@@ -98,6 +100,7 @@ export const GroupPatchSchema = z
     label: clearable(DiagramGroupSchema.shape.label.unwrap()),
     role: GroupRoleSchema.optional(),
     collapsed: z.boolean().optional(),
+    cell: clearable(CellSchema),
   })
   .strict();
 export type GroupPatch = z.infer<typeof GroupPatchSchema>;

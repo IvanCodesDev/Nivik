@@ -10,7 +10,7 @@ import {
   type ElementMeta,
 } from '../schema/elements';
 import { SELF_LOOP_EDGE_TYPES } from '../schema/enums';
-import type { Point, Size } from '../schema/geometry';
+import type { Cell, Point, Size } from '../schema/geometry';
 import type { StyleTokens } from '../schema/style';
 import type {
   Action,
@@ -143,6 +143,15 @@ function captureGeometry(into: ApplyLayoutAction, elements: Iterable<Element>): 
 const hasGeometry = (a: ApplyLayoutAction) =>
   !isEmpty(a.positions) || !isEmpty(a.sizes) || !isEmpty(a.routes);
 
+const sameCell = (a: Cell | undefined, b: Cell | undefined) =>
+  a === b ||
+  (a !== undefined &&
+    b !== undefined &&
+    a.col === b.col &&
+    a.row === b.row &&
+    a.colSpan === b.colSpan &&
+    a.rowSpan === b.rowSpan);
+
 /** Groups ids by a key, preserving first-appearance order. */
 function groupBy<K>(ids: readonly Id[], keyOf: (id: Id) => K): Map<K, Id[]> {
   const out = new Map<K, Id[]>();
@@ -185,12 +194,23 @@ function updateNode(ctx: ApplyContext, action: ActionOf<'updateNode'>): Action[]
   const current = ctx.draft.requireNode(action.id);
   const { next, inverse } = mergePatch(current, action.patch);
   next.meta = bump(current.meta, ctx.now);
+  const inverseActions: Action[] = [
+    { op: 'updateNode', id: action.id, patch: inverse as ActionOf<'updateNode'>['patch'] },
+  ];
+  // A new cell makes the old pixels meaningless (spec 02 §4.2); pinned nodes stay where the user put them.
+  if (action.patch.cell !== undefined && !sameCell(current.cell, next.cell)) {
+    ctx.structural = true;
+    if (!current.pinned && current.position) {
+      inverseActions.push({ ...emptyLayout(), positions: { [action.id]: current.position } });
+      delete next.position;
+    }
+  }
   validateElement(DiagramNodeSchema, next, `node "${action.id}"`);
   ctx.draft.putNode(next);
   if ('label' in action.patch || 'type' in action.patch || 'data' in action.patch) {
     ctx.measureIds.add(action.id);
   }
-  return [{ op: 'updateNode', id: action.id, patch: inverse as ActionOf<'updateNode'>['patch'] }];
+  return inverseActions;
 }
 
 function deleteNode(ctx: ApplyContext, action: ActionOf<'deleteNode'>): Action[] {
@@ -350,11 +370,34 @@ function addGroup(ctx: ApplyContext, action: ActionOf<'addGroup'>): Action[] {
 }
 
 function updateGroup(ctx: ApplyContext, action: ActionOf<'updateGroup'>): Action[] {
-  const current = ctx.draft.requireGroup(action.id);
+  const { draft } = ctx;
+  const current = draft.requireGroup(action.id);
   const { next, inverse } = mergePatch(current, action.patch);
   next.meta = bump(current.meta, ctx.now);
-  ctx.draft.putGroup(next);
-  return [{ op: 'updateGroup', id: action.id, patch: inverse as ActionOf<'updateGroup'>['patch'] }];
+  draft.putGroup(next);
+  const inverseActions: Action[] = [
+    { op: 'updateGroup', id: action.id, patch: inverse as ActionOf<'updateGroup'>['patch'] },
+  ];
+  if (action.patch.cell !== undefined && !sameCell(current.cell, next.cell)) {
+    // The whole subtree is placed relative to the group's cell range (spec 02 §4.2).
+    ctx.structural = true;
+    const restore = emptyLayout();
+    for (const id of draft.groupSubtree(action.id)) {
+      const g = draft.groups.get(id) as DiagramGroup;
+      if (!g.position) continue;
+      restore.positions[g.id] = g.position;
+      const { position: _p, ...rest } = g;
+      draft.putGroup(rest);
+    }
+    for (const n of nodesUnder(draft, action.id)) {
+      if (n.pinned || !n.position) continue;
+      restore.positions[n.id] = n.position;
+      const { position: _p, ...rest } = n;
+      draft.putNode(rest);
+    }
+    if (hasGeometry(restore)) inverseActions.push(restore);
+  }
+  return inverseActions;
 }
 
 function deleteGroup(ctx: ApplyContext, action: ActionOf<'deleteGroup'>): Action[] {

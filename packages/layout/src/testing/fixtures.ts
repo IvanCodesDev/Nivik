@@ -3,7 +3,7 @@
  * `@nivik/layout/testing` so renderer and harness tests can reuse them.
  */
 import type { Cell, Diagram, LayoutSpec } from '@nivik/ir';
-import { diagram, group, node } from '@nivik/ir/testing';
+import { diagram, edge, group, node } from '@nivik/ir/testing';
 
 export const gridLayout = (spacing: LayoutSpec['spacing'] = 'normal'): LayoutSpec => ({
   algorithm: 'grid',
@@ -125,5 +125,50 @@ export const venn = (): Diagram =>
         style: { fill: 'translucent' },
       }),
       node('both', 'Both', { type: 'text', cell: cellAt(2, 1) }),
+    ],
+  });
+
+const participant = (
+  id: string,
+  label: string,
+  kind: 'actor' | 'system' | 'database' | 'external',
+  order: number,
+) => node(id, label, { type: 'participant', data: { kind, order } });
+
+const message = (
+  id: string,
+  source: string,
+  target: string,
+  order: number,
+  label: string,
+  kind: 'sync' | 'async' | 'return' = 'sync',
+) => edge(id, source, target, { type: 'message', label, data: { order, kind } });
+
+/** Spec 03 §10 sequence fixture: four participants, six messages, one of them a self message. */
+export const checkout = (): Diagram =>
+  diagram({
+    id: 'd_checkout',
+    name: 'Checkout',
+    type: 'sequence',
+    layout: {
+      algorithm: 'sequence',
+      direction: 'RIGHT',
+      spacing: 'normal',
+      edgeRouting: 'orthogonal',
+      autoLayout: true,
+    },
+    nodes: [
+      participant('user', 'User', 'actor', 0),
+      participant('api', 'API', 'system', 1),
+      participant('db', 'DB', 'database', 2),
+      participant('mail', 'Mailer', 'external', 3),
+    ],
+    edges: [
+      message('m1', 'user', 'api', 0, 'POST /checkout'),
+      message('m2', 'api', 'db', 1, 'insert order'),
+      message('m3', 'db', 'api', 2, 'ok', 'return'),
+      message('m4', 'api', 'api', 3, 'validate'),
+      message('m5', 'api', 'mail', 4, 'send receipt', 'async'),
+      message('m6', 'api', 'user', 5, '201 Created', 'return'),
     ],
   });

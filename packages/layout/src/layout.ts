@@ -1,6 +1,7 @@
 import type { Diagram, LayoutSpec } from '@nivik/ir';
 import { emptyGeometry, type Geometry } from './geometry';
 import { layoutGrid } from './grid';
+import { layoutIncremental } from './incremental';
 import { layoutLayered } from './layered';
 import { resolveSizes } from './measure';
 import { applyGeometry } from './result';
@@ -29,8 +30,14 @@ async function place(
   opts: LayoutOptions,
   warnings: LayoutWarning[],
 ): Promise<Geometry> {
+  const incremental = opts.mode.kind === 'incremental' ? opts.mode : null;
+  const elkFamily = () =>
+    incremental
+      ? layoutIncremental(d, sizes, spec, incremental, opts, warnings)
+      : layoutLayered(d, sizes, spec, opts, warnings);
   switch (spec.algorithm) {
     case 'grid':
+      // Deterministic metrics: unchanged cells land on the same pixels, so full == incremental (spec 03 §7.2 step 9).
       return layoutGrid(d, sizes, spec, warnings);
     case 'sequence':
       return layoutSequence(d, sizes);
@@ -40,18 +47,15 @@ async function place(
         ids: [],
         message: 'radial layout is not implemented yet (P2); laid out as layered',
       });
-      return layoutLayered(d, sizes, spec, opts, warnings);
+      return elkFamily();
     case 'layered':
-      return layoutLayered(d, sizes, spec, opts, warnings);
+      return elkFamily();
     case 'manual':
       return measuredOnly(d, sizes, warnings);
   }
 }
 
-/**
- * Spec 03 §2: pure IR → IR. Dispatches on `layout.algorithm` (never on the diagram type); the
- * `incremental` mode runs a full pass until task 1.2 lands true incremental layout.
- */
+/** Spec 03 §2: pure IR → IR. Dispatches on `layout.algorithm` (never on the diagram type). */
 export async function layoutDiagram(d: Diagram, opts: LayoutOptions): Promise<LayoutResult> {
   const started = performance.now();
   const spec: LayoutSpec = { ...d.layout, ...opts.spec };

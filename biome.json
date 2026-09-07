@@ -73,7 +73,8 @@
         "packages/agent/src/**",
         "packages/protocol/src/**",
         "packages/ir/src/**",
-        "packages/templates/src/**"
+        "packages/templates/src/**",
+        "packages/layout/src/**"
       ],
       "linter": {
         "rules": {

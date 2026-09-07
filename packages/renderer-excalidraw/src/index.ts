@@ -8,3 +8,4 @@ export {
 } from './constants';
 export { canvasTextWidth, createExcalidrawMeasurer } from './measurer';
 export { colorsFor, type ExcalidrawStyle, mixHex, textColorFor } from './palette';
+export { type ToExcalidrawResult, toExcalidraw } from './to-excalidraw';

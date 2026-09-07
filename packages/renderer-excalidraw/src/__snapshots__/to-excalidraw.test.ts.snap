@@ -1,0 +1,708 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`toExcalidraw (spec 04 §6.2, §11) > projects the laid-out order platform (snapshot) 1`] = `
+[
+  {
+    "backgroundColor": "#f4f4f7",
+    "customData": {
+      "nivik": {
+        "id": "web",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "fillStyle": "solid",
+    "height": 64,
+    "id": "web",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 20,
+      "strokeColor": "#3a3d48",
+      "text": "Web App",
+    },
+    "opacity": 100,
+    "roughness": 0,
+    "roundness": {
+      "type": 3,
+    },
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "rectangle",
+    "width": 160,
+    "x": 40,
+    "y": 40,
+  },
+  {
+    "backgroundColor": "#f4f4f7",
+    "customData": {
+      "nivik": {
+        "id": "gw",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "fillStyle": "solid",
+    "height": 64,
+    "id": "gw",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 20,
+      "strokeColor": "#3a3d48",
+      "text": "API Gateway",
+    },
+    "opacity": 100,
+    "roughness": 0,
+    "roundness": {
+      "type": 3,
+    },
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "rectangle",
+    "width": 160,
+    "x": 260,
+    "y": 40,
+  },
+  {
+    "backgroundColor": "#f4f4f7",
+    "customData": {
+      "nivik": {
+        "id": "users",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "fillStyle": "solid",
+    "height": 64,
+    "id": "users",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 20,
+      "strokeColor": "#3a3d48",
+      "text": "User Service",
+    },
+    "opacity": 100,
+    "roughness": 0,
+    "roundness": {
+      "type": 3,
+    },
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "rectangle",
+    "width": 160,
+    "x": 480,
+    "y": 40,
+  },
+  {
+    "backgroundColor": "#f4f4f7",
+    "customData": {
+      "nivik": {
+        "id": "orders",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "fillStyle": "solid",
+    "height": 64,
+    "id": "orders",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 20,
+      "strokeColor": "#3a3d48",
+      "text": "Order Service",
+    },
+    "opacity": 100,
+    "roughness": 0,
+    "roundness": {
+      "type": 3,
+    },
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "rectangle",
+    "width": 160,
+    "x": 40,
+    "y": 180,
+  },
+  {
+    "backgroundColor": "#f4f4f7",
+    "customData": {
+      "nivik": {
+        "id": "pay",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "fillStyle": "solid",
+    "height": 64,
+    "id": "pay",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 20,
+      "strokeColor": "#3a3d48",
+      "text": "Payment Service",
+    },
+    "opacity": 100,
+    "roughness": 0,
+    "roundness": {
+      "type": 3,
+    },
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "rectangle",
+    "width": 160,
+    "x": 260,
+    "y": 180,
+  },
+  {
+    "backgroundColor": "#f4f4f7",
+    "customData": {
+      "nivik": {
+        "id": "pg",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "fillStyle": "solid",
+    "height": 64,
+    "id": "pg",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 20,
+      "strokeColor": "#3a3d48",
+      "text": "PostgreSQL",
+    },
+    "opacity": 100,
+    "roughness": 0,
+    "roundness": {
+      "type": 3,
+    },
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "rectangle",
+    "width": 160,
+    "x": 480,
+    "y": 180,
+  },
+  {
+    "backgroundColor": "#f4f4f7",
+    "customData": {
+      "nivik": {
+        "id": "redis",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "fillStyle": "solid",
+    "height": 64,
+    "id": "redis",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 20,
+      "strokeColor": "#3a3d48",
+      "text": "Redis",
+    },
+    "opacity": 100,
+    "roughness": 0,
+    "roundness": {
+      "type": 3,
+    },
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "rectangle",
+    "width": 160,
+    "x": 40,
+    "y": 320,
+  },
+  {
+    "backgroundColor": "#f4f4f7",
+    "customData": {
+      "nivik": {
+        "id": "mq",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "fillStyle": "solid",
+    "height": 64,
+    "id": "mq",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 20,
+      "strokeColor": "#3a3d48",
+      "text": "Kafka",
+    },
+    "opacity": 100,
+    "roughness": 0,
+    "roundness": {
+      "type": 3,
+    },
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "rectangle",
+    "width": 160,
+    "x": 260,
+    "y": 320,
+  },
+  {
+    "backgroundColor": "#f4f4f7",
+    "customData": {
+      "nivik": {
+        "id": "stripe",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "fillStyle": "solid",
+    "height": 64,
+    "id": "stripe",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 20,
+      "strokeColor": "#3a3d48",
+      "text": "Stripe",
+    },
+    "opacity": 100,
+    "roughness": 0,
+    "roundness": null,
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "rectangle",
+    "width": 160,
+    "x": 480,
+    "y": 320,
+  },
+  {
+    "customData": {
+      "nivik": {
+        "id": "e1",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "end": {
+      "id": "gw",
+    },
+    "endArrowhead": "arrow",
+    "id": "e1",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 16,
+      "text": "HTTPS",
+    },
+    "points": [
+      [
+        0,
+        0,
+      ],
+      [
+        160,
+        0,
+      ],
+    ],
+    "roughness": 0,
+    "start": {
+      "id": "web",
+    },
+    "startArrowhead": null,
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "arrow",
+    "x": 100,
+    "y": 72,
+  },
+  {
+    "customData": {
+      "nivik": {
+        "id": "e2",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "end": {
+      "id": "users",
+    },
+    "endArrowhead": "arrow",
+    "id": "e2",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 16,
+      "text": "REST",
+    },
+    "points": [
+      [
+        0,
+        0,
+      ],
+      [
+        160,
+        0,
+      ],
+    ],
+    "roughness": 0,
+    "start": {
+      "id": "gw",
+    },
+    "startArrowhead": null,
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "arrow",
+    "x": 110,
+    "y": 72,
+  },
+  {
+    "customData": {
+      "nivik": {
+        "id": "e3",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "end": {
+      "id": "orders",
+    },
+    "endArrowhead": "arrow",
+    "id": "e3",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 16,
+      "text": "REST",
+    },
+    "points": [
+      [
+        0,
+        0,
+      ],
+      [
+        160,
+        0,
+      ],
+    ],
+    "roughness": 0,
+    "start": {
+      "id": "gw",
+    },
+    "startArrowhead": null,
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "arrow",
+    "x": 120,
+    "y": 72,
+  },
+  {
+    "customData": {
+      "nivik": {
+        "id": "e4",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "end": {
+      "id": "pay",
+    },
+    "endArrowhead": "arrow",
+    "id": "e4",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 16,
+      "text": "gRPC",
+    },
+    "points": [
+      [
+        0,
+        0,
+      ],
+      [
+        160,
+        0,
+      ],
+    ],
+    "roughness": 0,
+    "start": {
+      "id": "orders",
+    },
+    "startArrowhead": null,
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "arrow",
+    "x": 130,
+    "y": 72,
+  },
+  {
+    "customData": {
+      "nivik": {
+        "id": "e5",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "end": {
+      "id": "mq",
+    },
+    "endArrowhead": "arrow",
+    "id": "e5",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 16,
+      "text": "OrderCreated",
+    },
+    "points": [
+      [
+        0,
+        0,
+      ],
+      [
+        160,
+        0,
+      ],
+    ],
+    "roughness": 0,
+    "start": {
+      "id": "orders",
+    },
+    "startArrowhead": null,
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "dashed",
+    "strokeWidth": 1,
+    "type": "arrow",
+    "x": 140,
+    "y": 72,
+  },
+  {
+    "customData": {
+      "nivik": {
+        "id": "e6",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "end": {
+      "id": "pg",
+    },
+    "endArrowhead": "arrow",
+    "id": "e6",
+    "points": [
+      [
+        0,
+        0,
+      ],
+      [
+        160,
+        0,
+      ],
+    ],
+    "roughness": 0,
+    "start": {
+      "id": "users",
+    },
+    "startArrowhead": null,
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "arrow",
+    "x": 150,
+    "y": 72,
+  },
+  {
+    "customData": {
+      "nivik": {
+        "id": "e7",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "end": {
+      "id": "pg",
+    },
+    "endArrowhead": "arrow",
+    "id": "e7",
+    "points": [
+      [
+        0,
+        0,
+      ],
+      [
+        160,
+        0,
+      ],
+    ],
+    "roughness": 0,
+    "start": {
+      "id": "orders",
+    },
+    "startArrowhead": null,
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "arrow",
+    "x": 160,
+    "y": 72,
+  },
+  {
+    "customData": {
+      "nivik": {
+        "id": "e8",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "end": {
+      "id": "redis",
+    },
+    "endArrowhead": "arrow",
+    "id": "e8",
+    "points": [
+      [
+        0,
+        0,
+      ],
+      [
+        160,
+        0,
+      ],
+    ],
+    "roughness": 0,
+    "start": {
+      "id": "users",
+    },
+    "startArrowhead": null,
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "dotted",
+    "strokeWidth": 1,
+    "type": "arrow",
+    "x": 170,
+    "y": 72,
+  },
+  {
+    "customData": {
+      "nivik": {
+        "id": "e9",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "end": {
+      "id": "stripe",
+    },
+    "endArrowhead": "arrow",
+    "id": "e9",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 16,
+      "text": "HTTPS",
+    },
+    "points": [
+      [
+        0,
+        0,
+      ],
+      [
+        160,
+        0,
+      ],
+    ],
+    "roughness": 0,
+    "start": {
+      "id": "pay",
+    },
+    "startArrowhead": null,
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "solid",
+    "strokeWidth": 1,
+    "type": "arrow",
+    "x": 180,
+    "y": 72,
+  },
+  {
+    "customData": {
+      "nivik": {
+        "id": "e10",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "end": {
+      "id": "pay",
+    },
+    "endArrowhead": "arrow",
+    "id": "e10",
+    "label": {
+      "fontFamily": 6,
+      "fontSize": 16,
+      "text": "consume",
+    },
+    "points": [
+      [
+        0,
+        0,
+      ],
+      [
+        160,
+        0,
+      ],
+    ],
+    "roughness": 0,
+    "start": {
+      "id": "mq",
+    },
+    "startArrowhead": null,
+    "strokeColor": "#cfd1d9",
+    "strokeStyle": "dashed",
+    "strokeWidth": 1,
+    "type": "arrow",
+    "x": 190,
+    "y": 72,
+  },
+  {
+    "children": [
+      "gw",
+    ],
+    "customData": {
+      "nivik": {
+        "id": "edge",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "height": 400,
+    "id": "edge",
+    "name": "Edge",
+    "type": "frame",
+    "width": 660,
+    "x": 20,
+    "y": 20,
+  },
+  {
+    "children": [
+      "users",
+      "orders",
+      "pay",
+    ],
+    "customData": {
+      "nivik": {
+        "id": "svc",
+        "part": "main",
+        "rev": 0,
+      },
+    },
+    "height": 400,
+    "id": "svc",
+    "name": "Services",
+    "type": "frame",
+    "width": 660,
+    "x": 720,
+    "y": 20,
+  },
+]
+`;

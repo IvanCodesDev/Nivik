@@ -21,7 +21,8 @@ const glyphs = (text: string) => [...text].length;
 export const estimateTextWidth: TextWidth = (text, fontPx) => {
   let units = 0;
   for (const ch of text) units += isWide(ch) ? 1 : 0.55;
-  return units * fontPx;
+  // Two decimals are plenty for pixels and keep 0.55 × 20 × n from drifting past a whole number.
+  return Math.round(units * fontPx * 100) / 100;
 };
 
 /** Words keep their leading space; CJK glyphs are tokens of their own. */

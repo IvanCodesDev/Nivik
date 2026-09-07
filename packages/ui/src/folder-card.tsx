@@ -11,6 +11,10 @@ export interface FolderCardProps {
   tint: FolderTint;
   onOpen?: () => void;
   onMore?: () => void;
+  /** Accessible name of the card button; defaults to English. */
+  openLabel?: string;
+  /** Accessible name of the "more" button; defaults to English. */
+  moreLabel?: string;
   className?: string;
 }
 
@@ -19,7 +23,16 @@ export interface FolderCardProps {
  * a colored tab, and a creamy information strip at the bottom. No decorative stickers.
  * The whole card is one button; the "more" control sits beside it, not inside it.
  */
-export function FolderCard({ title, meta, tint, onOpen, onMore, className }: FolderCardProps) {
+export function FolderCard({
+  title,
+  meta,
+  tint,
+  onOpen,
+  onMore,
+  openLabel = `Open ${title}`,
+  moreLabel = `More options for ${title}`,
+  className,
+}: FolderCardProps) {
   const colors = FOLDER_TINT_COLORS[tint];
   const style = {
     '--folder-top': colors.top,
@@ -34,19 +47,9 @@ export function FolderCard({ title, meta, tint, onOpen, onMore, className }: Fol
       <div className="nv-folder__border" aria-hidden="true">
         <div className="nv-folder__body" />
       </div>
-      <button
-        type="button"
-        className="nv-folder__open"
-        aria-label={`Open ${title}`}
-        onClick={onOpen}
-      />
+      <button type="button" className="nv-folder__open" aria-label={openLabel} onClick={onOpen} />
       {onMore && (
-        <button
-          type="button"
-          className="nv-folder__more"
-          aria-label={`More options for ${title}`}
-          onClick={onMore}
-        >
+        <button type="button" className="nv-folder__more" aria-label={moreLabel} onClick={onMore}>
           <DotsThree size={20} weight="bold" aria-hidden="true" />
         </button>
       )}

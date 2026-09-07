@@ -1,9 +1,16 @@
 'use client';
 
-import { Card, cn } from '@nivik/ui';
+import { Card, cn, Pill } from '@nivik/ui';
 import { CaretDown } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
+import { useT } from '@/lib/i18n/provider';
 import styles from './settings.module.css';
+
+/** Marks a preference that is stored but has no consumer yet (its control should be disabled). */
+export function ComingSoon() {
+  const t = useT();
+  return <Pill className={styles.soon}>{t.common.comingSoon}</Pill>;
+}
 
 interface RowsCardProps {
   children: ReactNode;
@@ -49,7 +56,6 @@ interface SettingRowProps {
   control: ReactNode;
   width?: 'default' | 'wide' | 'narrow' | 'form' | 'auto';
   compact?: boolean;
-  leading?: ReactNode;
 }
 
 const WIDTHS = {
@@ -68,28 +74,17 @@ export function SettingRow({
   control,
   width = 'default',
   compact = false,
-  leading,
 }: SettingRowProps) {
-  const copy = (
-    <div className={styles.rowLabel}>
-      {htmlFor ? (
-        <label htmlFor={htmlFor}>{label}</label>
-      ) : (
-        <span className={styles.labelText}>{label}</span>
-      )}
-      {description && <p>{description}</p>}
-    </div>
-  );
   return (
     <div className={cn(styles.row, compact && styles.compact)}>
-      {leading ? (
-        <div className={styles.withMark}>
-          {leading}
-          {copy}
-        </div>
-      ) : (
-        copy
-      )}
+      <div className={styles.rowLabel}>
+        {htmlFor ? (
+          <label htmlFor={htmlFor}>{label}</label>
+        ) : (
+          <span className={styles.labelText}>{label}</span>
+        )}
+        {description && <p>{description}</p>}
+      </div>
       <div className={cn(styles.control, WIDTHS[width])}>{control}</div>
     </div>
   );

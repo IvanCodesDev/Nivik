@@ -1,6 +1,11 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    // Mirrors `apps/web/tsconfig.json` `paths` so web modules with `@/` imports are testable.
+    alias: { '@': fileURLToPath(new URL('./apps/web', import.meta.url)) },
+  },
   test: {
     include: ['apps/**/*.test.{ts,tsx}', 'packages/**/*.test.{ts,tsx}', '.githooks/**/*.test.mjs'],
     exclude: ['**/node_modules/**', '**/.next/**', '**/dist/**'],

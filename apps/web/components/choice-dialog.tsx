@@ -8,6 +8,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@nivik/ui';
+import { useT } from '@/lib/i18n/provider';
 
 export interface ChoiceAction {
   label: string;
@@ -33,9 +34,10 @@ export function ChoiceDialog({
   actions = [],
   layout = 'grid',
 }: ChoiceDialogProps) {
+  const t = useT();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t.common.closeDialog}>
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{description}</DialogDescription>
         {actions.length > 0 && (

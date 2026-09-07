@@ -1,7 +1,8 @@
 /**
- * Semantic palettes — the TypeScript mirror of the `--nv-pal-*` variables in tokens.css.
- * Renderer adapters map IR `StyleTokens.palette` to these hex values so that the UI and
- * the canvas share one color system (spec 07 §5.1).
+ * Semantic palettes — the TypeScript mirror of the `--nv-pal-*` variables in tokens.css
+ * (light-scheme values; the CSS side also carries the dark ones). Renderer adapters map IR
+ * `StyleTokens.palette` to these hex values so that the UI and the canvas share one color
+ * system (spec 07 §5.1). UI code should prefer `paletteVar()` so it follows the theme.
  */
 export const PALETTE_NAMES = [
   'lavender',

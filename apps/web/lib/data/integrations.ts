@@ -1,9 +1,24 @@
 export type IntegrationTint = 'violet' | 'orange' | 'gray' | 'pink' | 'green' | 'blue';
 
+export const INTEGRATION_IDS = [
+  'excalidraw',
+  'drawio',
+  'github',
+  'mermaid',
+  'notion',
+  'google-drive',
+  'figma',
+  'plantuml',
+  'slack',
+  'confluence',
+  'onedrive',
+] as const;
+export type IntegrationId = (typeof INTEGRATION_IDS)[number];
+
+/** Descriptions come from the dictionaries (`t.integrations.descriptions[id]`). */
 export interface Integration {
-  id: string;
+  id: IntegrationId;
   name: string;
-  description: string;
   /** Path under /public/brands. */
   logo: string;
   tint: IntegrationTint;
@@ -17,7 +32,6 @@ export const INTEGRATIONS: readonly Integration[] = [
   {
     id: 'excalidraw',
     name: 'Excalidraw',
-    description: 'Collaborative diagramming',
     logo: '/brands/excalidraw.png',
     tint: 'violet',
     connected: true,
@@ -25,7 +39,6 @@ export const INTEGRATIONS: readonly Integration[] = [
   {
     id: 'drawio',
     name: 'draw.io',
-    description: 'Diagram editor',
     logo: '/brands/draw-io.svg',
     tint: 'orange',
     connected: true,
@@ -33,7 +46,6 @@ export const INTEGRATIONS: readonly Integration[] = [
   {
     id: 'github',
     name: 'GitHub',
-    description: 'Code hosting & collaboration',
     logo: '/brands/github.svg',
     tint: 'gray',
     logoSize: 40,
@@ -42,7 +54,6 @@ export const INTEGRATIONS: readonly Integration[] = [
   {
     id: 'mermaid',
     name: 'Mermaid',
-    description: 'Diagram & flowchart syntax',
     logo: '/brands/mermaid.svg',
     tint: 'pink',
     connected: true,
@@ -50,7 +61,6 @@ export const INTEGRATIONS: readonly Integration[] = [
   {
     id: 'notion',
     name: 'Notion',
-    description: 'Docs, wikis, and projects',
     logo: '/brands/notion.ico',
     tint: 'gray',
     logoSize: 36,
@@ -59,7 +69,6 @@ export const INTEGRATIONS: readonly Integration[] = [
   {
     id: 'google-drive',
     name: 'Google Drive',
-    description: 'Store and sync your files',
     logo: '/brands/google-drive.png',
     tint: 'green',
     connected: false,
@@ -67,7 +76,6 @@ export const INTEGRATIONS: readonly Integration[] = [
   {
     id: 'figma',
     name: 'Figma',
-    description: 'Design files and components',
     logo: '/brands/figma.svg',
     tint: 'blue',
     connected: false,
@@ -75,7 +83,6 @@ export const INTEGRATIONS: readonly Integration[] = [
   {
     id: 'plantuml',
     name: 'PlantUML',
-    description: 'UML diagrams as code',
     logo: '/brands/plantuml.png',
     tint: 'violet',
     logoSize: 42,
@@ -84,7 +91,6 @@ export const INTEGRATIONS: readonly Integration[] = [
   {
     id: 'slack',
     name: 'Slack',
-    description: 'Team communication',
     logo: '/brands/slack.png',
     tint: 'blue',
     connected: false,
@@ -92,7 +98,6 @@ export const INTEGRATIONS: readonly Integration[] = [
   {
     id: 'confluence',
     name: 'Confluence',
-    description: 'Docs and knowledge base',
     logo: '/brands/confluence.svg',
     tint: 'blue',
     connected: false,
@@ -100,7 +105,6 @@ export const INTEGRATIONS: readonly Integration[] = [
   {
     id: 'onedrive',
     name: 'OneDrive',
-    description: 'Microsoft cloud storage',
     logo: '/brands/onedrive.svg',
     tint: 'blue',
     connected: false,

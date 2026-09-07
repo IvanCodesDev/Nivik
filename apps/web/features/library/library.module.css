@@ -10,22 +10,22 @@
   width: 100%;
   height: 100%;
   padding: 0 54px;
-  border: 1px solid #eeecef;
+  border: 1px solid var(--nv-card-border);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.79);
-  color: #353842;
+  background: color-mix(in srgb, var(--nv-surface-solid) 79%, transparent);
+  color: var(--nv-ink);
   font-size: 15px;
-  box-shadow: 0 6px 17px rgba(67, 71, 88, 0.035);
+  box-shadow: 0 6px 17px color-mix(in srgb, var(--nv-shadow-ink) 3.5%, transparent);
   outline: 0;
   transition: box-shadow 0.15s;
 }
 
 .searchInput::placeholder {
-  color: #9ca0b4;
+  color: var(--nv-placeholder);
 }
 
 .search:focus-within .searchInput {
-  box-shadow: 0 0 0 3px rgba(217, 205, 255, 0.33);
+  box-shadow: 0 0 0 3px var(--nv-focus-ring-soft);
 }
 
 .searchIcon {
@@ -33,7 +33,7 @@
   top: 50%;
   left: 18px;
   display: flex;
-  color: #6f7490;
+  color: var(--nv-ink-2);
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -69,10 +69,10 @@
   width: 284px;
   height: 246px;
   margin-top: 31px;
-  border: 2px dashed #d8d1ff;
+  border: 2px dashed var(--nv-accent-border-soft);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.14);
-  color: #6544ef;
+  background: color-mix(in srgb, var(--nv-surface-solid) 14%, transparent);
+  color: var(--nv-accent);
   font-size: 14px;
   font-weight: 620;
   cursor: pointer;
@@ -83,8 +83,8 @@
 }
 
 .newCard:hover {
-  border-color: #ae9bf9;
-  background: rgba(250, 248, 255, 0.44);
+  border-color: var(--nv-accent-border);
+  background: color-mix(in srgb, var(--nv-accent-tint-soft) 44%, transparent);
   transform: translateY(-3px);
 }
 
@@ -96,7 +96,7 @@
 .empty {
   grid-column: 1 / -1;
   padding: 25px 0;
-  color: #8f93a3;
+  color: var(--nv-muted);
   font-size: 14px;
 }
 

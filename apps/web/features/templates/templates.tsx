@@ -27,16 +27,19 @@ import {
   type TemplateCategory,
   templatePrompt,
 } from '@/lib/data/templates';
+import { useT } from '@/lib/i18n/provider';
+import { templateCopy } from '@/lib/i18n/template-copy';
 import { useFavoritesStore } from '@/lib/stores/favorites-store';
 import { useSettingsStore } from '@/lib/stores/settings-store';
 import { TemplateCard } from './template-card';
 import { TemplateDetailDialog } from './template-detail-dialog';
 import styles from './templates.module.css';
 
-type CategoryChoice = 'All Templates' | TemplateCategory;
+const ALL_TEMPLATES = 'all';
+type CategoryChoice = typeof ALL_TEMPLATES | TemplateCategory;
 
 const CATEGORY_ICONS: Record<CategoryChoice, Icon> = {
-  'All Templates': SquaresFour,
+  [ALL_TEMPLATES]: SquaresFour,
   Architecture: Buildings,
   Flowchart: FlowArrow,
   'Business Flow': Briefcase,
@@ -47,15 +50,16 @@ const CATEGORY_ICONS: Record<CategoryChoice, Icon> = {
   'Mind Map': TreeStructure,
 };
 
-const CATEGORY_CHOICES: readonly CategoryChoice[] = ['All Templates', ...TEMPLATE_CATEGORIES];
+const CATEGORY_CHOICES: readonly CategoryChoice[] = [ALL_TEMPLATES, ...TEMPLATE_CATEGORIES];
 
 /** Templates (PRD 5.4): proven structures, previewed and handed to the canvas. */
 export function Templates() {
+  const t = useT();
   const router = useRouter();
   const toast = useToast();
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const [category, setCategory] = useState<CategoryChoice>('All Templates');
+  const [category, setCategory] = useState<CategoryChoice>(ALL_TEMPLATES);
   const [query, setQuery] = useState('');
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [selected, setSelected] = useState<DiagramTemplate | null>(null);
@@ -63,8 +67,7 @@ export function Templates() {
 
   const favorites = useFavoritesStore((s) => s.ids);
   const toggleFavorite = useFavoritesStore((s) => s.toggle);
-  const defaultRenderer = useSettingsStore((s) => s.saved.renderer);
-  const rendererId: RendererId = defaultRenderer === 'draw.io' ? 'drawio' : 'excalidraw';
+  const rendererId: RendererId = useSettingsStore((s) => s.saved.renderer);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -79,12 +82,21 @@ export function Templates() {
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return TEMPLATES.filter(
-      (t) =>
-        (category === 'All Templates' || t.category === category) &&
-        (!q || `${t.title} ${t.category} ${t.description}`.toLowerCase().includes(q)),
-    );
-  }, [category, query]);
+    return TEMPLATES.filter((template) => {
+      if (category !== ALL_TEMPLATES && template.category !== category) return false;
+      if (!q) return true;
+      const copy = templateCopy(t, template);
+      const haystack = [
+        template.title,
+        template.description,
+        template.category,
+        copy.title,
+        copy.description,
+        t.templates.categories[template.category],
+      ];
+      return haystack.join(' ').toLowerCase().includes(q);
+    });
+  }, [category, query, t]);
 
   const applyTemplate = (template: DiagramTemplate, renderer: RendererId, withAi: boolean) => {
     const params = new URLSearchParams({
@@ -99,14 +111,16 @@ export function Templates() {
   const onToggleFavorite = (template: DiagramTemplate) => {
     const wasFavorite = favorites.includes(template.id);
     toggleFavorite(template.id);
-    toast(wasFavorite ? 'Removed from favorites' : 'Saved to favorites', { tone: 'light' });
+    toast(wasFavorite ? t.templates.removedFromFavorites : t.templates.savedToFavorites, {
+      tone: 'light',
+    });
   };
 
   return (
     <main className={cn('nv-page-main', styles.main)}>
       <div className="nv-page-heading">
-        <h1>Templates</h1>
-        <p>Start from proven structures. Build faster from a strong foundation.</p>
+        <h1>{t.templates.title}</h1>
+        <p>{t.templates.subtitle}</p>
       </div>
 
       <form className={styles.search} role="search" onSubmit={(event) => event.preventDefault()}>
@@ -114,18 +128,19 @@ export function Templates() {
         <input
           ref={searchRef}
           type="search"
-          placeholder="Search templates..."
-          aria-label="Search templates"
+          placeholder={t.templates.searchPlaceholder}
+          aria-label={t.templates.searchLabel}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
         <Kbd>Ctrl K</Kbd>
       </form>
 
-      <nav className={styles.filters} aria-label="Template categories">
+      <nav className={styles.filters} aria-label={t.templates.categoriesLabel}>
         {CATEGORY_CHOICES.map((choice) => {
           const Icon = CATEGORY_ICONS[choice];
-          const coming = COMING_SOON_CATEGORIES.includes(choice as TemplateCategory);
+          const coming =
+            choice !== ALL_TEMPLATES && COMING_SOON_CATEGORIES.includes(choice as TemplateCategory);
           return (
             <Chip
               key={choice}
@@ -134,14 +149,21 @@ export function Templates() {
               onClick={() => setCategory(choice)}
             >
               <Icon size={16} aria-hidden="true" />
-              <span>{choice}</span>
-              {coming && <Pill className={styles.coming}>Coming</Pill>}
+              <span>
+                {choice === ALL_TEMPLATES
+                  ? t.templates.allTemplates
+                  : t.templates.categories[choice]}
+              </span>
+              {coming && <Pill className={styles.coming}>{t.templates.coming}</Pill>}
             </Chip>
           );
         })}
       </nav>
 
-      <section className={cn(styles.grid, view === 'list' && styles.list)} aria-label="Templates">
+      <section
+        className={cn(styles.grid, view === 'list' && styles.list)}
+        aria-label={t.templates.gridLabel}
+      >
         {visible.map((template) => (
           <TemplateCard
             key={template.id}
@@ -152,20 +174,16 @@ export function Templates() {
           />
         ))}
       </section>
-      {visible.length === 0 && (
-        <p className={styles.empty}>
-          No templates match your search. Try another category or keyword.
-        </p>
-      )}
+      {visible.length === 0 && <p className={styles.empty}>{t.templates.empty}</p>}
 
       <button type="button" className={styles.help} onClick={() => setHelpOpen(true)}>
-        Help
+        {t.common.help}
       </button>
-      <div className={styles.viewSwitch} role="group" aria-label="View">
+      <div className={styles.viewSwitch} role="group" aria-label={t.templates.viewLabel}>
         <button
           type="button"
           aria-pressed={view === 'grid'}
-          aria-label="Grid view"
+          aria-label={t.templates.gridView}
           onClick={() => setView('grid')}
         >
           <SquaresFour size={16} aria-hidden="true" />
@@ -173,7 +191,7 @@ export function Templates() {
         <button
           type="button"
           aria-pressed={view === 'list'}
-          aria-label="List view"
+          aria-label={t.templates.listView}
           onClick={() => setView('list')}
         >
           <ListBullets size={16} aria-hidden="true" />
@@ -189,8 +207,8 @@ export function Templates() {
       <ChoiceDialog
         open={helpOpen}
         onOpenChange={setHelpOpen}
-        title="Template library"
-        description="Search or choose a category, preview a template, then select Use Template to continue on the canvas. Save templates with the button in the upper-right corner of each card."
+        title={t.templates.helpTitle}
+        description={t.templates.helpDescription}
       />
     </main>
   );

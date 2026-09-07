@@ -6,12 +6,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Popover } from 'radix-ui';
 import { useState } from 'react';
+import { useT } from '@/lib/i18n/provider';
 import { NAV_PAGES } from '@/lib/navigation';
 import menu from './menu.module.css';
 import styles from './top-bar.module.css';
 
 /** "Open page" switcher — a light button that pops a single-line-per-page menu (PRD 4.1). */
 export function PageSwitcher() {
+  const t = useT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -22,10 +24,10 @@ export function PageSwitcher() {
           variant="surface"
           size="lg"
           className={cn(styles.openPage, open && styles.isOpen)}
-          aria-label="Open page"
+          aria-label={t.nav.openPage}
         >
           <BookOpen size={21} aria-hidden="true" />
-          <span>Open page</span>
+          <span>{t.nav.openPage}</span>
           <span className={styles.chevron}>
             <CaretDown size={18} aria-hidden="true" />
           </span>
@@ -37,7 +39,7 @@ export function PageSwitcher() {
           align="start"
           sideOffset={12}
           collisionPadding={12}
-          aria-label="Open page"
+          aria-label={t.nav.openPage}
         >
           <nav className={menu.list}>
             {NAV_PAGES.map((page) => {
@@ -54,7 +56,7 @@ export function PageSwitcher() {
                   <span className={menu.icon}>
                     <Icon size={21} weight="duotone" aria-hidden="true" />
                   </span>
-                  <span>{page.label}</span>
+                  <span>{t.nav.pages[page.id]}</span>
                 </Link>
               );
             })}

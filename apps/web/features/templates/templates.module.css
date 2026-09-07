@@ -17,16 +17,16 @@
   height: 48px;
   margin-top: 23px;
   padding: 0 16px;
-  border: 1px solid #eae8ef;
+  border: 1px solid var(--nv-card-border);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.79);
-  box-shadow: 0 3px 10px rgba(51, 51, 64, 0.016);
-  color: #80869a;
+  background: color-mix(in srgb, var(--nv-surface-solid) 79%, transparent);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--nv-shadow-ink) 1.6%, transparent);
+  color: var(--nv-muted);
   transition: box-shadow 0.15s;
 }
 
 .search:focus-within {
-  box-shadow: 0 0 0 3px rgba(217, 205, 255, 0.33);
+  box-shadow: 0 0 0 3px var(--nv-focus-ring-soft);
 }
 
 .search input {
@@ -40,7 +40,7 @@
 }
 
 .search input::placeholder {
-  color: #8a90a5;
+  color: var(--nv-placeholder);
 }
 
 .filters {
@@ -53,8 +53,8 @@
 .coming {
   padding: 3px 5px;
   border-radius: 5px;
-  background: #efedff;
-  color: #8272d7;
+  background: var(--nv-accent-soft);
+  color: var(--nv-accent-text);
   font-size: 9px;
 }
 
@@ -66,14 +66,23 @@
 }
 
 .card {
+  /*
+   * `--wash` is the template's pastel (light-theme data, set inline). In the dark scheme it is
+   * dimmed toward the card surface; in the light scheme the mix is a no-op.
+   */
+  --wash-tint: color-mix(
+    in srgb,
+    light-dark(var(--wash, var(--nv-accent-tint)), var(--nv-surface-solid)) 72%,
+    var(--wash, var(--nv-accent-tint))
+  );
   position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  border: 1px solid #ebe8ef;
+  border: 1px solid var(--nv-card-border);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.74);
-  box-shadow: 0 5px 14px rgba(58, 50, 75, 0.024);
+  background: color-mix(in srgb, var(--nv-surface-solid) 74%, transparent);
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--nv-shadow-ink) 2.4%, transparent);
   overflow: hidden;
   transition:
     box-shadow 0.18s,
@@ -82,14 +91,14 @@
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 9px 24px rgba(73, 50, 103, 0.063);
+  box-shadow: 0 9px 24px color-mix(in srgb, var(--nv-shadow-ink) 6.3%, transparent);
 }
 
 .card.featured {
   display: grid;
   grid-column: span 2;
   grid-template-columns: 1.05fr 1fr;
-  background: linear-gradient(115deg, #f8f2ff, #fdfbff 75%);
+  background: linear-gradient(115deg, var(--nv-accent-tint), var(--nv-tint-bg) 75%);
 }
 
 .card:nth-child(7) {
@@ -115,7 +124,7 @@
 .slot {
   height: 222px;
   padding: 12px;
-  background: linear-gradient(140deg, var(--wash, #f6f0fc), #fdfcfe);
+  background: linear-gradient(140deg, var(--wash-tint), var(--nv-tint-bg));
 }
 
 .card:nth-child(n + 5) .slot {
@@ -184,16 +193,16 @@
   align-self: flex-start;
   margin-bottom: 20px;
   padding: 4px 9px;
-  border: 1px solid #ddcaff;
+  border: 1px solid var(--nv-accent-border-soft);
   border-radius: 10px;
-  background: #ede3ff;
-  color: #8a60ed;
+  background: var(--nv-accent-soft);
+  color: var(--nv-accent-text);
   font-size: 10px;
 }
 
 .featuredDescription {
   margin: 15px 0 26px;
-  color: #85889c;
+  color: var(--nv-muted);
   font-size: 11px;
   line-height: 1.8;
 }
@@ -206,15 +215,17 @@
 }
 
 .badge {
+  /* `--badge-color` is the renderer's brand colour (data); lifted toward the ink in the dark scheme. */
+  --badge-ink: var(--badge-color, var(--nv-ink-2));
   display: inline-flex;
   align-items: center;
   gap: 5px;
   min-height: 25px;
   padding: 4px 6px 4px 5px;
-  border: 1px solid #efedf4;
+  border: 1px solid var(--nv-line);
   border-radius: 9px;
-  background: #fffdfd;
-  color: var(--badge-color, #646879);
+  background: var(--nv-surface-solid);
+  color: color-mix(in srgb, var(--badge-ink) 55%, light-dark(var(--badge-ink), var(--nv-ink)));
   font-size: 8.5px;
   line-height: 1;
   white-space: nowrap;
@@ -237,10 +248,10 @@
   place-items: center;
   width: 26px;
   height: 26px;
-  border: 1px solid #eeebf3;
+  border: 1px solid var(--nv-line);
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.66);
-  color: #6f6a85;
+  background: color-mix(in srgb, var(--nv-surface-solid) 66%, transparent);
+  color: var(--nv-ink-2);
   cursor: pointer;
   transition:
     background 0.15s,
@@ -248,8 +259,8 @@
 }
 
 .favorite[aria-pressed="true"] {
-  border-color: #c8afff;
-  background: #ece2ff;
+  border-color: var(--nv-accent-border);
+  background: var(--nv-accent-soft);
   color: var(--nv-accent);
 }
 
@@ -265,7 +276,7 @@
   grid-column: auto;
   grid-template-columns: 230px 1fr;
   min-height: 150px;
-  background: rgba(255, 255, 255, 0.74);
+  background: color-mix(in srgb, var(--nv-surface-solid) 74%, transparent);
 }
 
 .list .preview {
@@ -278,7 +289,7 @@
   height: 150px;
   min-height: 0;
   padding: 12px;
-  background: linear-gradient(140deg, var(--wash, #f6f0fc), #fdfcfe);
+  background: linear-gradient(140deg, var(--wash-tint), var(--nv-tint-bg));
 }
 
 .list .body,
@@ -316,9 +327,9 @@
   left: 18px;
   z-index: 5;
   padding: 9px 17px;
-  border: 1px solid #eae8ef;
+  border: 1px solid var(--nv-card-border);
   border-radius: 13px;
-  background: #fff;
+  background: var(--nv-surface-solid);
   font-size: 12px;
   cursor: pointer;
 }
@@ -331,9 +342,9 @@
   display: flex;
   gap: 4px;
   padding: 4px;
-  border: 1px solid #eae8ef;
+  border: 1px solid var(--nv-card-border);
   border-radius: 13px;
-  background: #fff;
+  background: var(--nv-surface-solid);
 }
 
 .viewSwitch button {
@@ -351,7 +362,7 @@
 }
 
 .viewSwitch button[aria-pressed="true"] {
-  background: #f0e9ff;
+  background: var(--nv-accent-soft);
   color: var(--nv-accent);
 }
 
@@ -376,8 +387,8 @@
   display: inline-block;
   padding: 4px 8px;
   border-radius: 8px;
-  background: #f4eeff;
-  color: #946bf0;
+  background: var(--nv-accent-tint);
+  color: var(--nv-accent);
   font-size: 11px;
 }
 
@@ -391,7 +402,7 @@
 .benefits {
   margin: 16px 0 24px;
   padding: 0;
-  color: #81869b;
+  color: var(--nv-muted);
   font-size: 12px;
   line-height: 2.1;
   list-style: none;
@@ -402,15 +413,15 @@
   margin-right: 8px;
   padding: 0 3px;
   border-radius: 50%;
-  background: #f1e8ff;
-  color: #aa82ff;
+  background: var(--nv-accent-soft);
+  color: var(--nv-accent);
 }
 
 .renderers {
   margin: 0 0 20px;
   padding: 16px 0 0;
   border: 0;
-  border-top: 1px solid #eeebf3;
+  border-top: 1px solid var(--nv-line);
 }
 
 .renderers legend {
@@ -436,9 +447,9 @@
   min-width: 0;
   min-height: 70px;
   padding: 8px 4px 7px;
-  border: 1px solid #eeeaf4;
+  border: 1px solid var(--nv-line);
   border-radius: 11px;
-  background: #fff;
+  background: var(--nv-surface-solid);
   font-size: 9px;
   line-height: 1.15;
   cursor: pointer;
@@ -456,9 +467,9 @@
 }
 
 .rendererChoice[aria-pressed="true"] {
-  border-color: #bd9cff;
-  background: #f8f4ff;
-  box-shadow: 0 0 0 1px #e3d4ff;
+  border-color: var(--nv-accent-border);
+  background: var(--nv-accent-tint);
+  box-shadow: 0 0 0 1px var(--nv-accent-border-soft);
 }
 
 .primaryAction,
@@ -469,7 +480,7 @@
   gap: 9px;
   width: 100%;
   min-height: 40px;
-  border: 1px solid #e7dff6;
+  border: 1px solid var(--nv-tint-border);
   border-radius: 13px;
   font-size: 12px;
   cursor: pointer;
@@ -478,9 +489,9 @@
 .primaryAction {
   position: relative;
   margin-bottom: 12px;
-  border-color: #cbb1f5;
-  background: linear-gradient(110deg, #bd98f5, #a87bed);
-  color: #fff;
+  border-color: var(--nv-accent-border);
+  background: var(--nv-gradient-primary);
+  color: var(--nv-on-accent);
 }
 
 .primaryAction span {
@@ -491,15 +502,15 @@
 }
 
 .secondaryAction {
-  background: #fff;
+  background: var(--nv-surface-solid);
 }
 
 .detailDiagram {
   height: 505px;
   padding: 18px 12px;
-  border: 1px solid #eee6fb;
+  border: 1px solid var(--nv-tint-border);
   border-radius: 12px;
-  background: linear-gradient(140deg, #fcf9ff, #fcfefe);
+  background: linear-gradient(140deg, var(--nv-accent-tint-soft), var(--nv-tint-bg));
 }
 
 .detailNote {
@@ -509,10 +520,10 @@
   max-width: 470px;
   margin: 18px 0 0;
   padding: 12px 15px;
-  border: 1px solid #f2ebfc;
+  border: 1px solid var(--nv-tint-border);
   border-radius: 9px;
-  background: #f8f4fe;
-  color: #89829e;
+  background: var(--nv-accent-tint-soft);
+  color: var(--nv-muted);
   font-size: 10px;
   line-height: 1.8;
 }

@@ -44,10 +44,10 @@
 }
 
 .openPage.isOpen {
-  border-color: rgba(155, 110, 255, 0.36);
+  border-color: color-mix(in srgb, var(--nv-accent) 36%, transparent);
   box-shadow:
-    0 0 0 1px rgba(172, 123, 255, 0.1),
-    0 8px 24px rgba(109, 80, 157, 0.08);
+    0 0 0 1px color-mix(in srgb, var(--nv-accent) 10%, transparent),
+    0 8px 24px color-mix(in srgb, var(--nv-shadow-ink) 8%, transparent);
 }
 
 .chevron {
@@ -85,10 +85,10 @@
   border: 0;
   border-radius: 50%;
   background: var(--nv-gradient-avatar);
-  color: #fff;
+  color: var(--nv-on-accent);
   font-size: 15px;
   font-weight: 600;
-  box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 0 8px var(--nv-avatar-sheen);
   cursor: pointer;
   overflow: hidden;
 }

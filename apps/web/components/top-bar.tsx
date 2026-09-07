@@ -14,15 +14,17 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DropdownMenu } from 'radix-ui';
 import { type CSSProperties, useState } from 'react';
-import { AVATAR_TONES, useSettingsStore } from '@/lib/stores/settings-store';
+import { useT } from '@/lib/i18n/provider';
+import { AVATAR_TONES, FALLBACK_INITIAL, useSettingsStore } from '@/lib/stores/settings-store';
 import menu from './menu.module.css';
 import { PageSwitcher } from './page-switcher';
 import styles from './top-bar.module.css';
 
 export function TopBar() {
+  const t = useT();
   return (
     <header className={styles.topbar}>
-      <Link href="/" className={styles.brand} aria-label="Nivik home">
+      <Link href="/" className={styles.brand} aria-label={t.nav.home}>
         <Image
           src="/brand/nivik-logo.png"
           alt=""
@@ -43,6 +45,7 @@ export function TopBar() {
 }
 
 function NotificationsButton() {
+  const t = useT();
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -50,27 +53,28 @@ function NotificationsButton() {
         variant="surface"
         size="lg"
         className={styles.bell}
-        aria-label="Notifications"
+        aria-label={t.topBar.notifications}
         onClick={() => setOpen(true)}
       >
         <Bell size={21} aria-hidden="true" />
       </IconButton>
-      <DialogContent>
-        <DialogTitle>Notifications</DialogTitle>
-        <DialogDescription>You're all caught up. No new notifications.</DialogDescription>
+      <DialogContent closeLabel={t.common.closeDialog}>
+        <DialogTitle>{t.topBar.notifications}</DialogTitle>
+        <DialogDescription>{t.topBar.noNotifications}</DialogDescription>
       </DialogContent>
     </Dialog>
   );
 }
 
 function AccountMenu() {
+  const t = useT();
   const router = useRouter();
   const toast = useToast();
   const userName = useSettingsStore((s) => s.saved.userName);
   const avatar = useSettingsStore((s) => s.saved.avatar);
   const avatarColor = useSettingsStore((s) => s.saved.avatarColor);
   const tone = AVATAR_TONES[avatarColor];
-  const initial = (userName.trim() || 'S').slice(0, 1).toUpperCase();
+  const initial = (userName.trim() || FALLBACK_INITIAL).slice(0, 1).toUpperCase();
   const style = avatar
     ? undefined
     : ({ background: `linear-gradient(145deg, ${tone[0]}, ${tone[1]})` } as CSSProperties);
@@ -78,7 +82,12 @@ function AccountMenu() {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button type="button" className={styles.avatar} style={style} aria-label="Account menu">
+        <button
+          type="button"
+          className={styles.avatar}
+          style={style}
+          aria-label={t.topBar.accountMenu}
+        >
           {avatar ? (
             // biome-ignore lint/performance/noImgElement: user-uploaded data URL, not an optimizable asset.
             <img src={avatar} alt="" />
@@ -95,8 +104,8 @@ function AccountMenu() {
           collisionPadding={12}
         >
           <div className={menu.header}>
-            <span className={menu.headerName}>{userName.trim() || 'Sophie'}</span>
-            <span className={menu.headerNote}>Personal workspace · Local session</span>
+            <span className={menu.headerName}>{userName.trim() || t.topBar.localUser}</span>
+            <span className={menu.headerNote}>{t.topBar.workspaceNote}</span>
           </div>
           <div className={menu.separator} />
           <DropdownMenu.Item
@@ -106,16 +115,13 @@ function AccountMenu() {
             <span className={menu.icon}>
               <GearSix size={19} weight="duotone" aria-hidden="true" />
             </span>
-            Account settings
+            {t.topBar.accountSettings}
           </DropdownMenu.Item>
-          <DropdownMenu.Item
-            className={menu.item}
-            onSelect={() => toast('Local workspace — nothing to sign out of yet.')}
-          >
+          <DropdownMenu.Item className={menu.item} onSelect={() => toast(t.topBar.signOutToast)}>
             <span className={menu.icon}>
               <SignOut size={19} weight="duotone" aria-hidden="true" />
             </span>
-            Sign out
+            {t.topBar.signOut}
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

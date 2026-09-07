@@ -6,6 +6,8 @@ import Image from 'next/image';
 import type { CSSProperties } from 'react';
 import { RENDERERS } from '@/lib/data/integrations';
 import type { DiagramTemplate } from '@/lib/data/templates';
+import { useT } from '@/lib/i18n/provider';
+import { templateCopy } from '@/lib/i18n/template-copy';
 import { TemplatePreview } from './template-preview';
 import styles from './templates.module.css';
 
@@ -20,6 +22,8 @@ interface TemplateCardProps {
 const CARD_RENDERERS = RENDERERS.filter((r) => r.id !== 'nivik');
 
 export function TemplateCard({ template, favorite, onOpen, onToggleFavorite }: TemplateCardProps) {
+  const t = useT();
+  const copy = templateCopy(t, template);
   return (
     <article
       className={cn(styles.card, template.featured && styles.featured)}
@@ -28,7 +32,9 @@ export function TemplateCard({ template, favorite, onOpen, onToggleFavorite }: T
       <button
         type="button"
         className={styles.favorite}
-        aria-label={favorite ? `Remove ${template.title} from favorites` : `Save ${template.title}`}
+        aria-label={
+          favorite ? t.templates.removeFavorite(copy.title) : t.templates.saveFavorite(copy.title)
+        }
         aria-pressed={favorite}
         onClick={onToggleFavorite}
       >
@@ -37,7 +43,7 @@ export function TemplateCard({ template, favorite, onOpen, onToggleFavorite }: T
       <button
         type="button"
         className={styles.preview}
-        aria-label={`Preview ${template.title}`}
+        aria-label={t.templates.preview(copy.title)}
         onClick={onOpen}
       >
         <div className={styles.slot}>
@@ -45,12 +51,12 @@ export function TemplateCard({ template, favorite, onOpen, onToggleFavorite }: T
         </div>
       </button>
       <div className={styles.body}>
-        {template.featured && <span className={styles.featuredLabel}>Featured</span>}
+        {template.featured && <span className={styles.featuredLabel}>{t.templates.featured}</span>}
         <button type="button" className={styles.title} onClick={onOpen}>
-          {template.title}
+          {copy.title}
         </button>
-        <p className={styles.type}>{template.category}</p>
-        {template.featured && <p className={styles.featuredDescription}>{template.description}</p>}
+        <p className={styles.type}>{t.templates.categories[template.category]}</p>
+        {template.featured && <p className={styles.featuredDescription}>{copy.description}</p>}
         <div className={styles.compatibility}>
           {CARD_RENDERERS.map((renderer) => (
             <span

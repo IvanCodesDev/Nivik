@@ -2,59 +2,176 @@
  * Nivik design tokens (spec 07 §5.1).
  * Extracted from the design prototypes and unified: one accent, one ink, one muted,
  * one page background, one card surface. Everything in apps/web and packages/ui
- * must reference these variables instead of raw colors.
+ * must reference these variables instead of raw colors (tokens.test.ts enforces it).
+ *
+ * Every colour is written as `light-dark(light, dark)`; `<html data-theme>` picks the scheme
+ * through `color-scheme`, so a theme switch is one attribute and no other file knows about it.
+ * Translucent variants are derived where they are used: `color-mix(in srgb, var(--token) 70%, transparent)`.
  */
 :root {
+  color-scheme: light;
+
   /* brand */
-  --nv-accent: #875dff;
-  --nv-accent-strong: #7955ff;
-  --nv-accent-soft: #eee7fb;
-  --nv-accent-tint: #f4efff;
+  --nv-accent: light-dark(#875dff, #a78bff);
+  --nv-accent-strong: light-dark(#7955ff, #b39cff);
+  --nv-accent-text: light-dark(#7c5ed4, #b9a4ff);
+  --nv-accent-soft: light-dark(#eee7fb, #2a2440);
+  --nv-accent-tint: light-dark(#f4efff, #221d33);
+  --nv-accent-tint-soft: light-dark(#faf7ff, #1b1824);
+  --nv-accent-border: light-dark(#c8b9ff, #5b4a99);
+  --nv-accent-border-soft: light-dark(#e3d4ff, #3a3159);
+  --nv-on-accent: light-dark(#fff, #fff);
 
   /* text */
-  --nv-ink: #242629;
-  --nv-ink-soft: #465066;
-  --nv-muted: #858ca5;
-  --nv-muted-soft: #a0a3b3;
+  --nv-ink: light-dark(#242629, #ecebf1);
+  --nv-ink-soft: light-dark(#465066, #c3c6d3);
+  --nv-ink-2: light-dark(#5b6076, #b4b8c8);
+  --nv-muted: light-dark(#858ca5, #8f93a6);
+  --nv-muted-soft: light-dark(#a0a3b3, #757a8d);
+  --nv-placeholder: light-dark(#a4a8b7, #6c7082);
+  --nv-disabled: light-dark(#c2c5d1, #4a4d5a);
+  --nv-ink-solid: light-dark(#080809, #f2f2f6);
+  --nv-on-ink: light-dark(#fff, #131317);
 
   /* surfaces */
-  --nv-page: #faf9fb;
-  --nv-card: rgba(255, 255, 255, 0.84);
-  --nv-card-border: #eaeaf0;
-  --nv-surface: rgba(255, 255, 255, 0.85);
-  --nv-surface-border: #e8e7ec;
-  --nv-surface-shadow: 0 3px 9px rgba(40, 43, 55, 0.035);
-  --nv-line: #eeedf3;
-  --nv-control-bg: #fff;
-  --nv-control-border: #e9e9f0;
-  --nv-control-border-hover: #dadce4;
-  --nv-control-border-focus: #cfd1d9;
+  --nv-page: light-dark(#faf9fb, #131317);
+  --nv-surface-solid: light-dark(#fff, #1e1e24);
+  --nv-card: light-dark(rgba(255, 255, 255, 0.84), rgba(30, 30, 36, 0.84));
+  --nv-card-border: light-dark(#eaeaf0, #2a2a33);
+  --nv-surface: light-dark(rgba(255, 255, 255, 0.85), rgba(32, 32, 39, 0.85));
+  --nv-surface-border: light-dark(#e8e7ec, #2c2c35);
+  --nv-surface-shadow: 0 3px 9px light-dark(rgba(40, 43, 55, 0.035), rgba(0, 0, 0, 0.35));
+  --nv-glass: light-dark(rgba(255, 255, 255, 0.92), rgba(30, 30, 37, 0.92));
+  --nv-glass-border: light-dark(rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.06));
+  --nv-line: light-dark(#eeedf3, #2a2a32);
+  --nv-hover: light-dark(#f3f1f8, #26262e);
+  --nv-hover-strong: light-dark(#eeebf2, #2d2d37);
+  --nv-tint-bg: light-dark(#fcfbff, #1b1b22);
+  --nv-tint-border: light-dark(#e8e4ef, #2e2b3a);
+  --nv-control-bg: light-dark(#fff, #1b1b21);
+  --nv-control-border: light-dark(#e9e9f0, #33333d);
+  --nv-control-border-hover: light-dark(#dadce4, #444450);
+  --nv-control-border-focus: light-dark(#cfd1d9, #5a5a6a);
+  --nv-switch-off: light-dark(#e1e2e8, #3a3a46);
+  --nv-switch-thumb: light-dark(#fff, #e9e9f0);
+  --nv-pill-bg: light-dark(#f6f3fa, #26232f);
+  --nv-pill-text: light-dark(#9b8dac, #a597b8);
+  --nv-toast-bg: light-dark(#17161a, #ecebf1);
+  --nv-toast-text: light-dark(#fff, #17161a);
+  --nv-swatch-edge: light-dark(rgba(0, 0, 0, 0.07), rgba(255, 255, 255, 0.12));
+  --nv-avatar-sheen: light-dark(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2));
+  --nv-folder-base: light-dark(#fff, #1e1e25);
 
   /* feedback */
-  --nv-success: #3caf88;
-  --nv-success-soft: #ecf8f3;
-  --nv-danger: #e36b72;
-  --nv-danger-soft: #fff2f2;
-  --nv-danger-border: #ffe3e3;
-  --nv-warning-text: #a69069;
-  --nv-warning-soft: #fffcf6;
-  --nv-warning-border: #f3ecdf;
+  --nv-success: light-dark(#3caf88, #4fc79c);
+  --nv-success-soft: light-dark(#ecf8f3, #16302a);
+  --nv-success-text: light-dark(#54a380, #7fd3b0);
+  --nv-danger: light-dark(#e36b72, #f08a91);
+  --nv-danger-soft: light-dark(#fff2f2, #2f1c1f);
+  --nv-danger-soft-strong: light-dark(#ffebeb, #3a2226);
+  --nv-danger-border: light-dark(#ffe3e3, #4a2a2f);
+  --nv-danger-border-strong: light-dark(#f9d5d5, #5c3036);
+  --nv-danger-text: light-dark(#c67c88, #e0a0aa);
+  --nv-danger-strong: light-dark(#b04a55, #f08a94);
+  --nv-warning-text: light-dark(#a69069, #d6bd8a);
+  --nv-warning-soft: light-dark(#fffcf6, #2a251a);
+  --nv-warning-border: light-dark(#f3ecdf, #443b28);
 
   /* effects */
-  --nv-focus-ring: rgba(129, 93, 255, 0.42);
-  --nv-grid-dot: rgba(166, 169, 181, 0.2);
+  --nv-focus-ring: light-dark(rgba(129, 93, 255, 0.42), rgba(167, 139, 255, 0.55));
+  --nv-focus-ring-soft: light-dark(rgba(217, 205, 255, 0.33), rgba(135, 93, 255, 0.35));
+  --nv-shadow-ink: light-dark(#4a4a63, #000);
+  --nv-shadow-accent: light-dark(#875dff, #000);
+  --nv-grid-dot: light-dark(rgba(166, 169, 181, 0.2), rgba(200, 200, 220, 0.12));
   --nv-grid-size: 18px;
-  --nv-gradient-primary: linear-gradient(105deg, #b298f5, #a180ee);
-  --nv-gradient-primary-hover: linear-gradient(105deg, #a788ec, #926ee4);
-  --nv-gradient-avatar: linear-gradient(135deg, #cbb0ff, #a887f5 62%, #b9a0fb);
-  --nv-gradient-tab-active: linear-gradient(110deg, #f4efff, #f3edfd);
-  --nv-dialog-backdrop: rgba(245, 242, 248, 0.56);
-  --nv-shadow-card: 0 2px 6px rgba(48, 51, 73, 0.01);
-  --nv-shadow-float: 0 12px 30px rgba(49, 51, 72, 0.09);
-  --nv-shadow-pop: 0 25px 80px rgba(70, 57, 86, 0.13);
+  --nv-paper-glow-1: light-dark(rgba(230, 196, 254, 0.045), rgba(120, 80, 200, 0.08));
+  --nv-paper-glow-2: light-dark(rgba(197, 243, 253, 0.04), rgba(60, 140, 180, 0.07));
+  --nv-gradient-primary: linear-gradient(
+    105deg,
+    light-dark(#b298f5, #a17af9),
+    light-dark(#a180ee, #8b66ee)
+  );
+  --nv-gradient-primary-hover: linear-gradient(
+    105deg,
+    light-dark(#a788ec, #ad8bfb),
+    light-dark(#926ee4, #9873f2)
+  );
+  --nv-gradient-switch: linear-gradient(
+    110deg,
+    light-dark(#a17af9, #a17af9),
+    light-dark(#936afa, #936afa)
+  );
+  --nv-gradient-avatar: linear-gradient(
+    135deg,
+    light-dark(#cbb0ff, #cbb0ff),
+    light-dark(#a887f5, #a887f5) 62%,
+    light-dark(#b9a0fb, #b9a0fb)
+  );
+  --nv-gradient-tab-active: linear-gradient(
+    110deg,
+    light-dark(#f4efff, #26203a),
+    light-dark(#f3edfd, #241f36)
+  );
+  --nv-gradient-accent-tint: linear-gradient(
+    light-dark(#fcfaff, #1f1b2c),
+    light-dark(#f2edff, #2a2440)
+  );
+  --nv-gradient-submit:
+    radial-gradient(
+      ellipse at 70% 80%,
+      light-dark(rgba(172, 154, 248, 0.5), rgba(140, 110, 255, 0.5)),
+      transparent 50%
+    ),
+    linear-gradient(
+      135deg,
+      light-dark(#c7b3ff, #8d6cf0),
+      light-dark(#c1a8fa, #7f5ce8) 52%,
+      light-dark(#d8c8ff, #9d80ff)
+    );
+  /* Composer halo stops; the conic gradient itself lives in canvas.module.css because its angle is animated there. */
+  --nv-composer-1: light-dark(#eadcff, #3a2d5c);
+  --nv-composer-2: light-dark(#f8efff, #2e2540);
+  --nv-composer-3: light-dark(#ffdce9, #4a2a3a);
+  --nv-composer-4: light-dark(#fff2b9, #4a4224);
+  --nv-composer-5: light-dark(#dceaff, #23344a);
+  --nv-composer-6: light-dark(#e5d6ff, #35294f);
+  --nv-composer-7: light-dark(#ffdfe9, #45283a);
+  --nv-composer-8: light-dark(#edf5c9, #3a4426);
+  --nv-dialog-backdrop: light-dark(rgba(245, 242, 248, 0.56), rgba(8, 8, 12, 0.62));
+  --nv-shadow-card: 0 2px 6px light-dark(rgba(48, 51, 73, 0.01), rgba(0, 0, 0, 0.3));
+  --nv-shadow-float: 0 12px 30px light-dark(rgba(49, 51, 72, 0.09), rgba(0, 0, 0, 0.5));
+  --nv-shadow-pop: 0 25px 80px light-dark(rgba(70, 57, 86, 0.13), rgba(0, 0, 0, 0.6));
   --nv-shadow-menu:
-    0 18px 48px rgba(99, 84, 145, 0.1), 0 0 0 5px rgba(190, 151, 255, 0.055),
-    8px 12px 34px rgba(255, 224, 135, 0.08);
+    0 18px 48px light-dark(rgba(99, 84, 145, 0.1), rgba(0, 0, 0, 0.55)),
+    0 0 0 5px light-dark(rgba(190, 151, 255, 0.055), rgba(190, 151, 255, 0.06)),
+    8px 12px 34px light-dark(rgba(255, 224, 135, 0.08), rgba(0, 0, 0, 0.3));
+
+  /*
+   * Canvas paper (Settings → Canvas Background) and what is drawn on it. The paper is the user's
+   * choice and does not follow the theme: in dark mode the chrome goes dark while the sheet keeps
+   * the tint they picked, so these are the only colour tokens without a dark value. The canvas
+   * sets `color-scheme: light` on the paper subtree so shared tokens resolve light there too.
+   */
+  --nv-canvas-white: #fff;
+  --nv-canvas-soft: #faf9fb;
+  --nv-canvas-lavender: #f5f1ff;
+  --nv-canvas-mint: #eff9f5;
+  --nv-canvas-paper: #fff9ed;
+  --nv-canvas-dot: #dad9e4;
+  --nv-node-bg: #fff;
+  --nv-node-border: #dfd1f4;
+  --nv-node-text: #38304d;
+  --nv-node-selected-bg: #f3edff;
+  --nv-edge: #a597d8;
+  --nv-selection-ring: rgba(135, 93, 255, 0.28);
+
+  /* integration logo backdrops (Integrations page) */
+  --nv-logo-violet: light-dark(#eee5ff, #2b2442);
+  --nv-logo-orange: light-dark(#ffeddc, #3a2c1f);
+  --nv-logo-gray: light-dark(#efedf3, #2a2a31);
+  --nv-logo-pink: light-dark(#ffe9f0, #3a2530);
+  --nv-logo-green: light-dark(#edf6e8, #22301f);
+  --nv-logo-blue: light-dark(#edf1ff, #202838);
 
   /* geometry */
   --nv-radius-s: 6px;
@@ -68,28 +185,36 @@
   --nv-font: var(--font-inter, Inter), "Segoe UI", system-ui, -apple-system, sans-serif;
 
   /* semantic palettes (IR StyleTokens.palette → render colors); shared by UI and canvas */
-  --nv-pal-lavender-fill: #ede7f7;
-  --nv-pal-lavender-stroke: #b59add;
-  --nv-pal-lavender-text: #3b2f5c;
-  --nv-pal-mint-fill: #eff9f5;
-  --nv-pal-mint-stroke: #91b9a9;
-  --nv-pal-mint-text: #2f4f44;
-  --nv-pal-sky-fill: #eef4fb;
-  --nv-pal-sky-stroke: #9cbbd9;
-  --nv-pal-sky-text: #2f4360;
-  --nv-pal-coral-fill: #fdf0ec;
-  --nv-pal-coral-stroke: #dcae9e;
-  --nv-pal-coral-text: #5c3a30;
-  --nv-pal-sand-fill: #fff9ed;
-  --nv-pal-sand-stroke: #d9c39a;
-  --nv-pal-sand-text: #5a4a2a;
-  --nv-pal-rose-fill: #fbeef3;
-  --nv-pal-rose-stroke: #d7a3b6;
-  --nv-pal-rose-text: #5a3344;
-  --nv-pal-sage-fill: #eef5f0;
-  --nv-pal-sage-stroke: #9fb8a6;
-  --nv-pal-sage-text: #34493b;
-  --nv-pal-neutral-fill: #f4f4f7;
-  --nv-pal-neutral-stroke: #cfd1d9;
-  --nv-pal-neutral-text: #3a3d48;
+  --nv-pal-lavender-fill: light-dark(#ede7f7, #2b2540);
+  --nv-pal-lavender-stroke: light-dark(#b59add, #8a74c0);
+  --nv-pal-lavender-text: light-dark(#3b2f5c, #d9cff2);
+  --nv-pal-mint-fill: light-dark(#eff9f5, #1c2e27);
+  --nv-pal-mint-stroke: light-dark(#91b9a9, #6fa08e);
+  --nv-pal-mint-text: light-dark(#2f4f44, #cfe9dc);
+  --nv-pal-sky-fill: light-dark(#eef4fb, #1e2838);
+  --nv-pal-sky-stroke: light-dark(#9cbbd9, #7ea1c6);
+  --nv-pal-sky-text: light-dark(#2f4360, #d3e1f2);
+  --nv-pal-coral-fill: light-dark(#fdf0ec, #33241f);
+  --nv-pal-coral-stroke: light-dark(#dcae9e, #c08e7c);
+  --nv-pal-coral-text: light-dark(#5c3a30, #f2d7ce);
+  --nv-pal-sand-fill: light-dark(#fff9ed, #302a1c);
+  --nv-pal-sand-stroke: light-dark(#d9c39a, #b9a272);
+  --nv-pal-sand-text: light-dark(#5a4a2a, #efe3c8);
+  --nv-pal-rose-fill: light-dark(#fbeef3, #33222a);
+  --nv-pal-rose-stroke: light-dark(#d7a3b6, #b98499);
+  --nv-pal-rose-text: light-dark(#5a3344, #f0d4df);
+  --nv-pal-sage-fill: light-dark(#eef5f0, #1f2b23);
+  --nv-pal-sage-stroke: light-dark(#9fb8a6, #86a08e);
+  --nv-pal-sage-text: light-dark(#34493b, #d6e6da);
+  --nv-pal-neutral-fill: light-dark(#f4f4f7, #24242b);
+  --nv-pal-neutral-stroke: light-dark(#cfd1d9, #5a5c6b);
+  --nv-pal-neutral-text: light-dark(#3a3d48, #d5d6de);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+:root[data-theme="system"] {
+  color-scheme: light dark;
 }

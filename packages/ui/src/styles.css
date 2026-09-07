@@ -96,8 +96,8 @@
 .nv-btn--primary {
   border-color: transparent;
   background: var(--nv-gradient-primary);
-  color: #fff;
-  box-shadow: 0 2px 4px rgba(172, 142, 238, 0.075);
+  color: var(--nv-on-accent);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--nv-shadow-accent) 8%, transparent);
 }
 
 .nv-btn--primary:hover:not(:disabled) {
@@ -106,12 +106,12 @@
 
 .nv-btn--secondary {
   border-color: var(--nv-control-border);
-  background: #fff;
+  background: var(--nv-surface-solid);
 }
 
 .nv-btn--secondary:hover:not(:disabled) {
-  border-color: #dcdae5;
-  background: #f9f8fc;
+  border-color: var(--nv-control-border-hover);
+  background: var(--nv-tint-bg);
 }
 
 .nv-btn--ghost {
@@ -119,7 +119,7 @@
 }
 
 .nv-btn--ghost:hover:not(:disabled) {
-  background: #f3f1f8;
+  background: var(--nv-hover);
 }
 
 .nv-btn--danger {
@@ -129,17 +129,17 @@
 }
 
 .nv-btn--danger:hover:not(:disabled) {
-  border-color: #f9d5d5;
-  background: #ffebeb;
+  border-color: var(--nv-danger-border-strong);
+  background: var(--nv-danger-soft-strong);
 }
 
 .nv-btn--soft {
   min-height: 46px;
   justify-content: flex-start;
   padding: 14px;
-  border-color: #e8e4ef;
+  border-color: var(--nv-tint-border);
   border-radius: 13px;
-  background: #fcfbff;
+  background: var(--nv-tint-bg);
   font-size: 14px;
   font-weight: 450;
   line-height: 1.3;
@@ -148,8 +148,8 @@
 }
 
 .nv-btn--soft:hover:not(:disabled) {
-  border-color: #d5c3f8;
-  background: #faf7ff;
+  border-color: var(--nv-accent-border);
+  background: var(--nv-accent-tint-soft);
 }
 
 /* ---------------------------------------------------------------------------------------- */
@@ -174,9 +174,9 @@
   position: relative;
   width: min(470px, 100%);
   padding: 28px;
-  border: 1px solid #ebe8ef;
+  border: 1px solid var(--nv-card-border);
   border-radius: var(--nv-radius-2xl);
-  background: #fff;
+  background: var(--nv-surface-solid);
   color: var(--nv-ink);
   box-shadow: var(--nv-shadow-pop);
   outline: none;
@@ -202,14 +202,14 @@
   height: 34px;
   border: 0;
   border-radius: 50%;
-  background: #f6f4f8;
+  background: var(--nv-hover);
   color: var(--nv-ink);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .nv-dialog__close:hover {
-  background: #eeebf2;
+  background: var(--nv-hover-strong);
 }
 
 .nv-dialog__close:focus-visible {
@@ -227,7 +227,7 @@
 
 .nv-dialog__text {
   margin: 0;
-  color: #828697;
+  color: var(--nv-muted);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -284,15 +284,15 @@
 }
 
 .nv-toast--dark {
-  background: #17161a;
-  color: #fff;
+  background: var(--nv-toast-bg);
+  color: var(--nv-toast-text);
 }
 
 .nv-toast--light {
-  border: 1px solid #e8e4f1;
-  background: #fff;
-  color: #858198;
-  box-shadow: 0 8px 24px rgba(68, 65, 88, 0.07);
+  border: 1px solid var(--nv-tint-border);
+  background: var(--nv-surface-solid);
+  color: var(--nv-muted);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--nv-shadow-ink) 7%, transparent);
 }
 
 /* ---------------------------------------------------------------------------------------- */
@@ -307,13 +307,13 @@
   padding: 0;
   border: 0;
   border-radius: 20px;
-  background: #e1e2e8;
+  background: var(--nv-switch-off);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .nv-switch[data-state="checked"] {
-  background: linear-gradient(110deg, #a17af9, #936afa);
+  background: var(--nv-gradient-switch);
 }
 
 .nv-switch:disabled {
@@ -331,8 +331,8 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(80, 66, 107, 0.11);
+  background: var(--nv-switch-thumb);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--nv-shadow-ink) 11%, transparent);
   transform: translateX(3px);
   transition: transform 0.15s;
 }
@@ -402,9 +402,9 @@
   width: var(--radix-select-trigger-width);
   max-height: min(232px, var(--radix-select-content-available-height));
   padding: 6px;
-  border: 1px solid #e7e7ee;
+  border: 1px solid var(--nv-control-border);
   border-radius: 11px;
-  background: #fff;
+  background: var(--nv-surface-solid);
   box-shadow: var(--nv-shadow-float);
   overflow: hidden;
   animation: nv-pop-in 0.14s ease-out;
@@ -425,7 +425,7 @@
   min-height: 35px;
   padding: 8px 10px;
   border-radius: 6px;
-  color: #566076;
+  color: var(--nv-ink-2);
   font-size: 12px;
   line-height: 1.5;
   cursor: pointer;
@@ -434,12 +434,12 @@
 }
 
 .nv-select__option[data-highlighted] {
-  background: #f6f5f9;
+  background: var(--nv-hover);
 }
 
 .nv-select__option[data-state="checked"] {
-  background: #f3effa;
-  color: #8064ae;
+  background: var(--nv-accent-soft);
+  color: var(--nv-accent-text);
 }
 
 .nv-select__option[data-disabled] {
@@ -462,8 +462,8 @@
   gap: 5px;
   padding: 4px 7px;
   border-radius: 6px;
-  background: #f6f3fa;
-  color: #9b8dac;
+  background: var(--nv-pill-bg);
+  color: var(--nv-pill-text);
   font-size: 9px;
   font-weight: 500;
   line-height: 1;
@@ -473,8 +473,8 @@
 .nv-kbd {
   padding: 5px 7px;
   border-radius: 7px;
-  background: #f7f6f9;
-  color: #8b8d9b;
+  background: var(--nv-hover);
+  color: var(--nv-muted);
   font: 11px var(--nv-font);
   white-space: nowrap;
 }
@@ -486,9 +486,9 @@
   gap: 9px;
   height: 42px;
   padding: 0 18px;
-  border: 1px solid #e5e4e8;
+  border: 1px solid var(--nv-surface-border);
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.66);
+  background: color-mix(in srgb, var(--nv-surface-solid) 66%, transparent);
   color: inherit;
   font: inherit;
   font-size: 14px;
@@ -502,8 +502,8 @@
 }
 
 .nv-chip:hover {
-  border-color: #cbc7d3;
-  background: #fff;
+  border-color: var(--nv-control-border-hover);
+  background: var(--nv-surface-solid);
 }
 
 .nv-chip:focus-visible {
@@ -512,26 +512,26 @@
 }
 
 .nv-chip--ink.is-active {
-  border-color: #080809;
-  background: #080809;
-  color: #fff;
+  border-color: var(--nv-ink-solid);
+  background: var(--nv-ink-solid);
+  color: var(--nv-on-ink);
 }
 
 .nv-chip--accent {
   height: 44px;
   padding: 0 15px;
-  border-color: #eae8ef;
+  border-color: var(--nv-card-border);
   border-radius: var(--nv-radius-l);
-  background: rgba(255, 255, 255, 0.61);
-  box-shadow: 0 3px 7px rgba(54, 48, 71, 0.012);
+  background: color-mix(in srgb, var(--nv-surface-solid) 61%, transparent);
+  box-shadow: 0 3px 7px color-mix(in srgb, var(--nv-shadow-ink) 1%, transparent);
   font-size: 12px;
 }
 
 .nv-chip--accent.is-active {
-  border-color: #d7c8ff;
-  background: linear-gradient(#fcfaff, #f2edff);
+  border-color: var(--nv-accent-border);
+  background: var(--nv-gradient-accent-tint);
   color: var(--nv-accent);
-  box-shadow: 0 2px 5px rgba(121, 85, 237, 0.043);
+  box-shadow: 0 2px 5px color-mix(in srgb, var(--nv-shadow-accent) 4%, transparent);
 }
 
 .nv-input {
@@ -549,7 +549,7 @@
 }
 
 .nv-input::placeholder {
-  color: #a4a8b7;
+  color: var(--nv-placeholder);
 }
 
 .nv-input:hover {
@@ -581,6 +581,31 @@
 /* ---------------------------------------------------------------------------------------- */
 
 .nv-folder {
+  /*
+   * `--folder-*` are the pastel tints chosen for the folder (light-theme data, set inline).
+   * In the dark scheme they are dimmed toward the folder base so the card reads as a dark surface
+   * with a hint of its tint; in the light scheme the mix is a no-op.
+   */
+  --folder-tint-top: color-mix(
+    in srgb,
+    light-dark(var(--folder-top), var(--nv-folder-base)) 70%,
+    var(--folder-top)
+  );
+  --folder-tint-mid: color-mix(
+    in srgb,
+    light-dark(var(--folder-mid), var(--nv-folder-base)) 70%,
+    var(--folder-mid)
+  );
+  --folder-tint-bottom: color-mix(
+    in srgb,
+    light-dark(var(--folder-bottom), var(--nv-folder-base)) 70%,
+    var(--folder-bottom)
+  );
+  --folder-tint-tab: color-mix(
+    in srgb,
+    light-dark(var(--folder-tab), var(--nv-folder-base)) 70%,
+    var(--folder-tab)
+  );
   position: relative;
   width: 280px;
   height: 276px;
@@ -618,11 +643,11 @@
   clip-path: path("M14 0 H87 C98 0 102 5 108 14 L124 32 V48 H0 V14 C0 6 6 0 14 0 Z");
   background: linear-gradient(
     90deg,
-    var(--folder-tab) 0%,
-    color-mix(in srgb, var(--folder-tab) 76%, #fff) 56%,
-    color-mix(in srgb, var(--folder-tab) 34%, #fff) 100%
+    var(--folder-tint-tab) 0%,
+    color-mix(in srgb, var(--folder-tint-tab) 76%, var(--nv-folder-base)) 56%,
+    color-mix(in srgb, var(--folder-tint-tab) 34%, var(--nv-folder-base)) 100%
   );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.56);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--nv-folder-base) 56%, transparent);
   opacity: 0.96;
 }
 
@@ -636,9 +661,9 @@
   clip-path: path(
     "M20 0 H73 C85 0 92 11 106 11 H260 C271 11 280 20 280 31 V226 C280 237 271 246 260 246 H20 C9 246 0 237 0 226 V20 C0 9 9 0 20 0 Z"
   );
-  background: rgba(255, 255, 255, 0.82);
-  filter: drop-shadow(0 8px 15px rgba(80, 90, 120, 0.08))
-    drop-shadow(0 2px 4px rgba(80, 90, 120, 0.04));
+  background: color-mix(in srgb, var(--nv-folder-base) 82%, transparent);
+  filter: drop-shadow(0 8px 15px color-mix(in srgb, var(--nv-shadow-ink) 8%, transparent))
+    drop-shadow(0 2px 4px color-mix(in srgb, var(--nv-shadow-ink) 4%, transparent));
 }
 
 .nv-folder__body {
@@ -651,26 +676,26 @@
   background:
     linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0) 60%,
-      rgba(255, 255, 255, 0.16) 68%,
-      rgba(255, 255, 255, 0.52) 78%,
-      rgba(255, 255, 255, 0.86) 88%,
-      rgba(255, 255, 255, 0.92) 100%
+      color-mix(in srgb, var(--nv-folder-base) 0%, transparent) 0%,
+      color-mix(in srgb, var(--nv-folder-base) 0%, transparent) 60%,
+      color-mix(in srgb, var(--nv-folder-base) 16%, transparent) 68%,
+      color-mix(in srgb, var(--nv-folder-base) 52%, transparent) 78%,
+      color-mix(in srgb, var(--nv-folder-base) 86%, transparent) 88%,
+      color-mix(in srgb, var(--nv-folder-base) 92%, transparent) 100%
     ),
     radial-gradient(
       ellipse 92% 82% at 72% 66%,
-      rgba(255, 255, 255, 0.3),
-      rgba(255, 255, 255, 0) 72%
+      color-mix(in srgb, var(--nv-folder-base) 30%, transparent),
+      color-mix(in srgb, var(--nv-folder-base) 0%, transparent) 72%
     ),
     linear-gradient(
       to bottom,
-      var(--folder-top) 0%,
-      var(--folder-top) 36%,
-      var(--folder-mid) 66%,
-      var(--folder-bottom) 100%
+      var(--folder-tint-top) 0%,
+      var(--folder-tint-top) 36%,
+      var(--folder-tint-mid) 66%,
+      var(--folder-tint-bottom) 100%
     );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--nv-folder-base) 60%, transparent);
 }
 
 .nv-folder__more {
@@ -690,7 +715,7 @@
 }
 
 .nv-folder__more:hover {
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--nv-folder-base) 70%, transparent);
 }
 
 .nv-folder__more:focus-visible {
@@ -721,7 +746,7 @@
 
 .nv-folder__meta {
   margin-top: 8px;
-  color: #83889d;
+  color: var(--nv-muted);
   font-size: 12px;
   line-height: 15px;
 }

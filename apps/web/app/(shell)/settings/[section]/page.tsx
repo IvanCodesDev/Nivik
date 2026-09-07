@@ -1,11 +1,8 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import {
-  isSettingsSection,
-  SETTINGS_SECTION_IDS,
-  SETTINGS_SECTIONS,
-} from '@/features/settings/sections';
+import { isSettingsSection, SETTINGS_SECTION_IDS } from '@/features/settings/sections';
 import { SettingsPage } from '@/features/settings/settings-page';
+import { getRequestDictionary } from '@/lib/i18n/server';
 
 interface SettingsSectionPageProps {
   params: Promise<{ section: string }>;
@@ -16,9 +13,12 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: SettingsSectionPageProps): Promise<Metadata> {
-  const { section } = await params;
-  const match = SETTINGS_SECTIONS.find((s) => s.id === section);
-  return { title: match ? `${match.label} · Settings` : 'Settings' };
+  const [{ section }, t] = await Promise.all([params, getRequestDictionary()]);
+  return {
+    title: isSettingsSection(section)
+      ? t.meta.settingsSection(t.settings.sections[section].label)
+      : t.settings.title,
+  };
 }
 
 export default async function SettingsSectionPage({ params }: SettingsSectionPageProps) {

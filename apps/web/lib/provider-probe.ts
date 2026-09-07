@@ -1,39 +1,88 @@
-import type { ApiCompatibility, ProviderType } from '@/lib/stores/settings-store';
+import type { ApiCompatibility } from '@/lib/stores/settings-store';
 
-export const COMPATIBILITY_OPTIONS: readonly { value: ApiCompatibility; label: string }[] = [
-  { value: 'openai', label: 'OpenAI Chat Completions' },
-  { value: 'anthropic', label: 'Anthropic Messages' },
-  { value: 'gemini', label: 'Google Gemini' },
-];
-
-/** Base URL / compatibility prefilled when a provider type is chosen. */
-export function providerTypeDefaults(type: ProviderType): {
+/**
+ * Vendor presets only prefill the form (endpoint, wire format, display name); the saved
+ * `ProviderConfig` never references them, so a relay and a first-party account look the same.
+ */
+export interface ProviderPreset {
+  id: string;
+  /** Vendor name — a proper noun, hence not localized. */
+  name: string;
   url: string;
   compatibility: ApiCompatibility;
-} {
-  switch (type) {
-    case 'OpenAI':
-      return { url: 'https://api.openai.com/v1', compatibility: 'openai' };
-    case 'Anthropic':
-      return { url: 'https://api.anthropic.com/v1', compatibility: 'anthropic' };
-    case 'Google Gemini':
-      return { url: 'https://generativelanguage.googleapis.com/v1beta', compatibility: 'gemini' };
-    case 'DeepSeek':
-      return { url: 'https://api.deepseek.com/v1', compatibility: 'openai' };
-    case 'Qwen':
-      return { url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', compatibility: 'openai' };
-    case 'Moonshot':
-      return { url: 'https://api.moonshot.cn/v1', compatibility: 'openai' };
-    case 'GLM':
-      return { url: 'https://open.bigmodel.cn/api/paas/v4', compatibility: 'openai' };
-    case 'MiniMax':
-      return { url: 'https://api.minimax.chat/v1', compatibility: 'openai' };
-    case 'OpenRouter':
-      return { url: 'https://openrouter.ai/api/v1', compatibility: 'openai' };
-    default:
-      return { url: '', compatibility: 'openai' };
+}
+
+export const CUSTOM_PRESET: ProviderPreset = {
+  id: 'custom',
+  name: '',
+  url: '',
+  compatibility: 'openai',
+};
+
+export const PRESETS: readonly ProviderPreset[] = [
+  CUSTOM_PRESET,
+  { id: 'openai', name: 'OpenAI', url: 'https://api.openai.com/v1', compatibility: 'openai' },
+  {
+    id: 'anthropic',
+    name: 'Anthropic',
+    url: 'https://api.anthropic.com/v1',
+    compatibility: 'anthropic',
+  },
+  {
+    id: 'gemini',
+    name: 'Google Gemini',
+    url: 'https://generativelanguage.googleapis.com/v1beta',
+    compatibility: 'gemini',
+  },
+  { id: 'deepseek', name: 'DeepSeek', url: 'https://api.deepseek.com/v1', compatibility: 'openai' },
+  {
+    id: 'qwen',
+    name: 'Qwen',
+    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    compatibility: 'openai',
+  },
+  { id: 'moonshot', name: 'Moonshot', url: 'https://api.moonshot.cn/v1', compatibility: 'openai' },
+  { id: 'glm', name: 'GLM', url: 'https://open.bigmodel.cn/api/paas/v4', compatibility: 'openai' },
+  { id: 'minimax', name: 'MiniMax', url: 'https://api.minimax.chat/v1', compatibility: 'openai' },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    url: 'https://openrouter.ai/api/v1',
+    compatibility: 'openai',
+  },
+];
+
+export function presetFor(id: string): ProviderPreset | undefined {
+  return PRESETS.find((preset) => preset.id === id);
+}
+
+/** Display name proposed for a new model: the vendor for a preset, otherwise the endpoint host. */
+export function suggestName(preset: ProviderPreset | undefined, url: string): string {
+  if (preset?.name) return preset.name;
+  try {
+    return new URL(url.trim()).hostname;
+  } catch {
+    return '';
   }
 }
+
+/** Why a probe failed; the UI maps each code to localized copy. */
+export type ProbeErrorCode =
+  | 'url-required'
+  | 'url-invalid'
+  | 'url-credentials'
+  | 'url-query'
+  | 'url-scheme'
+  | 'http-400'
+  | 'http-401'
+  | 'http-403'
+  | 'http-404'
+  | 'http-429'
+  | 'http-other'
+  | 'timeout'
+  | 'network'
+  | 'shape'
+  | 'unexpected';
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
@@ -43,24 +92,20 @@ const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
  */
 export function validateBaseUrl(
   raw: string,
-): { ok: true; url: string } | { ok: false; reason: string } {
+): { ok: true; url: string } | { ok: false; code: ProbeErrorCode } {
   const value = raw.trim();
-  if (!value) return { ok: false, reason: 'Base URL is required.' };
+  if (!value) return { ok: false, code: 'url-required' };
   let parsed: URL;
   try {
     parsed = new URL(value);
   } catch {
-    return { ok: false, reason: 'Base URL must be a valid absolute URL.' };
+    return { ok: false, code: 'url-invalid' };
   }
-  if (parsed.username || parsed.password) {
-    return { ok: false, reason: 'Base URL must not contain credentials.' };
-  }
-  if (parsed.search || parsed.hash) {
-    return { ok: false, reason: 'Base URL must not contain a query string or fragment.' };
-  }
+  if (parsed.username || parsed.password) return { ok: false, code: 'url-credentials' };
+  if (parsed.search || parsed.hash) return { ok: false, code: 'url-query' };
   const isLoopback = LOOPBACK_HOSTS.has(parsed.hostname);
   if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && isLoopback)) {
-    return { ok: false, reason: 'Use https, or http only for localhost.' };
+    return { ok: false, code: 'url-scheme' };
   }
   return { ok: true, url: value.replace(/\/+$/, '') };
 }
@@ -69,9 +114,10 @@ export interface ProbeTarget {
   url: string;
   apiKey: string;
   compatibility: ApiCompatibility;
-  /** Seconds; clamped to 5–300. */
-  timeout: number;
 }
+
+/** Probes are tiny requests; anything slower than this is a connectivity problem worth reporting. */
+const PROBE_TIMEOUT_MS = 30_000;
 
 export interface ProbeSuccess<T> {
   ok: true;
@@ -81,7 +127,9 @@ export interface ProbeSuccess<T> {
 
 export interface ProbeFailure {
   ok: false;
-  message: string;
+  code: ProbeErrorCode;
+  /** Raw error text for `unexpected` failures, with the API key redacted. */
+  detail?: string;
   elapsedMs: number;
 }
 
@@ -102,37 +150,26 @@ function authHeaders(target: ProbeTarget): Record<string, string> {
   }
 }
 
-function httpReason(status: number): string {
+function httpCode(status: number): ProbeErrorCode {
   switch (status) {
     case 400:
-      return 'The provider rejected this request. Check API compatibility and model parameters.';
     case 401:
-      return 'API key rejected. Replace the key and try again.';
     case 403:
-      return 'Access denied. Check key permissions and model access.';
     case 404:
-      return 'Endpoint or model not found. Check the Base URL, compatibility, and model name.';
     case 429:
-      return 'Rate limit or quota reached. Check your provider account.';
+      return `http-${status}`;
     default:
-      return 'Provider request failed. Check the service status.';
+      return 'http-other';
   }
 }
 
-function describeError(error: unknown, apiKey: string): string {
-  let message: string;
-  if (error instanceof DOMException && error.name === 'AbortError') {
-    message = 'Request timed out or was canceled. Check your timeout and provider availability.';
-  } else if (error instanceof TypeError) {
-    message =
-      'Unable to reach provider. Check the Base URL, network, and browser CORS permissions.';
-  } else if (error instanceof Error) {
-    message = error.message;
-  } else {
-    message = 'Unexpected error while contacting the provider.';
-  }
-  if (apiKey) message = message.replaceAll(apiKey, '••••');
-  return message.length > 240 ? `${message.slice(0, 237)}…` : message;
+function describeError(error: unknown, apiKey: string): Pick<ProbeFailure, 'code' | 'detail'> {
+  if (error instanceof DOMException && error.name === 'AbortError') return { code: 'timeout' };
+  if (error instanceof TypeError) return { code: 'network' };
+  if (!(error instanceof Error)) return { code: 'unexpected' };
+  let detail = apiKey ? error.message.replaceAll(apiKey, '••••') : error.message;
+  if (detail.length > 240) detail = `${detail.slice(0, 237)}…`;
+  return { code: 'unexpected', detail };
 }
 
 async function request<T>(
@@ -143,8 +180,7 @@ async function request<T>(
 ): Promise<ProbeResult<T>> {
   const started = performance.now();
   const controller = new AbortController();
-  const seconds = Math.min(300, Math.max(5, target.timeout || 30));
-  const timer = setTimeout(() => controller.abort(), seconds * 1000);
+  const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
   try {
     const response = await fetch(`${target.url}${path}`, {
       ...init,
@@ -155,16 +191,14 @@ async function request<T>(
       signal: controller.signal,
     });
     const elapsedMs = Math.round(performance.now() - started);
-    if (!response.ok) return { ok: false, message: httpReason(response.status), elapsedMs };
+    if (!response.ok) return { ok: false, code: httpCode(response.status), elapsedMs };
     const data: unknown = await response.json();
-    if (!validate(data)) {
-      return { ok: false, message: 'Unexpected response shape from the provider.', elapsedMs };
-    }
+    if (!validate(data)) return { ok: false, code: 'shape', elapsedMs };
     return { ok: true, data, elapsedMs };
   } catch (error) {
     return {
       ok: false,
-      message: describeError(error, target.apiKey),
+      ...describeError(error, target.apiKey),
       elapsedMs: Math.round(performance.now() - started),
     };
   } finally {

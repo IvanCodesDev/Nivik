@@ -5,12 +5,14 @@ import { MagnifyingGlass, SlidersHorizontal } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 import { ChoiceDialog } from '@/components/choice-dialog';
 import { type CategoryFilter, filterDiagrams, SAMPLE_DIAGRAMS } from '@/lib/data/diagrams';
+import { useT } from '@/lib/i18n/provider';
 import { CategoryFilters } from './category-filters';
 import { DiagramGrid } from './diagram-grid';
 import styles from './library.module.css';
 
 /** Diagram Library (PRD 5.3): every diagram, searchable and filterable. */
 export function DiagramLibrary() {
+  const t = useT();
   const [category, setCategory] = useState<CategoryFilter['id']>('all');
   const [query, setQuery] = useState('');
   const [tuneOpen, setTuneOpen] = useState(false);
@@ -23,8 +25,8 @@ export function DiagramLibrary() {
   return (
     <main className="nv-page-main">
       <div className="nv-page-heading">
-        <h1>Diagram Library</h1>
-        <p>All your diagrams in one place. Organize, access, and collaborate.</p>
+        <h1>{t.library.title}</h1>
+        <p>{t.library.subtitle}</p>
       </div>
 
       <form className={styles.search} role="search" onSubmit={(event) => event.preventDefault()}>
@@ -34,14 +36,14 @@ export function DiagramLibrary() {
         <input
           type="search"
           className={styles.searchInput}
-          placeholder="Search diagrams..."
-          aria-label="Search diagrams"
+          placeholder={t.library.searchPlaceholder}
+          aria-label={t.library.searchLabel}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
         <IconButton
           className={styles.tune}
-          aria-label="Search filters"
+          aria-label={t.library.filters}
           size="md"
           onClick={() => setTuneOpen(true)}
         >
@@ -56,8 +58,8 @@ export function DiagramLibrary() {
       <ChoiceDialog
         open={tuneOpen}
         onOpenChange={setTuneOpen}
-        title="Search filters"
-        description="Narrow results using the category buttons below the search box."
+        title={t.library.filters}
+        description={t.library.filtersDescription}
       />
     </main>
   );

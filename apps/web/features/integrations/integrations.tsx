@@ -6,10 +6,12 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { ChoiceDialog } from '@/components/choice-dialog';
 import { INTEGRATIONS, type Integration } from '@/lib/data/integrations';
+import { useT } from '@/lib/i18n/provider';
 import styles from './integrations.module.css';
 
 /** Integrations (PRD 5.5): connect Nivik with everyday tools. Connection state is local for now. */
 export function Integrations() {
+  const t = useT();
   const toast = useToast();
   const [connected, setConnected] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(INTEGRATIONS.map((i) => [i.id, i.connected])),
@@ -19,31 +21,43 @@ export function Integrations() {
   const toggle = (integration: Integration) => {
     const next = !connected[integration.id];
     setConnected((state) => ({ ...state, [integration.id]: next }));
-    toast(next ? `${integration.name} connected` : `${integration.name} disconnected`);
+    toast(
+      next
+        ? t.integrations.connectedToast(integration.name)
+        : t.integrations.disconnectedToast(integration.name),
+    );
   };
 
-  const groups: { title: string; items: Integration[] }[] = [
-    { title: 'Connected', items: INTEGRATIONS.filter((i) => connected[i.id]) },
-    { title: 'Available', items: INTEGRATIONS.filter((i) => !connected[i.id]) },
+  const groups: { id: string; title: string; items: Integration[] }[] = [
+    {
+      id: 'connected',
+      title: t.integrations.connectedGroup,
+      items: INTEGRATIONS.filter((i) => connected[i.id]),
+    },
+    {
+      id: 'available',
+      title: t.integrations.availableGroup,
+      items: INTEGRATIONS.filter((i) => !connected[i.id]),
+    },
   ];
 
   return (
     <main className="nv-page-main">
       <div className="nv-page-heading">
-        <h1>Integrations</h1>
-        <p>Connect Nivik with the tools you use every day.</p>
+        <h1>{t.integrations.title}</h1>
+        <p>{t.integrations.subtitle}</p>
       </div>
 
       {groups.map((group) => (
-        <section key={group.title} className={styles.group} aria-label={group.title}>
+        <section key={group.id} className={styles.group} aria-label={group.title}>
           <div className={styles.groupHead}>
             <h2>{group.title}</h2>
             <button
               type="button"
               className={styles.viewAll}
-              onClick={() => toast(`${group.title} integrations are shown`)}
+              onClick={() => toast(t.integrations.viewAllToast(group.title))}
             >
-              View all <ArrowRight size={15} aria-hidden="true" />
+              {t.integrations.viewAll} <ArrowRight size={15} aria-hidden="true" />
             </button>
           </div>
           <div className={styles.grid}>
@@ -56,7 +70,9 @@ export function Integrations() {
                 onConfigure={() => setConfiguring(integration)}
               />
             ))}
-            {group.items.length === 0 && <p className={styles.description}>Nothing here yet.</p>}
+            {group.items.length === 0 && (
+              <p className={styles.description}>{t.integrations.empty}</p>
+            )}
           </div>
         </section>
       ))}
@@ -65,15 +81,15 @@ export function Integrations() {
         open={configuring !== null}
         onOpenChange={(open) => !open && setConfiguring(null)}
         title={configuring?.name ?? ''}
-        description="Manage this integration connection."
+        description={t.integrations.manage}
         layout="row"
         actions={[
           {
-            label: 'Configure',
-            onSelect: () => toast(`${configuring?.name} settings are coming soon.`),
+            label: t.common.configure,
+            onSelect: () => toast(t.integrations.settingsSoon(configuring?.name ?? '')),
           },
           {
-            label: 'Disconnect',
+            label: t.integrations.disconnect,
             onSelect: () => {
               if (configuring) toggle(configuring);
             },
@@ -92,13 +108,14 @@ interface IntegrationCardProps {
 }
 
 function IntegrationCard({ integration, connected, onToggle, onConfigure }: IntegrationCardProps) {
+  const t = useT();
   const size = integration.logoSize ?? 38;
   return (
     <article className={styles.card}>
       <span className={cn(styles.logoWrap, styles[integration.tint])}>
         <Image
           src={integration.logo}
-          alt={`${integration.name} logo`}
+          alt={t.integrations.logoAlt(integration.name)}
           width={size}
           height={size}
           style={{ width: size, height: size }}
@@ -106,7 +123,7 @@ function IntegrationCard({ integration, connected, onToggle, onConfigure }: Inte
       </span>
       <div className={styles.copy}>
         <span className={styles.name}>{integration.name}</span>
-        <span className={styles.description}>{integration.description}</span>
+        <span className={styles.description}>{t.integrations.descriptions[integration.id]}</span>
       </div>
       {connected ? (
         <button
@@ -114,20 +131,20 @@ function IntegrationCard({ integration, connected, onToggle, onConfigure }: Inte
           className={styles.status}
           aria-pressed="true"
           onClick={onToggle}
-          title="Click to disconnect"
+          title={t.integrations.clickToDisconnect}
         >
           <i className={styles.statusDot} aria-hidden="true" />
-          Connected
+          {t.integrations.connected}
         </button>
       ) : (
         <button type="button" className={styles.connect} aria-pressed="false" onClick={onToggle}>
-          Connect
+          {t.integrations.connect}
         </button>
       )}
       {connected && (
         <IconButton
           className={styles.settings}
-          aria-label={`Configure ${integration.name}`}
+          aria-label={t.integrations.configure(integration.name)}
           onClick={onConfigure}
         >
           <GearSix size={18} aria-hidden="true" />

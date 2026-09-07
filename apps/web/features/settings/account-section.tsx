@@ -3,10 +3,12 @@
 import { Button, buttonVariants, cn, Input, useToast } from '@nivik/ui';
 import { Camera, DownloadSimple } from '@phosphor-icons/react';
 import { type ChangeEvent, useId, useState } from 'react';
+import { useT } from '@/lib/i18n/provider';
 import {
   AVATAR_COLORS,
   AVATAR_TONES,
   type AvatarColor,
+  FALLBACK_INITIAL,
   useSettingsStore,
 } from '@/lib/stores/settings-store';
 import { CardHeading, RowsCard, SettingRow } from './primitives';
@@ -24,6 +26,8 @@ const SWATCH_COLORS: Record<AvatarColor, string> = {
 };
 
 export function AccountSection() {
+  const t = useT();
+  const copy = t.settings.account;
   const toast = useToast();
   const draft = useSettingsStore((s) => s.draft);
   const update = useSettingsStore((s) => s.update);
@@ -31,14 +35,14 @@ export function AccountSection() {
   const [deleteNotice, setDeleteNotice] = useState(false);
 
   const [from, to] = AVATAR_TONES[draft.avatarColor];
-  const initial = (draft.userName.trim().charAt(0) || 'N').toUpperCase();
+  const initial = (draft.userName.trim().charAt(0) || FALLBACK_INITIAL).toUpperCase();
 
   const onFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
     if (!AVATAR_TYPES.has(file.type) || file.size > MAX_AVATAR_BYTES) {
-      toast('Choose a PNG, JPG or WebP image under 2 MB.');
+      toast(copy.invalidFile);
       return;
     }
     const reader = new FileReader();
@@ -51,7 +55,7 @@ export function AccountSection() {
   const exportSettings = () => {
     const payload = {
       exportedAt: new Date().toISOString(),
-      scope: 'Local Nivik preferences only; API keys excluded',
+      scope: copy.exportScope,
       settings: draft,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -61,12 +65,12 @@ export function AccountSection() {
     link.download = 'nivik-settings.json';
     link.click();
     URL.revokeObjectURL(url);
-    toast('Settings exported. No API keys included.');
+    toast(copy.exported);
   };
 
   return (
     <>
-      <section className={styles.avatarCard} aria-label="Profile picture">
+      <section className={styles.avatarCard} aria-label={copy.profilePicture}>
         <div className={styles.avatarHalo}>
           <div
             className={styles.avatarBig}
@@ -74,26 +78,26 @@ export function AccountSection() {
           >
             {draft.avatar ? (
               // biome-ignore lint/performance/noImgElement: user-supplied data URL
-              <img src={draft.avatar} alt="Your avatar" />
+              <img src={draft.avatar} alt={copy.yourAvatar} />
             ) : (
               initial
             )}
           </div>
-          <label className={styles.avatarCamera} htmlFor={fileId} title="Upload photo">
+          <label className={styles.avatarCamera} htmlFor={fileId} title={copy.uploadPhoto}>
             <Camera size={14} aria-hidden="true" />
           </label>
         </div>
         <div className={styles.avatarCopy}>
-          <p className={styles.eyebrow}>MAKE IT YOURS</p>
-          <h3 className={styles.avatarTitle}>Your workspace, your signature.</h3>
-          <p className={styles.avatarText}>Add a photo, or make your initials feel like you.</p>
+          <p className={styles.eyebrow}>{copy.eyebrow}</p>
+          <h3 className={styles.avatarTitle}>{copy.heroTitle}</h3>
+          <p className={styles.avatarText}>{copy.heroText}</p>
           <div className={styles.avatarActions}>
             <label
               htmlFor={fileId}
               className={buttonVariants({ variant: 'secondary', size: 'sm' })}
               style={{ cursor: 'pointer' }}
             >
-              Upload photo
+              {copy.uploadPhoto}
             </label>
             <input
               id={fileId}
@@ -108,23 +112,23 @@ export function AccountSection() {
                 className={styles.textButton}
                 onClick={() => update({ avatar: '' })}
               >
-                Use initials
+                {copy.useInitials}
               </button>
             )}
           </div>
-          <p className={styles.small}>JPG, PNG or WebP · Up to 2 MB</p>
+          <p className={styles.small}>{copy.fileHint}</p>
           <div className={styles.avatarActions} style={{ marginTop: 14 }}>
             <span className={styles.small} style={{ margin: 0 }}>
-              Initials color
+              {copy.initialsColor}
             </span>
-            <div className={styles.swatches} role="radiogroup" aria-label="Initials color">
+            <div className={styles.swatches} role="radiogroup" aria-label={copy.initialsColor}>
               {AVATAR_COLORS.map((color) => (
                 <button
                   key={color}
                   type="button"
                   role="radio"
                   aria-checked={draft.avatarColor === color}
-                  aria-label={color}
+                  aria-label={copy.colors[color]}
                   className={cn(styles.swatch, styles.swatchSmall)}
                   style={{ backgroundColor: SWATCH_COLORS[color], margin: 0 }}
                   onClick={() => update({ avatarColor: color })}
@@ -132,24 +136,24 @@ export function AccountSection() {
               ))}
             </div>
             <span className={styles.small} style={{ margin: 0 }}>
-              Shown when using initials
+              {copy.initialsColorNote}
             </span>
           </div>
         </div>
       </section>
 
       <RowsCard>
-        <CardHeading title="Profile" description="How you appear in this workspace." />
+        <CardHeading title={copy.profile} description={copy.profileDescription} />
         <SettingRow
           htmlFor="user-name"
-          label="User Name"
-          description="Shown in the top bar and on shared diagrams."
+          label={copy.userName}
+          description={copy.userNameDescription}
           width="wide"
           control={
             <Input
               id="user-name"
               maxLength={60}
-              placeholder="Your name"
+              placeholder={copy.namePlaceholder}
               value={draft.userName}
               onChange={(event) => update({ userName: event.target.value })}
             />
@@ -157,8 +161,8 @@ export function AccountSection() {
         />
         <SettingRow
           htmlFor="email"
-          label="Email"
-          description="Used for account recovery once cloud accounts arrive."
+          label={copy.email}
+          description={copy.emailDescription}
           width="wide"
           control={
             <Input
@@ -173,37 +177,36 @@ export function AccountSection() {
       </RowsCard>
 
       <RowsCard>
-        <CardHeading title="Data & account" />
+        <CardHeading title={copy.dataAccount} />
         <SettingRow
-          label="Data Export"
-          description="Download your local settings and provider configurations. Keys are excluded."
+          label={copy.dataExport}
+          description={copy.dataExportDescription}
           width="auto"
           control={
             <Button size="sm" onClick={exportSettings}>
-              <DownloadSimple size={15} aria-hidden="true" /> Export settings
+              <DownloadSimple size={15} aria-hidden="true" /> {copy.exportButton}
             </Button>
           }
         />
         <SettingRow
-          label="Delete Account"
-          description="Permanently remove your account and cloud data."
+          label={copy.deleteAccount}
+          description={copy.deleteDescription}
           width="auto"
           control={
             <Button size="sm" variant="danger" onClick={() => setDeleteNotice(true)}>
-              Delete account
+              {copy.deleteButton}
             </Button>
           }
         />
         {deleteNotice && (
           <div className={styles.dangerNotice} role="status">
-            <strong>No account connected</strong>
-            This is a local settings preview. Sign in to Nivik to request permanent deletion of your
-            cloud account. No account or local data has been deleted.
+            <strong>{copy.noAccountTitle}</strong>
+            {copy.noAccountText}
           </div>
         )}
       </RowsCard>
 
-      <p className={styles.note}>Local profile preview · No cloud account is connected.</p>
+      <p className={styles.note}>{copy.note}</p>
     </>
   );
 }

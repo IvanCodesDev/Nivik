@@ -1,8 +1,12 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { CanvasWorkspace } from '@/features/canvas/canvas-workspace';
+import { getRequestDictionary } from '@/lib/i18n/server';
 
-export const metadata: Metadata = { title: 'Canvas' };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getRequestDictionary();
+  return { title: t.nav.pages.canvas };
+}
 
 interface CanvasPageProps {
   params: Promise<{ id: string }>;

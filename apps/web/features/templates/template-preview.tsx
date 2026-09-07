@@ -1,16 +1,30 @@
+import { type PaletteName, paletteVar } from '@nivik/ui';
 import type { DiagramTemplate, PreviewTone, TemplateNode } from '@/lib/data/templates';
 
-const TONES: Record<PreviewTone, { fill: string; stroke: string; text: string }> = {
-  lavender: { fill: '#f2eafd', stroke: '#dacaf6', text: '#766395' },
-  sky: { fill: '#eef6ff', stroke: '#cbe3f8', text: '#5686ad' },
-  mint: { fill: '#edf9f3', stroke: '#c1e9d8', text: '#508975' },
-  sand: { fill: '#fff6e7', stroke: '#f3dbb5', text: '#aa8754' },
-  rose: { fill: '#fff0f2', stroke: '#f3ced3', text: '#b77683' },
-  decision: { fill: '#fff3e4', stroke: '#edd6b5', text: '#a88458' },
+const TONE_PALETTES: Record<PreviewTone, PaletteName> = {
+  lavender: 'lavender',
+  sky: 'sky',
+  mint: 'mint',
+  sand: 'sand',
+  rose: 'rose',
+  decision: 'sand',
 };
 
-const EDGE_STROKE = '#a9b0bf';
-const EDGE_LABEL = '#868da1';
+/** Thumbnails are softer than a real canvas: strokes and labels lean toward the fill. */
+function toneColors(tone: PreviewTone) {
+  const palette = TONE_PALETTES[tone];
+  const [fill, stroke, text] = (['fill', 'stroke', 'text'] as const).map((part) =>
+    paletteVar(palette, part),
+  );
+  return {
+    fill,
+    stroke: `color-mix(in srgb, ${stroke} 55%, ${fill})`,
+    text: `color-mix(in srgb, ${text} 55%, ${stroke})`,
+  };
+}
+
+const EDGE_STROKE = 'var(--nv-muted-soft)';
+const EDGE_LABEL = 'var(--nv-muted)';
 
 interface TemplatePreviewProps {
   template: DiagramTemplate;
@@ -47,7 +61,7 @@ export function TemplatePreview({ template, className }: TemplatePreviewProps) {
           markerHeight="7"
           orient="auto-start-reverse"
         >
-          <path d="M0 0.6 L8 4 L0 7.4 Z" fill="#9aa3b2" />
+          <path d="M0 0.6 L8 4 L0 7.4 Z" fill={EDGE_STROKE} />
         </marker>
       </defs>
       <g fill="none" stroke={EDGE_STROKE} strokeWidth={1.35} strokeLinejoin="round">
@@ -113,7 +127,7 @@ function routeEdge(a: TemplateNode, b: TemplateNode): [number, number][] {
 }
 
 function PreviewNode({ node }: { node: TemplateNode }) {
-  const tone = TONES[node.tone ?? 'lavender'];
+  const tone = toneColors(node.tone ?? 'lavender');
   const lines = node.label.split('\n');
   const { x, y, w, h } = node;
 

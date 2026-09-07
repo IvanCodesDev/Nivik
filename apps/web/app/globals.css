@@ -53,8 +53,8 @@
   isolation: isolate;
   min-height: 100dvh;
   background:
-    radial-gradient(ellipse 46% 60% at 97% 2%, rgba(230, 196, 254, 0.045), transparent 75%),
-    radial-gradient(ellipse 43% 55% at 3% 100%, rgba(197, 243, 253, 0.04), transparent 78%),
+    radial-gradient(ellipse 46% 60% at 97% 2%, var(--nv-paper-glow-1), transparent 75%),
+    radial-gradient(ellipse 43% 55% at 3% 100%, var(--nv-paper-glow-2), transparent 78%),
     var(--nv-page);
 }
 

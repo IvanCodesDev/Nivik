@@ -23,3 +23,12 @@ export {
   partId,
   tagOf,
 } from './id-map';
+export {
+  type IrEntry,
+  indexSnapshot,
+  type NativeElement,
+  type NativeKind,
+  type NativeSnapshot,
+  type SnapshotIndex,
+} from './native';
+export { type PromotionRules, type ReconcileOptions, reconcile, summarize } from './reconcile';

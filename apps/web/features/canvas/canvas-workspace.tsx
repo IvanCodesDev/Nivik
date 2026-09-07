@@ -3,11 +3,12 @@
 import { splitSteps } from '@nivik/agent';
 import { createDiagram, isId } from '@nivik/ir';
 import type { RunStage } from '@nivik/protocol';
-import { Button, cn, IconButton, useToast } from '@nivik/ui';
+import { Button, cn, IconButton, Select, type SelectOption, useToast } from '@nivik/ui';
 import {
   ArrowDown,
   ArrowRight,
   CornersOut,
+  DotsSixVertical,
   Minus,
   PaperPlaneRight,
   Plus,
@@ -19,28 +20,57 @@ import {
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { Popover } from 'radix-ui';
-import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  type FormEvent,
+  type KeyboardEvent,
+  type PointerEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { ChoiceDialog } from '@/components/choice-dialog';
 import { TopBar } from '@/components/top-bar';
 import { AgentRuntimeUnavailableError, HttpAgentClient } from '@/lib/agent-client';
 import { RENDERERS, type RendererId } from '@/lib/data/integrations';
 import { findTemplate } from '@/lib/data/templates';
-import { useSettingsStore } from '@/lib/stores/settings-store';
+import { useT } from '@/lib/i18n/provider';
+import { templateCopy } from '@/lib/i18n/template-copy';
+import { buildRunRequest } from '@/lib/run-request';
+import { useRunOverrides } from '@/lib/stores/run-overrides-store';
+import {
+  canvasBackgroundVar,
+  NODE_RADIUS,
+  type SettingsRenderer,
+  useSettingsStore,
+} from '@/lib/stores/settings-store';
 import styles from './canvas.module.css';
+import { SketchHint } from './sketch-hint';
+import { type DragInput, dragTranslation, nudgeStep, type Point, type SnapFrame } from './snap';
 
 const ZOOM_MIN = 25;
 const ZOOM_MAX = 200;
 const ZOOM_STEP = 10;
 
+/** Picker value meaning "no override, use the saved default model". */
+const DEFAULT_MODEL_CHOICE = 'default';
+
 type Direction = 'horizontal' | 'vertical';
 
-const STAGE_LABELS: Record<RunStage, string> = {
-  understanding: 'Understanding',
-  planning: 'Planning',
-  building: 'Building',
-  connecting: 'Connecting',
-  validating: 'Validating',
-  done: 'Done',
+/** Where a node has been dragged to, relative to its slot in the flow (diagram px). */
+interface Offset {
+  dx: number;
+  dy: number;
+}
+
+const NO_OFFSET: Offset = { dx: 0, dy: 0 };
+
+const ARROW_KEYS: Record<string, Point> = {
+  ArrowLeft: { x: -1, y: 0 },
+  ArrowRight: { x: 1, y: 0 },
+  ArrowUp: { x: 0, y: -1 },
+  ArrowDown: { x: 0, y: 1 },
 };
 
 interface RunState {
@@ -48,10 +78,9 @@ interface RunState {
   actions: number;
 }
 
-function resolveRenderer(param: string | null, fallback: 'Excalidraw' | 'draw.io'): RendererId {
+function resolveRenderer(param: string | null, fallback: SettingsRenderer): RendererId {
   const match = RENDERERS.find((r) => r.id === param?.toLowerCase());
-  if (match) return match.id;
-  return fallback === 'draw.io' ? 'drawio' : 'excalidraw';
+  return match ? match.id : fallback;
 }
 
 interface CanvasWorkspaceProps {
@@ -64,18 +93,40 @@ interface CanvasWorkspaceProps {
  * If the runtime is unreachable the prompt is split locally so the page stays usable.
  */
 export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
+  const t = useT();
   const toast = useToast();
   const params = useSearchParams();
   const inputRef = useRef<HTMLInputElement>(null);
+  const paperRef = useRef<HTMLDivElement>(null);
 
   const saved = useSettingsStore((s) => s.saved);
+  const temporaryModel = useRunOverrides((s) => s.temporaryModel);
+  const setTemporaryModel = useRunOverrides((s) => s.setTemporaryModel);
+  const consumeTemporaryModel = useRunOverrides((s) => s.consumeTemporaryModel);
+
   const template = findTemplate(params.get('template'));
   const renderer = RENDERERS.find(
     (r) => r.id === resolveRenderer(params.get('renderer'), saved.renderer),
   );
 
+  // Only offered once at least one model is configured; a single model has nothing to switch to.
+  const modelOptions = useMemo<SelectOption[]>(() => {
+    const configured = saved.providers.map((p) => ({
+      value: p.id,
+      label: `${p.name} · ${p.model}`,
+    }));
+    const current = configured.find((o) => o.value === saved.defaultModel);
+    if (!current) return [];
+    return [
+      { value: DEFAULT_MODEL_CHOICE, label: t.canvas.defaultModel(current.label) },
+      ...configured.filter((o) => o.value !== saved.defaultModel),
+    ];
+  }, [saved.providers, saved.defaultModel, t]);
+
   const [prompt, setPrompt] = useState(() => params.get('prompt') ?? '');
   const [steps, setSteps] = useState<string[]>([]);
+  // Dragged positions by step index; cleared whenever the flow is laid out afresh.
+  const [offsets, setOffsets] = useState<Offset[]>([]);
   const [direction, setDirection] = useState<Direction>('horizontal');
   const [zoom, setZoom] = useState(100);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -95,15 +146,15 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
   useEffect(() => {
     if (template && announcedRef.current !== template.id) {
       announcedRef.current = template.id;
-      toast(`Template loaded: ${template.title}. Press Enter to lay it out.`, { tone: 'light' });
+      toast(t.canvas.templateLoaded(templateCopy(t, template).title), { tone: 'light' });
     }
-  }, [template, toast]);
+  }, [template, toast, t]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const text = prompt.trim();
     if (!text) {
-      toast('Describe a diagram to get started.');
+      toast(t.canvas.emptyPrompt);
       return;
     }
     if (abortRef.current) return;
@@ -112,30 +163,25 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
     abortRef.current = controller;
     setRun({ stage: 'understanding', actions: 0 });
     setSteps([]);
+    setOffsets([]);
 
     const client = new HttpAgentClient(saved.agentRuntimeUrl);
+    const request = buildRunRequest({
+      // Until diagrams are persisted (task 0.7) every run starts from an empty IR document. It is
+      // `generic` on purpose: the agent's plan classifies it and the build stage writes the type.
+      diagram: createDiagram({
+        name: template?.title ?? t.canvas.untitled,
+        type: 'generic',
+        id: isId(diagramId) ? diagramId : undefined,
+      }),
+      prompt: text,
+      renderer: renderer?.id ?? 'excalidraw',
+      settings: saved,
+      temporaryModel: consumeTemporaryModel(),
+    });
     const labels: string[] = [];
     try {
-      const events = client.start(
-        {
-          // Until diagrams are persisted (task 0.7) every run starts from an empty IR document.
-          diagram: createDiagram({
-            name: template?.title ?? 'Untitled diagram',
-            type: 'flow',
-            id: isId(diagramId) ? diagramId : undefined,
-          }),
-          prompt: text,
-          hints: { renderer: renderer?.id ?? 'excalidraw' },
-          settings: {
-            temperature: saved.temperature,
-            maxTokens: Math.max(256, saved.maxTokens),
-            timeoutMs: saved.timeout * 1_000,
-            retries: Number(saved.retryCount),
-            thinking: saved.thinking,
-          },
-        },
-        { signal: controller.signal },
-      );
+      const events = client.start(request, { signal: controller.signal });
       for await (const event of events) {
         if (event.type === 'status') {
           setRun((current) => current && { ...current, stage: event.stage });
@@ -144,19 +190,19 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
           setSteps([...labels]);
           setRun((current) => current && { ...current, actions: current.actions + 1 });
         } else if (event.type === 'error' && !event.recoverable) {
-          toast(`Agent stopped: ${event.message}`, { tone: 'light' });
+          toast(t.canvas.agentStopped(event.message), { tone: 'light' });
         } else if (event.type === 'done') {
-          toast('Diagram created. Click any step to edit it.');
+          toast(t.canvas.created);
         }
       }
     } catch (error) {
       if (controller.signal.aborted) {
-        toast('Generation stopped.');
+        toast(t.canvas.stopped);
       } else if (error instanceof AgentRuntimeUnavailableError) {
         setSteps(splitSteps(text));
-        toast('Agent Runtime is offline — sketched locally instead.', { tone: 'light' });
+        toast(t.canvas.offline, { tone: 'light' });
       } else {
-        toast(error instanceof Error ? error.message : 'Generation failed.', { tone: 'light' });
+        toast(error instanceof Error ? error.message : t.canvas.failed, { tone: 'light' });
       }
     } finally {
       abortRef.current = null;
@@ -171,49 +217,90 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
   const updateStep = (index: number, text: string) =>
     setSteps((current) => current.map((step, i) => (i === index ? text || step : step)));
 
-  const ArrowIcon = direction === 'vertical' ? ArrowDown : ArrowRight;
+  const moveStep = (index: number, offset: Offset) =>
+    setOffsets((current) => {
+      const next = current.slice();
+      next[index] = offset;
+      return next;
+    });
+
+  const changeDirection = (next: Direction) => {
+    setDirection(next);
+    setOffsets([]);
+  };
+
   const scale = zoom / 100;
+
+  // Read at gesture time so a drag always sees the current zoom and grid settings.
+  const snapFrame = (): SnapFrame => {
+    const paper = paperRef.current?.getBoundingClientRect();
+    return {
+      origin: paper
+        ? { x: paper.left + paper.width / 2, y: paper.top + paper.height / 2 }
+        : { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+      gridSize: Number(saved.gridSize),
+      scale,
+      snap: saved.snap,
+    };
+  };
+
+  const ArrowIcon = direction === 'vertical' ? ArrowDown : ArrowRight;
+  const canvasStyle = {
+    '--grid-scale': scale,
+    '--diagram-scale': scale,
+    '--canvas-bg': canvasBackgroundVar(saved.canvasBackground),
+    '--grid-size': `${saved.gridSize}px`,
+    '--node-radius': `${NODE_RADIUS[saved.nodeStyle]}px`,
+    '--edge-style': saved.edgeStyle,
+  } as CSSProperties;
 
   return (
     <div
-      className={styles.workspace}
-      style={{ '--grid-scale': scale, '--diagram-scale': scale } as CSSProperties}
+      className={cn(styles.workspace, saved.selection === 'fill' && styles.selectionFill)}
+      style={canvasStyle}
       data-diagram-id={diagramId}
     >
-      <div className={styles.paper} aria-hidden="true" />
+      <div
+        ref={paperRef}
+        className={styles.paper}
+        data-pattern={saved.canvasPattern}
+        aria-hidden="true"
+      />
       <TopBar />
 
       {run && (
         <div className={styles.runPill} role="status" aria-live="polite">
           <span className={styles.runDot} aria-hidden="true" />
           <span className={styles.runLabel}>
-            {STAGE_LABELS[run.stage]}
+            {t.canvas.stages[run.stage]}
             {run.stage === 'building' && run.actions > 0 ? ` · ${run.actions}` : ''}
           </span>
           <button type="button" className={styles.runStop} onClick={stopRun}>
             <Stop size={12} weight="fill" aria-hidden="true" />
-            Stop
+            {t.canvas.stop}
           </button>
         </div>
       )}
 
       {steps.length === 0 && !run ? (
-        <p className={styles.hint}>
-          <strong>What do you want to diagram?</strong>
-          Describe it below — separate steps with → to sketch a quick flow.
-        </p>
+        <SketchHint />
       ) : (
         <section
           className={cn(styles.stage, direction === 'vertical' && styles.vertical)}
-          aria-label="Diagram"
+          aria-label={t.canvas.diagramLabel}
         >
           {steps.map((step, index) => (
             <StepNode
               key={`${index}-${step}`}
               text={step}
+              offset={offsets[index] ?? NO_OFFSET}
               withArrow={index > 0}
               ArrowIcon={ArrowIcon}
+              label={t.canvas.stepLabel}
+              moveLabel={t.canvas.moveNode}
+              frame={snapFrame}
               onCommit={(text) => updateStep(index, text)}
+              onMove={(offset) => moveStep(index, offset)}
             />
           ))}
         </section>
@@ -233,14 +320,14 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
           <input
             ref={inputRef}
             className={styles.input}
-            placeholder="What do you want to diagram?"
-            aria-label="Describe your diagram"
+            placeholder={t.canvas.placeholder}
+            aria-label={t.canvas.inputLabel}
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
           />
           <Popover.Root open={settingsOpen} onOpenChange={setSettingsOpen}>
             <Popover.Trigger asChild>
-              <IconButton className={styles.settingsButton} aria-label="Diagram settings">
+              <IconButton className={styles.settingsButton} aria-label={t.canvas.settingsButton}>
                 <SlidersHorizontal size={20} aria-hidden="true" />
               </IconButton>
             </Popover.Trigger>
@@ -252,34 +339,54 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
                 sideOffset={14}
                 collisionPadding={12}
               >
-                <h3>Diagram settings</h3>
+                <h3>{t.canvas.settingsTitle}</h3>
                 <div className={styles.settingsRow}>
-                  <span>Direction</span>
-                  <div className={styles.segment} role="group" aria-label="Direction">
+                  <span>{t.canvas.direction}</span>
+                  <div className={styles.segment} role="group" aria-label={t.canvas.direction}>
                     <button
                       type="button"
                       aria-pressed={direction === 'horizontal'}
-                      onClick={() => setDirection('horizontal')}
+                      onClick={() => changeDirection('horizontal')}
                     >
-                      Horizontal
+                      {t.canvas.horizontal}
                     </button>
                     <button
                       type="button"
                       aria-pressed={direction === 'vertical'}
-                      onClick={() => setDirection('vertical')}
+                      onClick={() => changeDirection('vertical')}
                     >
-                      Vertical
+                      {t.canvas.vertical}
                     </button>
                   </div>
                 </div>
                 <div className={styles.settingsRow}>
-                  <span>Renderer</span>
+                  <span>{t.canvas.renderer}</span>
                   <span>{renderer?.name ?? saved.renderer}</span>
                 </div>
+                {modelOptions.length > 1 && (
+                  <div className={cn(styles.settingsRow, styles.settingsStack)}>
+                    <label htmlFor="composer-model">
+                      {t.canvas.model} <small>{t.canvas.nextGenerationOnly}</small>
+                    </label>
+                    <Select
+                      id="composer-model"
+                      value={temporaryModel ?? DEFAULT_MODEL_CHOICE}
+                      options={modelOptions}
+                      onValueChange={(value) => {
+                        const next = value === DEFAULT_MODEL_CHOICE ? null : value;
+                        setTemporaryModel(next);
+                        toast(
+                          next === null ? t.canvas.temporaryCleared : t.canvas.temporaryApplies,
+                          { tone: 'light' },
+                        );
+                      }}
+                    />
+                  </div>
+                )}
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
-          <button type="submit" className={styles.submit} aria-label="Create diagram">
+          <button type="submit" className={styles.submit} aria-label={t.canvas.submit}>
             <PaperPlaneRight size={20} weight="fill" aria-hidden="true" />
           </button>
         </form>
@@ -287,14 +394,14 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
 
       <Button variant="surface" className={styles.help} onClick={() => setHelpOpen(true)}>
         <Question size={20} aria-hidden="true" />
-        <span>Help</span>
+        <span>{t.common.help}</span>
       </Button>
 
       <div className={styles.controls}>
-        <div className={styles.zoom} role="group" aria-label="Zoom">
+        <div className={styles.zoom} role="group" aria-label={t.canvas.zoom}>
           <button
             type="button"
-            aria-label="Zoom out"
+            aria-label={t.canvas.zoomOut}
             disabled={zoom <= ZOOM_MIN}
             onClick={() => setZoomClamped(zoom - ZOOM_STEP)}
           >
@@ -303,7 +410,7 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
           <output aria-live="polite">{zoom}%</output>
           <button
             type="button"
-            aria-label="Zoom in"
+            aria-label={t.canvas.zoomIn}
             disabled={zoom >= ZOOM_MAX}
             onClick={() => setZoomClamped(zoom + ZOOM_STEP)}
           >
@@ -313,7 +420,7 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
         <IconButton
           variant="surface"
           className={styles.fit}
-          aria-label="Fit to screen"
+          aria-label={t.canvas.fitToScreen}
           onClick={() => setZoom(100)}
         >
           <CornersOut size={18} aria-hidden="true" />
@@ -323,8 +430,8 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
       <ChoiceDialog
         open={helpOpen}
         onOpenChange={setHelpOpen}
-        title="How can we help?"
-        description="Type a few steps separated by → or -> to create a simple diagram. You can also choose a template, adjust the direction, and use the controls to zoom. AI generation and the real renderers arrive with the next milestones."
+        title={t.canvas.helpTitle}
+        description={t.canvas.helpDescription}
       />
     </div>
   );
@@ -332,12 +439,89 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
 
 interface StepNodeProps {
   text: string;
+  offset: Offset;
   withArrow: boolean;
   ArrowIcon: typeof ArrowRight;
+  label: string;
+  moveLabel: string;
+  frame: () => SnapFrame;
   onCommit: (text: string) => void;
+  onMove: (offset: Offset) => void;
 }
 
-function StepNode({ text, withArrow, ArrowIcon, onCommit }: StepNodeProps) {
+interface DragGesture {
+  pointer: Point;
+  start: DragInput['start'];
+}
+
+/**
+ * An editable sketch node with a drag handle. Clicking the text edits it; the handle moves the
+ * node (pointer or arrow keys), snapping its top-left corner to the grid when the setting is on.
+ * Connectors stay in the flow — this is the sketch stage, not the renderer.
+ */
+function StepNode({
+  text,
+  offset,
+  withArrow,
+  ArrowIcon,
+  label,
+  moveLabel,
+  frame,
+  onCommit,
+  onMove,
+}: StepNodeProps) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const gestureRef = useRef<DragGesture | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const startOf = (): DragInput['start'] | null => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    return rect ? { left: rect.left, top: rect.top, dx: offset.dx, dy: offset.dy } : null;
+  };
+
+  const beginDrag = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) return;
+    const start = startOf();
+    if (!start) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    gestureRef.current = { pointer: { x: event.clientX, y: event.clientY }, start };
+    setDragging(true);
+  };
+
+  const drag = (event: PointerEvent<HTMLButtonElement>) => {
+    const gesture = gestureRef.current;
+    if (!gesture) return;
+    onMove(
+      dragTranslation({
+        ...frame(),
+        start: gesture.start,
+        pointer: { x: event.clientX - gesture.pointer.x, y: event.clientY - gesture.pointer.y },
+      }),
+    );
+  };
+
+  const endDrag = () => {
+    gestureRef.current = null;
+    setDragging(false);
+  };
+
+  // Arrow keys move one cell when snapping (landing on the grid), else one pixel.
+  const nudge = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const vector = ARROW_KEYS[event.key];
+    const start = startOf();
+    if (!vector || !start) return;
+    event.preventDefault();
+    const current = frame();
+    const step = nudgeStep(current.snap, current.gridSize) * current.scale;
+    onMove(
+      dragTranslation({
+        ...current,
+        start,
+        pointer: { x: vector.x * step, y: vector.y * step },
+      }),
+    );
+  };
+
   return (
     <>
       {withArrow && (
@@ -346,15 +530,34 @@ function StepNode({ text, withArrow, ArrowIcon, onCommit }: StepNodeProps) {
         </span>
       )}
       <div
-        className={styles.node}
-        role="textbox"
-        tabIndex={0}
-        contentEditable
-        suppressContentEditableWarning
-        aria-label="Diagram step"
-        onBlur={(event) => onCommit(event.currentTarget.textContent?.trim() ?? '')}
+        ref={wrapRef}
+        className={cn(styles.nodeWrap, dragging && styles.dragging)}
+        style={{ translate: `${offset.dx}px ${offset.dy}px` }}
       >
-        {text}
+        <button
+          type="button"
+          className={styles.grip}
+          aria-label={moveLabel}
+          title={moveLabel}
+          onPointerDown={beginDrag}
+          onPointerMove={drag}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onKeyDown={nudge}
+        >
+          <DotsSixVertical size={14} weight="bold" aria-hidden="true" />
+        </button>
+        <div
+          className={styles.node}
+          role="textbox"
+          tabIndex={0}
+          contentEditable
+          suppressContentEditableWarning
+          aria-label={label}
+          onBlur={(event) => onCommit(event.currentTarget.textContent?.trim() ?? '')}
+        >
+          {text}
+        </div>
       </div>
     </>
   );

@@ -14,7 +14,8 @@
       "!**/coverage",
       "!**/next-env.d.ts",
       "!**/public",
-      "!docs"
+      "!docs",
+      "!apps/web/features/canvas/hint-glyphs.json"
     ]
   },
   "formatter": {

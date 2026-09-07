@@ -4,21 +4,47 @@
   initial-value: 0deg;
 }
 
+/*
+ * Appearance preferences (Settings → Canvas & Appearance) arrive as custom properties set by
+ * <CanvasWorkspace/>: --canvas-bg, --grid-size, --node-radius, --edge-style, plus the
+ * .paper[data-pattern] and .selectionFill modifiers.
+ */
 .workspace {
   --grid-scale: 1;
   --diagram-scale: 1;
+  --canvas-bg: var(--nv-canvas-soft);
+  --grid-size: 24px;
+  --node-radius: 9px;
+  --edge-style: solid;
   position: relative;
   min-height: 100dvh;
   overflow: hidden;
   background-color: var(--nv-page);
 }
 
+/*
+ * The paper and everything drawn on it are a light sheet in every theme (the user picked its
+ * tint); only the chrome around it follows the theme. `color-scheme` here makes every
+ * `light-dark()` token below resolve to its light value.
+ */
+.paper,
+.stage,
+.hint {
+  color-scheme: light;
+}
+
+/* Grid dots are centred on the viewport; snapping (snap.ts) measures from this element's centre. */
 .paper {
   position: fixed;
   inset: 0;
   z-index: 0;
-  background-image: radial-gradient(circle, #dad9e4 0.9px, transparent 1.1px);
-  background-size: calc(24.4px * var(--grid-scale)) calc(24.4px * var(--grid-scale));
+  background-color: var(--canvas-bg);
+}
+
+.paper[data-pattern="dots"] {
+  background-image: radial-gradient(circle, var(--nv-canvas-dot) 0.9px, transparent 1.1px);
+  background-size: calc(var(--grid-size) * var(--grid-scale))
+    calc(var(--grid-size) * var(--grid-scale));
   background-position: center;
 }
 
@@ -29,7 +55,7 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: 22px;
   max-width: calc(100vw - 80px);
   transform: translate(-50%, -50%) scale(var(--diagram-scale));
   transition: transform 0.18s ease-out;
@@ -39,26 +65,86 @@
   flex-direction: column;
 }
 
+/* Empty-canvas hint, hand-written by <SketchHint/>. */
 .hint {
   position: fixed;
   top: 44%;
   left: 50%;
   z-index: 1;
-  max-width: 420px;
-  color: #a4a8ba;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 48px));
+  color: var(--nv-muted-soft);
   font-size: 15px;
   text-align: center;
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
 
-.hint strong {
-  display: block;
-  margin-bottom: 8px;
-  color: #6d7186;
+.hintTitle {
+  color: var(--nv-ink-2);
   font-size: 22px;
   font-weight: 600;
-  letter-spacing: -0.4px;
+}
+
+.hintBody {
+  color: var(--nv-muted-soft);
+}
+
+.script {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/*
+ * Each contour is a pen stroke: `pathLength="1"` normalises the dash so 1 → 0 draws it end to
+ * end. Timings arrive per path as --delay / --duration; the pen strokes stay on afterwards so the
+ * inked glyph keeps its hand-drawn weight.
+ */
+.pen {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--pen);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: nv-pen var(--duration) ease-in-out var(--delay) both;
+}
+
+.ink {
+  fill: currentColor;
+  fill-opacity: 0;
+  animation: nv-ink var(--duration) ease-out var(--delay) both;
+}
+
+@keyframes nv-pen {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes nv-ink {
+  to {
+    fill-opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pen {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+
+  .ink {
+    fill-opacity: 1;
+    animation: none;
+  }
 }
 
 /* Run status pill (PRD 9.1): stage name + Stop, top-right under the top bar. */
@@ -74,10 +160,10 @@
   padding: 0 8px 0 14px;
   border: 1px solid var(--nv-surface-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
+  background: color-mix(in srgb, var(--nv-surface-solid) 88%, transparent);
   box-shadow: var(--nv-shadow-menu);
   backdrop-filter: blur(16px);
-  color: #525d73;
+  color: var(--nv-ink-2);
   font-size: 13px;
   font-weight: 500;
 }
@@ -102,8 +188,8 @@
   padding: 0 10px;
   border: 0;
   border-radius: 999px;
-  background: rgba(244, 240, 252, 0.9);
-  color: #6b4fd8;
+  background: color-mix(in srgb, var(--nv-accent-tint) 90%, transparent);
+  color: var(--nv-accent-text);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -111,7 +197,7 @@
 }
 
 .runStop:hover {
-  background: #ece5fb;
+  background: var(--nv-accent-soft);
 }
 
 @keyframes run-pulse {
@@ -126,31 +212,104 @@
   }
 }
 
+/*
+ * A node and its drag handle. The offset chosen by dragging lives on the wrapper's `translate`
+ * (set inline), which leaves `transform` free for the node's pop-in animation.
+ */
+.nodeWrap {
+  position: relative;
+  flex: none;
+}
+
 .node {
   max-width: 240px;
   padding: 22px 27px;
-  border: 1px solid #dfd1f4;
-  border-radius: 17px;
-  background: rgba(255, 255, 255, 0.94);
-  color: #38304d;
+  border: 1px solid var(--nv-node-border);
+  /* Sketch nodes are about twice the height of the settings preview nodes the radius was tuned on. */
+  border-radius: calc(var(--node-radius) * 2);
+  background: color-mix(in srgb, var(--nv-node-bg) 94%, transparent);
+  color: var(--nv-node-text);
   font-size: 14px;
   font-weight: 500;
   line-height: 1.45;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(90, 70, 140, 0.08);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--nv-shadow-ink) 8%, transparent);
   outline: 0;
   animation: nv-pop-in 0.22s ease-out both;
 }
 
-.node:focus-visible {
-  border-color: #b49aff;
-  box-shadow: 0 0 0 3px rgba(129, 93, 255, 0.18);
+.node:focus-visible,
+.dragging .node {
+  border-color: var(--nv-accent-border);
+  box-shadow: 0 0 0 3px var(--nv-selection-ring);
+}
+
+.selectionFill .node:focus-visible,
+.selectionFill .dragging .node {
+  border-color: var(--nv-node-border);
+  background: var(--nv-node-selected-bg);
+  box-shadow: none;
+}
+
+.grip {
+  position: absolute;
+  top: -11px;
+  left: -11px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--nv-node-border);
+  border-radius: 8px;
+  background: var(--nv-node-bg);
+  color: var(--nv-edge);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--nv-shadow-ink) 10%, transparent);
+  opacity: 0;
+  cursor: grab;
+  touch-action: none;
+  transition: opacity 0.15s;
+}
+
+.grip:focus-visible {
+  outline: 2px solid var(--nv-focus-ring);
+  outline-offset: 2px;
+}
+
+.dragging .grip {
+  opacity: 1;
+  cursor: grabbing;
+}
+
+.nodeWrap:hover .grip,
+.nodeWrap:focus-within .grip {
+  opacity: 1;
 }
 
 .arrow {
   display: flex;
   flex: none;
-  color: #a597d8;
+  align-items: center;
+  color: var(--nv-edge);
+}
+
+/* Connector shaft; the Phosphor arrow supplies the head. */
+.arrow::before {
+  content: "";
+  width: 26px;
+  border-top: 2px var(--edge-style) currentColor;
+}
+
+.vertical .arrow {
+  flex-direction: column;
+}
+
+.vertical .arrow::before {
+  width: 0;
+  height: 26px;
+  border-top: 0;
+  border-left: 2px var(--edge-style) currentColor;
 }
 
 /* composer */
@@ -172,21 +331,25 @@
   border: 2px solid transparent;
   border-radius: 42px;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.93)) padding-box,
+    linear-gradient(
+      color-mix(in srgb, var(--nv-surface-solid) 93%, transparent),
+      color-mix(in srgb, var(--nv-surface-solid) 93%, transparent)
+    )
+    padding-box,
     conic-gradient(
       from var(--composer-angle),
-      #eadcff,
-      #f8efff,
-      #ffdce9,
-      #fff2b9,
-      #dceaff,
-      #e5d6ff,
-      #ffdfe9,
-      #edf5c9,
-      #eadcff
+      var(--nv-composer-1),
+      var(--nv-composer-2),
+      var(--nv-composer-3),
+      var(--nv-composer-4),
+      var(--nv-composer-5),
+      var(--nv-composer-6),
+      var(--nv-composer-7),
+      var(--nv-composer-8),
+      var(--nv-composer-1)
     )
     border-box;
-  box-shadow: 0 18px 46px rgba(88, 70, 130, 0.12);
+  box-shadow: 0 18px 46px color-mix(in srgb, var(--nv-shadow-ink) 12%, transparent);
   animation: composer-spin 7s linear infinite;
 }
 
@@ -208,8 +371,12 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: radial-gradient(circle, #f5edff, rgba(244, 234, 255, 0.55));
-  color: #9b73ff;
+  background: radial-gradient(
+    circle,
+    var(--nv-accent-tint),
+    color-mix(in srgb, var(--nv-accent-tint) 55%, transparent)
+  );
+  color: var(--nv-accent);
 }
 
 .input {
@@ -223,7 +390,7 @@
 }
 
 .input::placeholder {
-  color: #9a9db0;
+  color: var(--nv-placeholder);
 }
 
 .settingsButton {
@@ -231,7 +398,7 @@
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  color: #6c7088;
+  color: var(--nv-ink-2);
 }
 
 .submit {
@@ -242,11 +409,9 @@
   height: 40px;
   border: 0;
   border-radius: 14px;
-  background:
-    radial-gradient(ellipse at 70% 80%, rgba(172, 154, 248, 0.5), transparent 50%),
-    linear-gradient(135deg, #c7b3ff, #c1a8fa 52%, #d8c8ff);
-  color: #fff;
-  box-shadow: 0 6px 16px rgba(150, 120, 255, 0.28);
+  background: var(--nv-gradient-submit);
+  color: var(--nv-on-accent);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--nv-shadow-accent) 28%, transparent);
   cursor: pointer;
   transition:
     transform 0.15s,
@@ -269,7 +434,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #8a8ea3;
+  color: var(--nv-muted);
   font-size: 12px;
 }
 
@@ -284,9 +449,9 @@
   z-index: 60;
   width: 270px;
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--nv-glass-border);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--nv-glass);
   box-shadow: var(--nv-shadow-menu);
   backdrop-filter: blur(20px);
   animation: nv-pop-in 0.16s ease-out;
@@ -305,18 +470,36 @@
   gap: 12px;
   padding: 8px 0;
   font-size: 13px;
-  color: #4d5266;
+  color: var(--nv-ink-2);
 }
 
 .settingsRow + .settingsRow {
   border-top: 1px solid var(--nv-line);
 }
 
+.settingsStack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.settingsStack label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.settingsStack small {
+  color: var(--nv-muted-soft);
+  font-size: 11px;
+}
+
 .segment {
   display: inline-flex;
   padding: 3px;
   border-radius: 10px;
-  background: #f1f0f6;
+  background: var(--nv-hover);
 }
 
 .segment button {
@@ -325,15 +508,15 @@
   border: 0;
   border-radius: 8px;
   background: none;
-  color: #6b7088;
+  color: var(--nv-ink-2);
   font-size: 12px;
   cursor: pointer;
 }
 
 .segment button[aria-pressed="true"] {
-  background: #fff;
+  background: var(--nv-surface-solid);
   color: var(--nv-accent);
-  box-shadow: 0 1px 3px rgba(40, 40, 60, 0.12);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--nv-shadow-ink) 12%, transparent);
 }
 
 /* floating controls */
@@ -376,18 +559,18 @@
   height: 100%;
   border: 0;
   background: none;
-  color: #5b6076;
+  color: var(--nv-ink-2);
   cursor: pointer;
 }
 
 .zoom button:disabled {
-  color: #c2c5d1;
+  color: var(--nv-disabled);
   cursor: default;
 }
 
 .zoom output {
   flex: 1;
-  color: #40445a;
+  color: var(--nv-ink-soft);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   text-align: center;

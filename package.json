@@ -19,6 +19,7 @@
     "deps": "depcruise apps packages --config .dependency-cruiser.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
+    "hint:glyphs": "node scripts/hint-glyphs.mjs",
     "prepare": "node .githooks/install.mjs",
     "hooks:install": "node .githooks/install.mjs",
     "hooks:check": "node .githooks/lib/run.mjs pre-commit"
@@ -26,6 +27,8 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
     "dependency-cruiser": "18.2.0",
+    "fontkit": "^2.0.4",
+    "jiti": "^2.7.0",
     "typescript": "5.9.3",
     "vitest": "5.0.0"
   }

@@ -76,7 +76,8 @@
         "packages/ir/src/**",
         "packages/templates/src/**",
         "packages/layout/src/**",
-        "packages/renderer-core/src/**"
+        "packages/renderer-core/src/**",
+        "packages/renderer-excalidraw/src/**"
       ],
       "linter": {
         "rules": {

@@ -73,10 +73,12 @@ module.exports = {
       to: { path: '^packages/', pathNot: '^packages/($1|ir)/' },
     },
     {
-      name: 'renderers-depend-only-on-renderer-core-ir-layout',
+      name: 'renderers-depend-only-on-renderer-core-ir-layout-ui',
       severity: 'error',
+      comment:
+        'ui is allowed for the shared palette hex values (@nivik/ui/palettes); it has no internal deps.',
       from: { path: '^packages/(renderer-[^/]+)/' },
-      to: { path: '^packages/', pathNot: '^packages/($1|renderer-core|ir|layout)/' },
+      to: { path: '^packages/', pathNot: '^packages/($1|renderer-core|ir|layout|ui)/' },
     },
     {
       name: 'ui-has-no-internal-deps',

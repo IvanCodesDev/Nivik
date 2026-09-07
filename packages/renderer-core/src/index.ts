@@ -14,6 +14,14 @@ export type {
 } from './contract';
 export { emptyFidelity, fidelityFor, mergeFidelity } from './fidelity';
 export {
+  type HighlightKind,
+  type HighlightOverlay,
+  type HighlightShape,
+  highlightShapes,
+  mountHighlightOverlay,
+  toScreen,
+} from './highlight';
+export {
   isNivik,
   mainOf,
   NATIVE_PARTS,
@@ -31,4 +39,5 @@ export {
   type NativeSnapshot,
   type SnapshotIndex,
 } from './native';
+export { createReconcileQueue, type ReconcileQueue } from './queue';
 export { type PromotionRules, type ReconcileOptions, reconcile, summarize } from './reconcile';

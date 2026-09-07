@@ -28,6 +28,7 @@
     "@biomejs/biome": "2.5.12",
     "dependency-cruiser": "18.2.0",
     "fontkit": "^2.0.4",
+    "happy-dom": "^20.14.0",
     "jiti": "^2.7.0",
     "typescript": "5.9.3",
     "vitest": "5.0.0"

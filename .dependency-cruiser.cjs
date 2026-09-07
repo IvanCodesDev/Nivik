@@ -102,7 +102,7 @@ module.exports = {
       severity: 'error',
       comment: 'These packages run in browser Workers as well as Node; host access is injected.',
       from: {
-        path: '^packages/(agent|protocol|ir|templates|storage|layout)/src/',
+        path: '^packages/(agent|protocol|ir|templates|storage|layout|renderer-core)/src/',
         pathNot: '\\.test\\.tsx?$',
       },
       to: { dependencyTypes: ['core'] },

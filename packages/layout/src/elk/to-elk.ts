@@ -1,4 +1,4 @@
-import type { Diagram, Id, LayoutSpec, Side } from '@nivik/ir';
+import type { Diagram, Id, LayoutSpec, Point, Side } from '@nivik/ir';
 import type { ElkExtendedEdge, ElkNode, ElkPort, LayoutOptions } from 'elkjs/lib/elk-api';
 import { ELK_SPACING, GROUP_PAD, LARGE_GRAPH_ELEMENTS, MIN_CELL_H, MIN_CELL_W } from '../constants';
 import type { SizeMap } from '../types';
@@ -17,6 +17,22 @@ const ELK_SIDE: Record<Exclude<Side, 'auto'>, string> = {
 };
 
 const GROUP_PADDING = `[top=${GROUP_PAD.top},left=${GROUP_PAD.side},bottom=${GROUP_PAD.bottom},right=${GROUP_PAD.side}]`;
+
+export interface InteractiveInput {
+  /** Absolute coordinates ELK should treat as the current / desired layout (nodes and groups). */
+  positions: ReadonlyMap<Id, Point>;
+}
+
+/**
+ * Spec 03 §6.2 step 3. Every compound node must repeat these: with INCLUDE_CHILDREN, elkjs 0.12.0
+ * rejects a hierarchy whose children fall back to LAYER_SWEEP while the root is INTERACTIVE.
+ */
+const INTERACTIVE_OPTIONS: LayoutOptions = {
+  'elk.layered.cycleBreaking.strategy': 'INTERACTIVE',
+  'elk.layered.layering.strategy': 'INTERACTIVE',
+  'elk.layered.crossingMinimization.strategy': 'INTERACTIVE',
+  'elk.layered.nodePlacement.strategy': 'INTERACTIVE',
+};
 
 export interface GraphScale {
   nodes: number;
@@ -54,8 +70,17 @@ export function rootOptions(
 
 export const portId = (edgeId: Id, end: 'source' | 'target'): string => `${edgeId}__${end}`;
 
-/** Spec 03 §5.1: groups become compound nodes, nodes leaves, fixed sides become ports. */
-export function toElk(d: Diagram, sizes: SizeMap, spec: LayoutSpec): ElkNode {
+/**
+ * Spec 03 §5.1: groups become compound nodes, nodes leaves, fixed sides become ports. With
+ * `interactive`, elements found in `positions` get parent-relative x/y and the whole hierarchy runs
+ * ELK's interactive strategies (spec 03 §6.2 step 3).
+ */
+export function toElk(
+  d: Diagram,
+  sizes: SizeMap,
+  spec: LayoutSpec,
+  interactive?: InteractiveInput,
+): ElkNode {
   const ports = new Map<Id, ElkPort[]>();
   const addPort = (nodeId: Id, edgeId: Id, end: 'source' | 'target', side: Side) => {
     if (side === 'auto') return;
@@ -73,6 +98,14 @@ export function toElk(d: Diagram, sizes: SizeMap, spec: LayoutSpec): ElkNode {
     addPort(e.target, e.id, 'target', e.targetSide);
   }
 
+  const relative = (id: Id, parent: Id | null): { x: number; y: number } | null => {
+    if (!interactive) return null;
+    const abs = interactive.positions.get(id);
+    if (!abs) return null;
+    const origin = parent === null ? { x: 0, y: 0 } : interactive.positions.get(parent);
+    return origin ? { x: abs.x - origin.x, y: abs.y - origin.y } : null;
+  };
+
   const build = (parent: Id | null): ElkNode[] => [
     ...d.nodes
       .filter((n) => n.parent === parent)
@@ -83,6 +116,7 @@ export function toElk(d: Diagram, sizes: SizeMap, spec: LayoutSpec): ElkNode {
           id: n.id,
           width: size?.w,
           height: size?.h,
+          ...(relative(n.id, parent) ?? {}),
           ...(nodePorts
             ? { ports: nodePorts, layoutOptions: { 'elk.portConstraints': 'FIXED_SIDE' } }
             : {}),
@@ -94,7 +128,11 @@ export function toElk(d: Diagram, sizes: SizeMap, spec: LayoutSpec): ElkNode {
         const children = build(g.id);
         return {
           id: g.id,
-          layoutOptions: { 'elk.padding': GROUP_PADDING },
+          layoutOptions: {
+            'elk.padding': GROUP_PADDING,
+            ...(interactive ? INTERACTIVE_OPTIONS : {}),
+          },
+          ...(relative(g.id, parent) ?? {}),
           ...(children.length > 0
             ? { children }
             : {
@@ -113,7 +151,10 @@ export function toElk(d: Diagram, sizes: SizeMap, spec: LayoutSpec): ElkNode {
 
   return {
     id: 'root',
-    layoutOptions: rootOptions(spec, { nodes: d.nodes.length, edges: d.edges.length }),
+    layoutOptions: {
+      ...rootOptions(spec, { nodes: d.nodes.length, edges: d.edges.length }),
+      ...(interactive ? { 'elk.interactiveLayout': 'true', ...INTERACTIVE_OPTIONS } : {}),
+    },
     children: build(null),
     edges,
   };

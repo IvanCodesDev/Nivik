@@ -103,3 +103,44 @@ describe('toElk (spec 03 §5.1)', () => {
     });
   });
 });
+
+describe('toElk interactive (spec 03 §6.2 step 3)', () => {
+  it('feeds relative coordinates and INTERACTIVE strategies to the root and every compound node', () => {
+    const d = diagram({
+      groups: [group('g', 'G', { position: { x: 200, y: 100 }, size: { w: 300, h: 200 } })],
+      nodes: [
+        node('a', 'A', { position: { x: 10, y: 20 } }),
+        node('b', 'B', { parent: 'g', position: { x: 224, y: 148 } }),
+        node('n', 'N', { parent: 'g' }),
+      ],
+    });
+    const positions = new Map([
+      ['g', { x: 200, y: 100 }],
+      ['a', { x: 10, y: 20 }],
+      ['b', { x: 224, y: 148 }],
+      ['n', { x: 400, y: 148 }],
+    ]);
+    const root = toElk(d, new Map(), d.layout, { positions });
+    expect(root.layoutOptions).toMatchObject({
+      'elk.interactiveLayout': 'true',
+      'elk.layered.cycleBreaking.strategy': 'INTERACTIVE',
+      'elk.layered.layering.strategy': 'INTERACTIVE',
+      'elk.layered.crossingMinimization.strategy': 'INTERACTIVE',
+      'elk.layered.nodePlacement.strategy': 'INTERACTIVE',
+    });
+    expect(root.children?.find((c) => c.id === 'a')).toMatchObject({ x: 10, y: 20 });
+    const g = root.children?.find((c) => c.id === 'g');
+    expect(g).toMatchObject({ x: 200, y: 100 });
+    expect(g?.layoutOptions).toMatchObject({
+      'elk.layered.crossingMinimization.strategy': 'INTERACTIVE',
+    });
+    expect(g?.children?.find((c) => c.id === 'b')).toMatchObject({ x: 24, y: 48 });
+    expect(g?.children?.find((c) => c.id === 'n')).toMatchObject({ x: 200, y: 48 });
+  });
+  it('leaves nodes without a desired position to ELK', () => {
+    const d = diagram({ nodes: [node('a', 'A')] });
+    const a = toElk(d, new Map(), d.layout, { positions: new Map() }).children?.[0];
+    expect(a).not.toHaveProperty('x');
+    expect(toElk(d, new Map(), d.layout).layoutOptions).not.toHaveProperty('elk.interactiveLayout');
+  });
+});

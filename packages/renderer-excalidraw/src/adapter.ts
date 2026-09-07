@@ -1,12 +1,25 @@
-import { applyChangeSet, createDiagram, newEdgeId, newGroupId, newNodeId } from '@nivik/ir';
 import {
+  applyChangeSet,
+  createDiagram,
+  type Diagram,
+  type Id,
+  newEdgeId,
+  newGroupId,
+  newNodeId,
+} from '@nivik/ir';
+import {
+  type ExportResult,
   emptyFidelity,
   type ImportResult,
+  type RendererAdapter,
   type RendererCapabilities,
   reconcile,
 } from '@nivik/renderer-core';
-import { parseScene } from './file';
+import { RENDERER_ID } from './constants';
+import { parseScene, serializeScene } from './file';
 import { fromExcalidraw } from './from-excalidraw';
+import { mountExcalidraw } from './live';
+import { toExcalidraw } from './to-excalidraw';
 
 /** Spec 04 §2.2 / §4: what the Excalidraw adapter can do. */
 export const capabilities: RendererCapabilities = {
@@ -80,3 +93,24 @@ export async function importDocument(
   fidelity.lossless = fidelity.lost.length === 0;
   return { diagram, fidelity };
 }
+
+/** Spec 04 §6.5 export: browser only — the skeletons are expanded by the Excalidraw bundle. */
+export async function exportDocument(d: Diagram, opts: { ids?: Id[] } = {}): Promise<ExportResult> {
+  const { convertToExcalidrawElements } = await import('@excalidraw/excalidraw');
+  const { elements, fidelity } = toExcalidraw(d, opts);
+  const text = serializeScene(convertToExcalidrawElements(elements, { regenerateIds: false }));
+  return {
+    blob: new Blob([text], { type: 'application/json' }),
+    filename: `${d.name}.excalidraw`,
+    mime: 'application/json',
+    fidelity,
+  };
+}
+
+export const excalidrawAdapter: RendererAdapter = {
+  id: RENDERER_ID,
+  capabilities,
+  exportDocument,
+  importDocument,
+  mount: mountExcalidraw,
+};

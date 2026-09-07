@@ -1,4 +1,4 @@
-export { capabilities, importDocument } from './adapter';
+export { capabilities, excalidrawAdapter, exportDocument, importDocument } from './adapter';
 export {
   FONT_CSS,
   FONT_FAMILY,
@@ -9,6 +9,7 @@ export {
 } from './constants';
 export { type ExcalidrawScene, parseScene, serializeScene } from './file';
 export { fromExcalidraw } from './from-excalidraw';
+export { mountExcalidraw } from './live';
 export { canvasTextWidth, createExcalidrawMeasurer } from './measurer';
 export { mergeById } from './merge';
 export { colorsFor, type ExcalidrawStyle, mixHex, textColorFor } from './palette';

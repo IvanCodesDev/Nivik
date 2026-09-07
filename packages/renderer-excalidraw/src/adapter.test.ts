@@ -1,6 +1,6 @@
 import { validateDiagram } from '@nivik/ir';
 import { describe, expect, it } from 'vitest';
-import { capabilities, importDocument } from './adapter';
+import { capabilities, excalidrawAdapter, importDocument } from './adapter';
 import { serializeScene } from './file';
 import { excalidrawElement as el } from './testing';
 
@@ -63,5 +63,7 @@ describe('importDocument (spec 04 §6.5 import → §5.3 promotion)', () => {
       highlight: 'overlay',
     });
     expect(capabilities.shapes.has('cylinder')).toBe(false);
+    expect(excalidrawAdapter).toMatchObject({ id: 'excalidraw' });
+    expect(typeof excalidrawAdapter.mount).toBe('function');
   });
 });

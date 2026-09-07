@@ -1,6 +1,6 @@
 import type { Diagram, Id, LayoutSpec, Side } from '@nivik/ir';
 import type { ElkExtendedEdge, ElkNode, ElkPort, LayoutOptions } from 'elkjs/lib/elk-api';
-import { ELK_SPACING, GROUP_PAD, MIN_CELL_H, MIN_CELL_W } from '../constants';
+import { ELK_SPACING, GROUP_PAD, LARGE_GRAPH_ELEMENTS, MIN_CELL_H, MIN_CELL_W } from '../constants';
 import type { SizeMap } from '../types';
 
 const EDGE_ROUTING: Record<LayoutSpec['edgeRouting'], string> = {
@@ -18,9 +18,21 @@ const ELK_SIDE: Record<Exclude<Side, 'auto'>, string> = {
 
 const GROUP_PADDING = `[top=${GROUP_PAD.top},left=${GROUP_PAD.side},bottom=${GROUP_PAD.bottom},right=${GROUP_PAD.side}]`;
 
-/** Spec 03 §5.2 root options. */
-export function rootOptions(spec: LayoutSpec): LayoutOptions {
+export interface GraphScale {
+  nodes: number;
+  edges: number;
+}
+
+/**
+ * Spec 03 §5.2 root options. Node placement is NETWORK_SIMPLEX for the quality it gives everyday
+ * diagrams and BRANDES_KOEPF past `LARGE_GRAPH_ELEMENTS`, where NS blows the §10 time budget.
+ */
+export function rootOptions(
+  spec: LayoutSpec,
+  scale: GraphScale = { nodes: 0, edges: 0 },
+): LayoutOptions {
   const s = ELK_SPACING[spec.spacing];
+  const large = scale.nodes + scale.edges > LARGE_GRAPH_ELEMENTS;
   return {
     'elk.algorithm': 'layered',
     'elk.direction': spec.direction,
@@ -30,7 +42,7 @@ export function rootOptions(spec: LayoutSpec): LayoutOptions {
     'elk.spacing.edgeNode': String(s.edgeNode),
     'elk.layered.spacing.edgeNodeBetweenLayers': String(s.edgeNode),
     'elk.spacing.edgeEdge': String(s.edgeEdge),
-    'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+    'elk.layered.nodePlacement.strategy': large ? 'BRANDES_KOEPF' : 'NETWORK_SIMPLEX',
     'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
     'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
     'elk.layered.mergeEdges': 'false',
@@ -99,5 +111,10 @@ export function toElk(d: Diagram, sizes: SizeMap, spec: LayoutSpec): ElkNode {
     targets: [e.targetSide === 'auto' ? e.target : portId(e.id, 'target')],
   }));
 
-  return { id: 'root', layoutOptions: rootOptions(spec), children: build(null), edges };
+  return {
+    id: 'root',
+    layoutOptions: rootOptions(spec, { nodes: d.nodes.length, edges: d.edges.length }),
+    children: build(null),
+    edges,
+  };
 }

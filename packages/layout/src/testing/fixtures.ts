@@ -2,7 +2,7 @@
  * Layout fixtures: the spec 03 §7.2 grid recipes and the §10 test cases. Exported as
  * `@nivik/layout/testing` so renderer and harness tests can reuse them.
  */
-import type { Cell, Diagram, LayoutSpec } from '@nivik/ir';
+import type { Cell, Diagram, DiagramEdge, LayoutSpec } from '@nivik/ir';
 import { diagram, edge, group, node } from '@nivik/ir/testing';
 
 export const gridLayout = (spacing: LayoutSpec['spacing'] = 'normal'): LayoutSpec => ({
@@ -172,3 +172,29 @@ export const checkout = (): Diagram =>
       message('m6', 'api', 'user', 5, '201 Created', 'return'),
     ],
   });
+
+/** Seeded (mulberry32) DAG for the spec 03 §10 performance case; edges always point to a higher index. */
+export function randomDag(nodeCount: number, edgeCount: number, seed: number): Diagram {
+  let state = seed >>> 0;
+  const rand = () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const nodes = Array.from({ length: nodeCount }, (_, i) => node(`n${i}`, `Node ${i}`));
+  const edges: DiagramEdge[] = [];
+  const seen = new Set<string>();
+  while (edges.length < edgeCount) {
+    const a = Math.floor(rand() * nodeCount);
+    const b = Math.floor(rand() * nodeCount);
+    if (a === b) continue;
+    const [source, target] = a < b ? [a, b] : [b, a];
+    const key = `${source}-${target}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    edges.push(edge(`e${edges.length}`, `n${source}`, `n${target}`));
+  }
+  return diagram({ id: 'd_randomdag', name: 'Random DAG', type: 'flow', nodes, edges });
+}

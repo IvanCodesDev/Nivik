@@ -31,3 +31,9 @@ export const LINE_HEIGHT = 1.2;
 export const FONT_PX: Record<ThemeSpec['fontScale'], number> = { s: 16, m: 20, l: 24 };
 
 export const ELK_TIMEOUT_MS = 5000;
+
+/**
+ * Above this many nodes + edges ELK switches from NETWORK_SIMPLEX to BRANDES_KOEPF node placement:
+ * measured 2026-09-06 on the 200/300 fixture, NS ≈ 625 ms vs BK ≈ 195 ms (spec 03 §10 budget 300 ms).
+ */
+export const LARGE_GRAPH_ELEMENTS = 400;

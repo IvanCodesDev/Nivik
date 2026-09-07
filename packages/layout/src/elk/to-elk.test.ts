@@ -33,6 +33,14 @@ describe('rootOptions (spec 03 §5.2)', () => {
       'elk.separateConnectedComponents': 'true',
     });
   });
+  it('switches node placement to BRANDES_KOEPF past 400 elements (spec 03 §10 budget)', () => {
+    expect(rootOptions(layered(), { nodes: 200, edges: 200 })).toMatchObject({
+      'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+    });
+    expect(rootOptions(layered(), { nodes: 200, edges: 300 })).toMatchObject({
+      'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+    });
+  });
   it('uses ORTHOGONAL for the default routing and UNDEFINED for straight', () => {
     expect(rootOptions(layered())['elk.edgeRouting']).toBe('ORTHOGONAL');
     expect(rootOptions(layered({ spacing: 'loose', edgeRouting: 'straight' }))).toMatchObject({

@@ -1,3 +1,4 @@
+import { type Agent, createDefaultDeps, createMockAgent } from '@nivik/agent';
 import {
   type HealthResponse,
   HealthResponseSchema,
@@ -7,6 +8,7 @@ import {
   type RunEvent,
   RunEventSchema,
   type RunRequestInput,
+  RunRequestSchema,
   RuntimeErrorSchema,
 } from '@nivik/protocol';
 
@@ -102,6 +104,27 @@ export class HttpAgentClient implements AgentClient {
       if (error instanceof Error && error.name === 'AbortError') throw error;
       throw new AgentRuntimeUnavailableError(this.baseUrl, { cause: error });
     }
+  }
+}
+
+/** Pacing of the in-page mock agent: fast enough to feel live, slow enough to show the stages. */
+const LOCAL_PACE_MS = 80;
+
+/**
+ * Spec 07 §1.1 local mode, minimal form: the same `@nivik/agent` code the runtime runs, executed in
+ * the page. The canvas falls back to it when the runtime is unreachable, and end-to-end tests run
+ * on it without a server. A Worker host arrives with the provider layer (task 1.5).
+ */
+export class LocalAgentClient implements AgentClient {
+  readonly #agent: Agent;
+
+  constructor(agent: Agent = createMockAgent(createDefaultDeps(), { paceMs: LOCAL_PACE_MS })) {
+    this.#agent = agent;
+  }
+
+  async *start(request: RunRequestInput, options: StartRunOptions = {}): AsyncGenerator<RunEvent> {
+    const parsed = RunRequestSchema.parse({ ...request, runId: request.runId ?? newRunId() });
+    yield* this.#agent.run(parsed, options.signal ? { signal: options.signal } : {});
   }
 }
 

@@ -1,8 +1,17 @@
+/*
+ * A transparent band holding three absolutely-placed clusters. The band itself must not swallow
+ * clicks: on the canvas it floats over the renderer, whose tool strip shares this row.
+ */
 .topbar {
   position: relative;
   z-index: 10;
   height: var(--nv-topbar-height);
   background: transparent;
+  pointer-events: none;
+}
+
+.topbar > * {
+  pointer-events: auto;
 }
 
 .brand {

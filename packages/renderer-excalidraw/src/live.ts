@@ -21,6 +21,9 @@ import { canvasTextWidth, createExcalidrawMeasurer } from './measurer';
 import { mergeById } from './merge';
 import { toExcalidraw } from './to-excalidraw';
 
+/** Excalidraw's own canvas colour, used when the host expresses no preference. */
+const DEFAULT_BACKGROUND = '#ffffff';
+
 const selectedMainIds = (appState: AppState): Id[] => [
   ...new Set(
     Object.keys(appState.selectedElementIds).flatMap((id) => {
@@ -97,7 +100,7 @@ export async function mountExcalidraw(
         excalidrawAPI: resolve,
         initialData: {
           elements: project(initial),
-          appState: { viewBackgroundColor: '#ffffff' },
+          appState: { viewBackgroundColor: opts.background ?? DEFAULT_BACKGROUND },
           scrollToContent: true,
         },
         theme: opts.theme,

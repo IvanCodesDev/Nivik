@@ -272,9 +272,11 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
       });
   };
 
+  // The paper stays light in every theme (the user picked its tint), but a light sheet behind a
+  // dark canvas would flash white on load, so a dark canvas uses the page colour instead.
   const canvasStyle = {
-    '--canvas-bg': canvasBackgroundVar(saved.canvasBackground),
-    '--grid-size': `${saved.gridSize}px`,
+    '--canvas-bg':
+      theme === 'dark' ? 'var(--nv-page)' : canvasBackgroundVar(saved.canvasBackground),
   } as CSSProperties;
 
   const drawerRun = currentRun ?? recentRuns[0] ?? null;
@@ -282,7 +284,7 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
 
   return (
     <div className={styles.workspace} style={canvasStyle} data-diagram-id={diagramId}>
-      <div className={styles.paper} data-pattern={saved.canvasPattern} aria-hidden="true" />
+      <div className={styles.paper} aria-hidden="true" />
 
       {validId && diagram && status === 'ready' ? (
         <RendererHost

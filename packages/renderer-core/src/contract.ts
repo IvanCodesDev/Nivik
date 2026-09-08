@@ -44,6 +44,11 @@ export interface ImportResult {
 }
 
 export interface MountOptions {
+  /**
+   * Canvas colour (`#rrggbb`). The host paints the same colour behind the renderer while it
+   * loads, so mounting is not a visible change; renderers that theme their canvas may adapt it.
+   */
+  background?: string;
   theme: 'light' | 'dark';
   readOnly?: boolean;
   locale?: string;

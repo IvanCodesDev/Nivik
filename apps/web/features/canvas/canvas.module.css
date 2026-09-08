@@ -5,25 +5,24 @@
 }
 
 /*
- * Appearance preferences (Settings → Canvas & Appearance) arrive as custom properties set by
- * <CanvasWorkspace/>: --canvas-bg and --grid-size, plus the .paper[data-pattern] modifier. The
- * paper shows while the renderer loads; once mounted, the renderer's own canvas covers it.
+ * The canvas background preference (Settings → Canvas & Appearance) arrives as `--canvas-bg`, set
+ * by <CanvasWorkspace/>. The paper is what the user sees for the moment before the renderer has
+ * mounted, so it is a plain sheet in exactly the colour the renderer will paint — no pattern, no
+ * tint change, nothing to flash. (The renderer draws its own grid if the user asks for one.)
  */
 .workspace {
   --canvas-bg: var(--nv-canvas-soft);
-  --grid-size: 24px;
   position: relative;
   min-height: 100dvh;
   overflow: hidden;
-  background-color: var(--nv-page);
+  background-color: var(--canvas-bg);
 }
 
 /*
- * The paper is a light sheet in every theme (the user picked its tint); only the chrome around it
- * follows the theme. `color-scheme` here makes every `light-dark()` token below resolve to its
- * light value.
+ * The hint is drawn on the paper, which is a light sheet in every theme (the user picked its
+ * tint); only the chrome around it follows the theme. `color-scheme` makes every `light-dark()`
+ * token inside resolve to its light value.
  */
-.paper,
 .hint {
   color-scheme: light;
 }
@@ -33,12 +32,6 @@
   inset: 0;
   z-index: 0;
   background-color: var(--canvas-bg);
-}
-
-.paper[data-pattern="dots"] {
-  background-image: radial-gradient(circle, var(--nv-canvas-dot) 0.9px, transparent 1.1px);
-  background-size: var(--grid-size) var(--grid-size);
-  background-position: center;
 }
 
 /* Empty-canvas hint, hand-written by <SketchHint/>; sits above the renderer but lets clicks through. */

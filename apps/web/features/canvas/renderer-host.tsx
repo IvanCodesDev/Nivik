@@ -23,6 +23,12 @@ export interface RendererHostProps {
   onSession(session: LiveSession | null): void;
 }
 
+/** The page paints `--canvas-bg` while the renderer loads; the renderer must paint the same. */
+function backgroundOf(host: HTMLElement): string | undefined {
+  const value = getComputedStyle(host).getPropertyValue('--canvas-bg').trim();
+  return /^#[0-9a-f]{3,8}$/i.test(value) ? value : undefined;
+}
+
 /**
  * Spec 07 §3 `<RendererHost/>`: owns the adapter's DOM host. Mounting is async, so a cleanup that
  * runs before the mount resolves (StrictMode, fast navigation) destroys the session on arrival.
@@ -57,7 +63,12 @@ export function RendererHost({ initial, theme, locale, hooks, onSession }: Rende
       onReady: () => hooksRef.current.onReady?.(),
       onError: (error) => hooksRef.current.onError?.(error),
     };
-    mount(host, initialRef.current, forward, { theme, locale }).then(
+    const background = backgroundOf(host);
+    mount(host, initialRef.current, forward, {
+      theme,
+      locale,
+      ...(background ? { background } : {}),
+    }).then(
       (mounted) => {
         if (cancelled) {
           mounted.destroy();

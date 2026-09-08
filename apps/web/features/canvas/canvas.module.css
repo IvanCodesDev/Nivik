@@ -123,11 +123,28 @@
   }
 }
 
-/* The renderer adapter mounts into this box; it must be positioned and sized (Excalidraw fills it). */
+/*
+ * The renderer adapter mounts into this box; it must be positioned and sized (Excalidraw fills it).
+ * It starts below the top bar so the renderer's own top toolbar never sits under Nivik's chrome;
+ * the bottom row (zoom, undo/redo, help) keeps the corners, so Nivik's floating controls live one
+ * row up, level with the composer.
+ */
 .renderer {
   position: fixed;
-  inset: 0;
+  top: var(--nv-topbar-height);
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1;
+}
+
+/*
+ * Excalidraw chrome that duplicates Nivik's: the main menu (open / save / export are Nivik's job,
+ * spec 04 §6.1) and the library sidebar trigger. Tools, zoom, undo/redo and shortcuts help stay.
+ */
+.renderer :global(.excalidraw .App-menu_top .dropdown-menu-button),
+.renderer :global(.excalidraw .default-sidebar-trigger) {
+  display: none;
 }
 
 /* Loading / invalid-link message where the canvas would be. */
@@ -630,10 +647,10 @@
   gap: 6px;
 }
 
-/* floating controls */
+/* Floating controls share the composer's row; the renderer's own footer keeps the bottom corners. */
 .help {
   position: fixed;
-  bottom: 24px;
+  bottom: 89px;
   left: 18px;
   z-index: 20;
   width: 104px;
@@ -645,7 +662,7 @@
 .controls {
   position: fixed;
   right: 18px;
-  bottom: 24px;
+  bottom: 89px;
   z-index: 20;
   display: flex;
   gap: 10px;
@@ -672,12 +689,9 @@
     font-size: 15px;
   }
 
-  .help {
-    width: 42px;
-    padding: 0;
-  }
-
-  .help span {
+  /* The composer spans the row on small screens; the pill and review bar still reach the drawer. */
+  .help,
+  .controls {
     display: none;
   }
 }

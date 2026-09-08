@@ -147,6 +147,25 @@
   }
 }
 
+/* The renderer adapter mounts into this box; it must be positioned and sized (Excalidraw fills it). */
+.renderer {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+}
+
+/* Loading / invalid-link message where the canvas would be. */
+.notice {
+  position: fixed;
+  top: 44%;
+  left: 50%;
+  z-index: 1;
+  margin: 0;
+  color: var(--nv-muted-soft);
+  font-size: 15px;
+  transform: translate(-50%, -50%);
+}
+
 /* Run status pill (PRD 9.1): stage name + Stop, top-right under the top bar. */
 .runPill {
   position: fixed;
@@ -157,7 +176,7 @@
   align-items: center;
   gap: 10px;
   height: 38px;
-  padding: 0 8px 0 14px;
+  padding: 0 8px 0 4px;
   border: 1px solid var(--nv-surface-border);
   border-radius: 999px;
   background: color-mix(in srgb, var(--nv-surface-solid) 88%, transparent);
@@ -166,6 +185,25 @@
   color: var(--nv-ink-2);
   font-size: 13px;
   font-weight: 500;
+}
+
+/* Stage + dot open the run drawer. */
+.runBody {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.runBody:hover {
+  background: var(--nv-hover);
 }
 
 .runDot {
@@ -517,6 +555,203 @@
   background: var(--nv-surface-solid);
   color: var(--nv-accent);
   box-shadow: 0 1px 3px color-mix(in srgb, var(--nv-shadow-ink) 12%, transparent);
+}
+
+/* Run drawer (spec 07 §3): right-hand panel with plan, actions, validation, errors, usage. */
+.drawer {
+  position: fixed;
+  top: calc(var(--nv-topbar-height) + 12px);
+  right: 12px;
+  bottom: 12px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  width: min(380px, calc(100vw - 24px));
+  border: 1px solid var(--nv-glass-border);
+  border-radius: 18px;
+  background: var(--nv-glass);
+  box-shadow: var(--nv-shadow-menu);
+  backdrop-filter: blur(20px);
+  color: var(--nv-ink-2);
+  font-size: 13px;
+  transform: translateX(calc(100% + 24px));
+  transition: transform 0.22s ease-out;
+  visibility: hidden;
+}
+
+.drawerOpen {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px 12px 18px;
+  border-bottom: 1px solid var(--nv-line);
+}
+
+.drawerHeader h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 620;
+}
+
+.drawerStatus {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--nv-hover);
+  color: var(--nv-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.drawerStatus[data-status="done"] {
+  background: color-mix(in srgb, var(--nv-pal-mint-fill, #dff3ea) 80%, transparent);
+  color: var(--nv-pal-mint-text, #2f6b57);
+}
+
+.drawerStatus[data-status="failed"] {
+  background: color-mix(in srgb, var(--nv-pal-coral-fill, #fde4dc) 80%, transparent);
+  color: var(--nv-pal-coral-text, #9a3b2a);
+}
+
+.drawerEmpty {
+  margin: 0;
+  padding: 24px 18px;
+  color: var(--nv-muted-soft);
+}
+
+.drawerBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 18px 18px;
+}
+
+.drawerBody section {
+  padding: 12px 0;
+}
+
+.drawerBody section + section {
+  border-top: 1px solid var(--nv-line);
+}
+
+.drawerBody h3 {
+  margin: 0 0 6px;
+  color: var(--nv-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.drawerBody p {
+  margin: 0 0 4px;
+}
+
+.drawerBody ol,
+.drawerBody ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.drawerBody code {
+  font-family: var(--nv-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+}
+
+.drawerMeta {
+  color: var(--nv-muted-soft);
+  font-size: 12px;
+}
+
+.drawerBody .drawerActions {
+  list-style: none;
+  padding-left: 0;
+}
+
+.drawerActions li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+}
+
+.drawerActions li > span {
+  min-width: 18px;
+  color: var(--nv-muted-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.drawerActions li > svg {
+  color: var(--nv-pal-mint-text, #2f6b57);
+}
+
+.drawerActions li[data-ok="false"] > svg {
+  color: var(--nv-pal-coral-text, #9a3b2a);
+}
+
+.drawerActions em,
+.drawerIssues li {
+  color: var(--nv-ink-2);
+  font-style: normal;
+}
+
+.drawerIssues li[data-severity="error"] code {
+  color: var(--nv-pal-coral-text, #9a3b2a);
+}
+
+/* Change review bar (PRD 6.4): sits just above the composer after an AI run applied changes. */
+.reviewBar {
+  position: fixed;
+  bottom: 164px;
+  left: 50%;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: min(760px, calc(100% - 80px));
+  padding: 10px 10px 10px 18px;
+  border: 1px solid var(--nv-surface-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--nv-surface-solid) 92%, transparent);
+  box-shadow: var(--nv-shadow-menu);
+  backdrop-filter: blur(16px);
+  color: var(--nv-ink-2);
+  font-size: 13px;
+  transform: translateX(-50%);
+  animation: nv-pop-in 0.18s ease-out;
+}
+
+.reviewText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.reviewTitle {
+  font-weight: 600;
+}
+
+.reviewSummary {
+  overflow: hidden;
+  color: var(--nv-muted-soft);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reviewActions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
 }
 
 /* floating controls */

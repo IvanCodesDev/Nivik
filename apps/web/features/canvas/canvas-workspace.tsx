@@ -121,6 +121,8 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
   const [prompt, setPrompt] = useState(() => params.get('prompt') ?? '');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  // Anything the user draws counts, long before it becomes a node — the hint must not sit under it.
+  const [canvasEmpty, setCanvasEmpty] = useState(true);
 
   // The name only seeds a brand-new diagram, so it is read once rather than reloading on change.
   const initialNameRef = useRef(template?.title ?? t.canvas.untitled);
@@ -207,6 +209,7 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
           if (!outcome.ok) toast(t.canvas.applyFailed(outcome.error.message), { tone: 'light' });
         });
     },
+    onEmptyChange: setCanvasEmpty,
     onSelectionChange: setSelection,
     onViewportChange: setViewport,
     onWarning: (warning) => toast(warning.message, { tone: 'light' }),
@@ -306,7 +309,7 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
         <RunStatusPill run={currentRun} onStop={stopRun} onOpen={() => setDrawerOpen(true)} />
       )}
 
-      {status === 'ready' && nodeCount === 0 && !running && <SketchHint />}
+      {status === 'ready' && canvasEmpty && nodeCount === 0 && !running && <SketchHint />}
 
       <RunDrawer open={drawerOpen} run={drawerRun} onClose={() => setDrawerOpen(false)} />
 

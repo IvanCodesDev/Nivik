@@ -66,6 +66,12 @@ export type RendererWarning = {
 export interface LiveHooks {
   /** A reconciled user Change Set (`origin: 'user'`). */
   onChange(cs: ChangeSet): void;
+  /**
+   * Whether the canvas looks empty to the user. Not the same as an empty IR: a shape the user drew
+   * is on the canvas long before it is promoted to a node, and the host's empty-state hint has to
+   * make way for it. Fires on mount and whenever the answer changes.
+   */
+  onEmptyChange?(empty: boolean): void;
   /** Only when `capabilities.selection === 'push'`. */
   onSelectionChange?(ids: Id[]): void;
   onViewportChange?(v: Viewport): void;

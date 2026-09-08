@@ -49,6 +49,7 @@ export function RendererHost({ initial, theme, locale, hooks, onSession }: Rende
     let session: LiveSession | null = null;
     const forward: LiveHooks = {
       onChange: (cs) => hooksRef.current.onChange(cs),
+      onEmptyChange: (empty) => hooksRef.current.onEmptyChange?.(empty),
       onSelectionChange: (ids) => hooksRef.current.onSelectionChange?.(ids),
       onViewportChange: (viewport) => hooksRef.current.onViewportChange?.(viewport),
       onRendererStateChange: (state) => hooksRef.current.onRendererStateChange?.(state),

@@ -72,6 +72,13 @@ export async function mountExcalidraw(
   const redrawHighlight = () => {
     if (highlight) overlay.render(highlightShapes(diagram, highlight.input, viewport));
   };
+  let sceneEmpty: boolean | null = null;
+  const reportEmpty = (elements: readonly ExcalidrawElement[]) => {
+    const empty = !elements.some((element) => !element.isDeleted);
+    if (empty === sceneEmpty) return;
+    sceneEmpty = empty;
+    hooks.onEmptyChange?.(empty);
+  };
   const queue = createReconcileQueue<readonly ExcalidrawElement[]>({
     onFlush: (elements) => {
       const cs = reconcile(diagram, fromExcalidraw(elements, diagram), {
@@ -109,6 +116,7 @@ export async function mountExcalidraw(
           viewport = { x: appState.scrollX, y: appState.scrollY, zoom: appState.zoom.value };
           hooks.onViewportChange?.(viewport);
           redrawHighlight();
+          reportEmpty(elements);
           const ids = selectedMainIds(appState);
           const key = ids.join(',');
           if (key !== selectionKey) {
@@ -121,6 +129,7 @@ export async function mountExcalidraw(
     );
   });
   api.onPointerUp(() => queue.flush());
+  reportEmpty(api.getSceneElements());
 
   const allVisible = (ids: readonly Id[]): boolean => {
     const s = api.getAppState();

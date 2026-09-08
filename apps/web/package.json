@@ -10,9 +10,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "0.18.1",
     "@nivik/agent": "workspace:*",
     "@nivik/ir": "workspace:*",
+    "@nivik/layout": "workspace:*",
     "@nivik/protocol": "workspace:*",
+    "@nivik/renderer-core": "workspace:*",
+    "@nivik/renderer-excalidraw": "workspace:*",
+    "@nivik/storage": "workspace:*",
     "@nivik/templates": "workspace:*",
     "@nivik/ui": "workspace:*",
     "@phosphor-icons/react": "2.1.10",
@@ -27,6 +32,7 @@
     "@types/node": "26.4.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",
+    "fake-indexeddb": "6.2.5",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3"
   }

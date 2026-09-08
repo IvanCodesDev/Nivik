@@ -66,15 +66,30 @@ importers:
 
   apps/web:
     dependencies:
+      '@excalidraw/excalidraw':
+        specifier: 0.18.1
+        version: 0.18.1(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@nivik/agent':
         specifier: workspace:*
         version: link:../../packages/agent
       '@nivik/ir':
         specifier: workspace:*
         version: link:../../packages/ir
+      '@nivik/layout':
+        specifier: workspace:*
+        version: link:../../packages/layout
       '@nivik/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      '@nivik/renderer-core':
+        specifier: workspace:*
+        version: link:../../packages/renderer-core
+      '@nivik/renderer-excalidraw':
+        specifier: workspace:*
+        version: link:../../packages/renderer-excalidraw
+      '@nivik/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@nivik/templates':
         specifier: workspace:*
         version: link:../../packages/templates
@@ -112,6 +127,9 @@ importers:
       '@types/react-dom':
         specifier: 19.2.7
         version: 19.2.7(@types/react@19.2.18)
+      fake-indexeddb:
+        specifier: 6.2.5
+        version: 6.2.5
       tailwindcss:
         specifier: 4.3.3
         version: 4.3.3

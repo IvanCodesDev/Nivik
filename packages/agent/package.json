@@ -5,14 +5,22 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./providers": "./src/providers/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "4.0.49",
+    "@ai-sdk/deepseek": "3.0.39",
+    "@ai-sdk/google": "4.0.64",
+    "@ai-sdk/openai": "4.0.60",
+    "@ai-sdk/openai-compatible": "3.0.44",
     "@nivik/ir": "workspace:*",
     "@nivik/protocol": "workspace:*",
+    "@openrouter/ai-sdk-provider": "3.0.0",
+    "ai": "7.0.93",
     "zod": "4.5.4"
   },
   "devDependencies": {

@@ -1,82 +1,55 @@
 'use client';
 
-import { splitSteps } from '@nivik/agent';
-import { createDiagram, isId } from '@nivik/ir';
-import type { RunStage } from '@nivik/protocol';
+import { isId, newChangeSetId } from '@nivik/ir';
+import type { LiveHooks } from '@nivik/renderer-core';
 import { Button, cn, IconButton, Select, type SelectOption, useToast } from '@nivik/ui';
 import {
-  ArrowDown,
-  ArrowRight,
   CornersOut,
-  DotsSixVertical,
-  Minus,
+  ListMagnifyingGlass,
   PaperPlaneRight,
-  Plus,
   Question,
   SlidersHorizontal,
   Sparkle,
-  Stop,
 } from '@phosphor-icons/react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { Popover } from 'radix-ui';
-import {
-  type CSSProperties,
-  type FormEvent,
-  type KeyboardEvent,
-  type PointerEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ChoiceDialog } from '@/components/choice-dialog';
 import { TopBar } from '@/components/top-bar';
-import { AgentRuntimeUnavailableError, HttpAgentClient } from '@/lib/agent-client';
+import { HttpAgentClient, LocalAgentClient } from '@/lib/agent-client';
 import { RENDERERS, type RendererId } from '@/lib/data/integrations';
 import { findTemplate } from '@/lib/data/templates';
-import { useT } from '@/lib/i18n/provider';
+import { installDebugHook } from '@/lib/debug-hook';
+import { useLocale, useT } from '@/lib/i18n/provider';
 import { templateCopy } from '@/lib/i18n/template-copy';
-import { buildRunRequest } from '@/lib/run-request';
+import { createRunOrchestrator, type RunNotice } from '@/lib/run-orchestrator';
+import { diagramStore, useDiagramStore } from '@/lib/stores/diagram-store';
+import { useRendererStore } from '@/lib/stores/renderer-store';
 import { useRunOverrides } from '@/lib/stores/run-overrides-store';
+import { useRunStore } from '@/lib/stores/run-store';
 import {
   canvasBackgroundVar,
-  NODE_RADIUS,
   type SettingsRenderer,
   useSettingsStore,
 } from '@/lib/stores/settings-store';
+import { useResolvedTheme } from '@/lib/theme/use-resolved-theme';
 import styles from './canvas.module.css';
+import { ChangeReviewBar } from './change-review-bar';
+import { RunDrawer } from './run-drawer';
+import { RunStatusPill } from './run-status-pill';
 import { SketchHint } from './sketch-hint';
-import { type DragInput, dragTranslation, nudgeStep, type Point, type SnapFrame } from './snap';
 
-const ZOOM_MIN = 25;
-const ZOOM_MAX = 200;
-const ZOOM_STEP = 10;
+// Excalidraw touches `window` at import time, so the host only ever renders on the client.
+const RendererHost = dynamic(() => import('./renderer-host').then((m) => m.RendererHost), {
+  ssr: false,
+});
 
 /** Picker value meaning "no override, use the saved default model". */
 const DEFAULT_MODEL_CHOICE = 'default';
 
 type Direction = 'horizontal' | 'vertical';
-
-/** Where a node has been dragged to, relative to its slot in the flow (diagram px). */
-interface Offset {
-  dx: number;
-  dy: number;
-}
-
-const NO_OFFSET: Offset = { dx: 0, dy: 0 };
-
-const ARROW_KEYS: Record<string, Point> = {
-  ArrowLeft: { x: -1, y: 0 },
-  ArrowRight: { x: 1, y: 0 },
-  ArrowUp: { x: 0, y: -1 },
-  ArrowDown: { x: 0, y: 1 },
-};
-
-interface RunState {
-  stage: RunStage;
-  actions: number;
-}
 
 function resolveRenderer(param: string | null, fallback: SettingsRenderer): RendererId {
   const match = RENDERERS.find((r) => r.id === param?.toLowerCase());
@@ -88,26 +61,47 @@ interface CanvasWorkspaceProps {
 }
 
 /**
- * Canvas Workspace (PRD 5.2). Until the IR renderer lands the stage is a sketch: the composer
- * sends a RunRequest to the Agent Runtime and each accepted `addNode` becomes an editable node.
- * If the runtime is unreachable the prompt is split locally so the page stays usable.
+ * Canvas Workspace (PRD 5.2, spec 07 §3). Opens the stored diagram, mounts the renderer and wires
+ * the composer to the RunOrchestrator: prompt → change set → layout → persisted IR → live canvas.
+ * User edits on the canvas come back through the renderer hooks into the same diagram store.
  */
 export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
   const t = useT();
+  const locale = useLocale();
   const toast = useToast();
   const params = useSearchParams();
   const inputRef = useRef<HTMLInputElement>(null);
-  const paperRef = useRef<HTMLDivElement>(null);
 
   const saved = useSettingsStore((s) => s.saved);
+  const savedRef = useRef(saved);
+  savedRef.current = saved;
   const temporaryModel = useRunOverrides((s) => s.temporaryModel);
   const setTemporaryModel = useRunOverrides((s) => s.setTemporaryModel);
   const consumeTemporaryModel = useRunOverrides((s) => s.consumeTemporaryModel);
+  const theme = useResolvedTheme(saved.theme);
+
+  const status = useDiagramStore((s) => s.status);
+  const loadError = useDiagramStore((s) => s.error);
+  const diagram = useDiagramStore((s) => s.diagram);
+  const nodeCount = useDiagramStore((s) => s.diagram?.nodes.length ?? 0);
+  const layoutDirection = useDiagramStore((s) => s.diagram?.layout.direction ?? 'RIGHT');
+  const latestGroup = useDiagramStore((s) => s.history.undo.at(-1)?.group);
+  const session = useRendererStore((s) => s.session);
+  const setSession = useRendererStore((s) => s.setSession);
+  const setSelection = useRendererStore((s) => s.setSelection);
+  const setViewport = useRendererStore((s) => s.setViewport);
+  const currentRun = useRunStore((s) => s.current);
+  const recentRuns = useRunStore((s) => s.recent);
+  const review = useRunStore((s) => s.review);
+  const drawerOpen = useRunStore((s) => s.drawerOpen);
+  const setDrawerOpen = useRunStore((s) => s.setDrawerOpen);
+  const setReview = useRunStore((s) => s.setReview);
 
   const template = findTemplate(params.get('template'));
   const renderer = RENDERERS.find(
     (r) => r.id === resolveRenderer(params.get('renderer'), saved.renderer),
   );
+  const validId = isId(diagramId);
 
   // Only offered once at least one model is configured; a single model has nothing to switch to.
   const modelOptions = useMemo<SelectOption[]>(() => {
@@ -124,22 +118,74 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
   }, [saved.providers, saved.defaultModel, t]);
 
   const [prompt, setPrompt] = useState(() => params.get('prompt') ?? '');
-  const [steps, setSteps] = useState<string[]>([]);
-  // Dragged positions by step index; cleared whenever the flow is laid out afresh.
-  const [offsets, setOffsets] = useState<Offset[]>([]);
-  const [direction, setDirection] = useState<Direction>('horizontal');
-  const [zoom, setZoom] = useState(100);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [run, setRun] = useState<RunState | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+
+  // The name only seeds a brand-new diagram, so it is read once rather than reloading on change.
+  const initialNameRef = useRef(template?.title ?? t.canvas.untitled);
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+  const tRef = useRef(t);
+  tRef.current = t;
+
+  // Open (or create) the stored diagram for this route; leaving the page resets the store.
+  useEffect(() => {
+    if (!validId) return;
+    diagramStore
+      .getState()
+      .load(diagramId, { name: initialNameRef.current })
+      .catch((error: unknown) => {
+        toastRef.current(error instanceof Error ? error.message : tRef.current.canvas.failed, {
+          tone: 'light',
+        });
+      });
+    return () => diagramStore.getState().reset();
+  }, [diagramId, validId]);
+
+  const notify = (notice: RunNotice) => {
+    const copy = tRef.current.canvas;
+    const show = toastRef.current;
+    switch (notice.kind) {
+      case 'offline':
+        show(copy.offlineLocal, { tone: 'light' });
+        break;
+      case 'conflict':
+        show(copy.conflict(notice.ids.length), { tone: 'light' });
+        break;
+      case 'error':
+        show(copy.agentStopped(notice.message), { tone: 'light' });
+        break;
+      case 'aborted':
+        show(copy.stopped);
+        break;
+      case 'done':
+        show(copy.applied);
+        break;
+    }
+  };
+  const notifyRef = useRef(notify);
+  notifyRef.current = notify;
+
+  const orchestrator = useMemo(
+    () =>
+      createRunOrchestrator({
+        diagram: diagramStore,
+        run: useRunStore,
+        client: () => new HttpAgentClient(savedRef.current.agentRuntimeUrl),
+        fallback: () => new LocalAgentClient(),
+        onNotice: (notice) => notifyRef.current(notice),
+      }),
+    [],
+  );
+
+  // Leaving the page cancels an in-flight run.
+  useEffect(() => () => orchestrator.abort(), [orchestrator]);
+
+  useEffect(() => installDebugHook(), []);
 
   useEffect(() => {
     if (params.get('focus') === 'composer' || params.get('prompt')) inputRef.current?.focus();
   }, [params]);
-
-  // Leaving the page cancels an in-flight run.
-  useEffect(() => () => abortRef.current?.abort(), []);
 
   // Announce the starter template once per workspace visit.
   const announcedRef = useRef<string | null>(null);
@@ -150,6 +196,21 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
     }
   }, [template, toast, t]);
 
+  const hooks: LiveHooks = {
+    onChange: (cs) => {
+      void diagramStore
+        .getState()
+        .apply(cs)
+        .then((outcome) => {
+          if (!outcome.ok) toast(t.canvas.applyFailed(outcome.error.message), { tone: 'light' });
+        });
+    },
+    onSelectionChange: setSelection,
+    onViewportChange: setViewport,
+    onWarning: (warning) => toast(warning.message, { tone: 'light' }),
+    onError: (error) => toast(t.canvas.rendererError(error.message), { tone: 'light' }),
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const text = prompt.trim();
@@ -157,153 +218,104 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
       toast(t.canvas.emptyPrompt);
       return;
     }
-    if (abortRef.current) return;
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setRun({ stage: 'understanding', actions: 0 });
-    setSteps([]);
-    setOffsets([]);
-
-    const client = new HttpAgentClient(saved.agentRuntimeUrl);
-    const request = buildRunRequest({
-      // Until diagrams are persisted (task 0.7) every run starts from an empty IR document. It is
-      // `generic` on purpose: the agent's plan classifies it and the build stage writes the type.
-      diagram: createDiagram({
-        name: template?.title ?? t.canvas.untitled,
-        type: 'generic',
-        id: isId(diagramId) ? diagramId : undefined,
-      }),
+    if (orchestrator.running || status !== 'ready') return;
+    const outcome = await orchestrator.start({
       prompt: text,
       renderer: renderer?.id ?? 'excalidraw',
       settings: saved,
       temporaryModel: consumeTemporaryModel(),
     });
-    const labels: string[] = [];
-    try {
-      const events = client.start(request, { signal: controller.signal });
-      for await (const event of events) {
-        if (event.type === 'status') {
-          setRun((current) => current && { ...current, stage: event.stage });
-        } else if (event.type === 'action' && event.ok && event.action.op === 'addNode') {
-          labels.push(event.action.node.label);
-          setSteps([...labels]);
-          setRun((current) => current && { ...current, actions: current.actions + 1 });
-        } else if (event.type === 'error' && !event.recoverable) {
-          toast(t.canvas.agentStopped(event.message), { tone: 'light' });
-        } else if (event.type === 'done') {
-          toast(t.canvas.created);
-        }
-      }
-    } catch (error) {
-      if (controller.signal.aborted) {
-        toast(t.canvas.stopped);
-      } else if (error instanceof AgentRuntimeUnavailableError) {
-        setSteps(splitSteps(text));
-        toast(t.canvas.offline, { tone: 'light' });
-      } else {
-        toast(error instanceof Error ? error.message : t.canvas.failed, { tone: 'light' });
-      }
-    } finally {
-      abortRef.current = null;
-      setRun(null);
-    }
+    if (outcome.status === 'done') setPrompt('');
   };
 
-  const stopRun = () => abortRef.current?.abort();
+  const stopRun = () => orchestrator.abort();
 
-  const setZoomClamped = (value: number) => setZoom(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value)));
+  const acceptReview = () => {
+    session?.clearHighlight();
+    setReview(null);
+  };
 
-  const updateStep = (index: number, text: string) =>
-    setSteps((current) => current.map((step, i) => (i === index ? text || step : step)));
+  const undoRun = async () => {
+    if (!review) return;
+    const outcome = await diagramStore.getState().undoGroup(review.runId);
+    if (!outcome) toast(t.canvas.undoUnavailable, { tone: 'light' });
+    else if (!outcome.ok) toast(t.canvas.applyFailed(outcome.error.message), { tone: 'light' });
+    session?.clearHighlight();
+    setReview(null);
+  };
 
-  const moveStep = (index: number, offset: Offset) =>
-    setOffsets((current) => {
-      const next = current.slice();
-      next[index] = offset;
-      return next;
-    });
-
+  // Direction is a diagram property: changing it is a relayout of everything that is not pinned.
+  const direction: Direction =
+    layoutDirection === 'DOWN' || layoutDirection === 'UP' ? 'vertical' : 'horizontal';
   const changeDirection = (next: Direction) => {
-    setDirection(next);
-    setOffsets([]);
+    const d = diagramStore.getState().diagram;
+    const target = next === 'vertical' ? 'DOWN' : 'RIGHT';
+    if (!d || d.layout.direction === target || d.nodes.length === 0) return;
+    void diagramStore
+      .getState()
+      .apply({
+        id: newChangeSetId(),
+        diagramId: d.id,
+        baseVersion: d.version,
+        origin: 'user',
+        createdAt: Date.now(),
+        summary: `Direction ${target}`,
+        actions: [{ op: 'relayout', scope: 'all', layout: { direction: target } }],
+      })
+      .then((outcome) => {
+        if (!outcome.ok) toast(t.canvas.applyFailed(outcome.error.message), { tone: 'light' });
+      });
   };
 
-  const scale = zoom / 100;
-
-  // Read at gesture time so a drag always sees the current zoom and grid settings.
-  const snapFrame = (): SnapFrame => {
-    const paper = paperRef.current?.getBoundingClientRect();
-    return {
-      origin: paper
-        ? { x: paper.left + paper.width / 2, y: paper.top + paper.height / 2 }
-        : { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-      gridSize: Number(saved.gridSize),
-      scale,
-      snap: saved.snap,
-    };
-  };
-
-  const ArrowIcon = direction === 'vertical' ? ArrowDown : ArrowRight;
   const canvasStyle = {
-    '--grid-scale': scale,
-    '--diagram-scale': scale,
     '--canvas-bg': canvasBackgroundVar(saved.canvasBackground),
     '--grid-size': `${saved.gridSize}px`,
-    '--node-radius': `${NODE_RADIUS[saved.nodeStyle]}px`,
-    '--edge-style': saved.edgeStyle,
   } as CSSProperties;
 
-  return (
-    <div
-      className={cn(styles.workspace, saved.selection === 'fill' && styles.selectionFill)}
-      style={canvasStyle}
-      data-diagram-id={diagramId}
-    >
-      <div
-        ref={paperRef}
-        className={styles.paper}
-        data-pattern={saved.canvasPattern}
-        aria-hidden="true"
-      />
-      <TopBar />
+  const drawerRun = currentRun ?? recentRuns[0] ?? null;
+  const running = currentRun !== null;
 
-      {run && (
-        <div className={styles.runPill} role="status" aria-live="polite">
-          <span className={styles.runDot} aria-hidden="true" />
-          <span className={styles.runLabel}>
-            {t.canvas.stages[run.stage]}
-            {run.stage === 'building' && run.actions > 0 ? ` · ${run.actions}` : ''}
-          </span>
-          <button type="button" className={styles.runStop} onClick={stopRun}>
-            <Stop size={12} weight="fill" aria-hidden="true" />
-            {t.canvas.stop}
-          </button>
-        </div>
+  return (
+    <div className={styles.workspace} style={canvasStyle} data-diagram-id={diagramId}>
+      <div className={styles.paper} data-pattern={saved.canvasPattern} aria-hidden="true" />
+
+      {validId && diagram && status === 'ready' ? (
+        <RendererHost
+          key={diagram.id}
+          initial={diagram}
+          theme={theme}
+          locale={locale}
+          hooks={hooks}
+          onSession={setSession}
+        />
+      ) : (
+        <p className={styles.notice} role="status">
+          {!validId
+            ? t.canvas.invalidId
+            : status === 'error'
+              ? t.canvas.applyFailed(loadError ?? t.canvas.failed)
+              : t.canvas.loading}
+        </p>
       )}
 
-      {steps.length === 0 && !run ? (
-        <SketchHint />
-      ) : (
-        <section
-          className={cn(styles.stage, direction === 'vertical' && styles.vertical)}
-          aria-label={t.canvas.diagramLabel}
-        >
-          {steps.map((step, index) => (
-            <StepNode
-              key={`${index}-${step}`}
-              text={step}
-              offset={offsets[index] ?? NO_OFFSET}
-              withArrow={index > 0}
-              ArrowIcon={ArrowIcon}
-              label={t.canvas.stepLabel}
-              moveLabel={t.canvas.moveNode}
-              frame={snapFrame}
-              onCommit={(text) => updateStep(index, text)}
-              onMove={(offset) => moveStep(index, offset)}
-            />
-          ))}
-        </section>
+      <TopBar />
+
+      {currentRun && (
+        <RunStatusPill run={currentRun} onStop={stopRun} onOpen={() => setDrawerOpen(true)} />
+      )}
+
+      {status === 'ready' && nodeCount === 0 && !running && <SketchHint />}
+
+      <RunDrawer open={drawerOpen} run={drawerRun} onClose={() => setDrawerOpen(false)} />
+
+      {review && !running && (
+        <ChangeReviewBar
+          review={review}
+          canUndo={latestGroup === review.runId}
+          onAccept={acceptReview}
+          onUndo={undoRun}
+          onDetails={() => setDrawerOpen(true)}
+        />
       )}
 
       <div className={styles.composerWrap}>
@@ -386,7 +398,12 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
-          <button type="submit" className={styles.submit} aria-label={t.canvas.submit}>
+          <button
+            type="submit"
+            className={styles.submit}
+            aria-label={t.canvas.submit}
+            disabled={running || status !== 'ready'}
+          >
             <PaperPlaneRight size={20} weight="fill" aria-hidden="true" />
           </button>
         </form>
@@ -398,30 +415,20 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
       </Button>
 
       <div className={styles.controls}>
-        <div className={styles.zoom} role="group" aria-label={t.canvas.zoom}>
-          <button
-            type="button"
-            aria-label={t.canvas.zoomOut}
-            disabled={zoom <= ZOOM_MIN}
-            onClick={() => setZoomClamped(zoom - ZOOM_STEP)}
-          >
-            <Minus size={16} aria-hidden="true" />
-          </button>
-          <output aria-live="polite">{zoom}%</output>
-          <button
-            type="button"
-            aria-label={t.canvas.zoomIn}
-            disabled={zoom >= ZOOM_MAX}
-            onClick={() => setZoomClamped(zoom + ZOOM_STEP)}
-          >
-            <Plus size={16} aria-hidden="true" />
-          </button>
-        </div>
+        <IconButton
+          variant="surface"
+          className={styles.fit}
+          aria-label={t.canvas.openDrawer}
+          onClick={() => setDrawerOpen(!drawerOpen)}
+        >
+          <ListMagnifyingGlass size={18} aria-hidden="true" />
+        </IconButton>
         <IconButton
           variant="surface"
           className={styles.fit}
           aria-label={t.canvas.fitToScreen}
-          onClick={() => setZoom(100)}
+          disabled={!session}
+          onClick={() => void session?.fit()}
         >
           <CornersOut size={18} aria-hidden="true" />
         </IconButton>
@@ -434,131 +441,5 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
         description={t.canvas.helpDescription}
       />
     </div>
-  );
-}
-
-interface StepNodeProps {
-  text: string;
-  offset: Offset;
-  withArrow: boolean;
-  ArrowIcon: typeof ArrowRight;
-  label: string;
-  moveLabel: string;
-  frame: () => SnapFrame;
-  onCommit: (text: string) => void;
-  onMove: (offset: Offset) => void;
-}
-
-interface DragGesture {
-  pointer: Point;
-  start: DragInput['start'];
-}
-
-/**
- * An editable sketch node with a drag handle. Clicking the text edits it; the handle moves the
- * node (pointer or arrow keys), snapping its top-left corner to the grid when the setting is on.
- * Connectors stay in the flow — this is the sketch stage, not the renderer.
- */
-function StepNode({
-  text,
-  offset,
-  withArrow,
-  ArrowIcon,
-  label,
-  moveLabel,
-  frame,
-  onCommit,
-  onMove,
-}: StepNodeProps) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const gestureRef = useRef<DragGesture | null>(null);
-  const [dragging, setDragging] = useState(false);
-
-  const startOf = (): DragInput['start'] | null => {
-    const rect = wrapRef.current?.getBoundingClientRect();
-    return rect ? { left: rect.left, top: rect.top, dx: offset.dx, dy: offset.dy } : null;
-  };
-
-  const beginDrag = (event: PointerEvent<HTMLButtonElement>) => {
-    if (event.button !== 0) return;
-    const start = startOf();
-    if (!start) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    gestureRef.current = { pointer: { x: event.clientX, y: event.clientY }, start };
-    setDragging(true);
-  };
-
-  const drag = (event: PointerEvent<HTMLButtonElement>) => {
-    const gesture = gestureRef.current;
-    if (!gesture) return;
-    onMove(
-      dragTranslation({
-        ...frame(),
-        start: gesture.start,
-        pointer: { x: event.clientX - gesture.pointer.x, y: event.clientY - gesture.pointer.y },
-      }),
-    );
-  };
-
-  const endDrag = () => {
-    gestureRef.current = null;
-    setDragging(false);
-  };
-
-  // Arrow keys move one cell when snapping (landing on the grid), else one pixel.
-  const nudge = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const vector = ARROW_KEYS[event.key];
-    const start = startOf();
-    if (!vector || !start) return;
-    event.preventDefault();
-    const current = frame();
-    const step = nudgeStep(current.snap, current.gridSize) * current.scale;
-    onMove(
-      dragTranslation({
-        ...current,
-        start,
-        pointer: { x: vector.x * step, y: vector.y * step },
-      }),
-    );
-  };
-
-  return (
-    <>
-      {withArrow && (
-        <span className={styles.arrow} aria-hidden="true">
-          <ArrowIcon size={22} />
-        </span>
-      )}
-      <div
-        ref={wrapRef}
-        className={cn(styles.nodeWrap, dragging && styles.dragging)}
-        style={{ translate: `${offset.dx}px ${offset.dy}px` }}
-      >
-        <button
-          type="button"
-          className={styles.grip}
-          aria-label={moveLabel}
-          title={moveLabel}
-          onPointerDown={beginDrag}
-          onPointerMove={drag}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
-          onKeyDown={nudge}
-        >
-          <DotsSixVertical size={14} weight="bold" aria-hidden="true" />
-        </button>
-        <div
-          className={styles.node}
-          role="textbox"
-          tabIndex={0}
-          contentEditable
-          suppressContentEditableWarning
-          aria-label={label}
-          onBlur={(event) => onCommit(event.currentTarget.textContent?.trim() ?? '')}
-        >
-          {text}
-        </div>
-      </div>
-    </>
   );
 }

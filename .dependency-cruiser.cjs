@@ -120,7 +120,9 @@ module.exports = {
     tsConfig: { fileName: path.join(__dirname, 'tsconfig.depcruise.json') },
     enhancedResolveOptions: {
       exportsFields: ['exports'],
-      conditionNames: ['import', 'types', 'default'],
+      // `production` resolves entries that only ship development/production conditions
+      // (e.g. `@excalidraw/excalidraw/index.css`).
+      conditionNames: ['import', 'types', 'default', 'production'],
       mainFields: ['module', 'main', 'types'],
       extensions: ['.ts', '.tsx', '.mts', '.cts', '.js', '.mjs', '.cjs', '.json', '.css'],
     },

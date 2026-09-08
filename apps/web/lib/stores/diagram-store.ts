@@ -111,6 +111,8 @@ function topGroup(stack: HistoryEntry[], group?: string): HistoryEntry[] {
 
 export function createDiagramStore(deps: DiagramStoreDeps): StoreApi<DiagramState> {
   const now = deps.now ?? (() => Date.now());
+  // Only the most recent load may publish its result (effects replay under StrictMode).
+  let loadToken = 0;
   let chain: Promise<unknown> = Promise.resolve();
   // Applies are serialised: a debounced user edit and an AI change set must not interleave.
   const serial = <T>(job: () => Promise<T>): Promise<T> => {
@@ -239,15 +241,29 @@ export function createDiagramStore(deps: DiagramStoreDeps): StoreApi<DiagramStat
       history: { undo: [], redo: [] },
 
       async load(id, init) {
+        const token = ++loadToken;
         set({ id, diagram: null, status: 'loading', error: null, history: { undo: [], redo: [] } });
         try {
           const record = await openDiagram(deps.repo(), id, init);
-          set({ diagram: record.ir, status: 'ready' });
+          if (token === loadToken) set({ diagram: record.ir, status: 'ready' });
           return record.ir;
         } catch (error) {
-          set({ status: 'error', error: error instanceof Error ? error.message : String(error) });
+          if (token === loadToken) {
+            set({ status: 'error', error: error instanceof Error ? error.message : String(error) });
+          }
           throw error;
         }
+      },
+
+      reset() {
+        loadToken += 1;
+        set({
+          id: null,
+          diagram: null,
+          status: 'idle',
+          error: null,
+          history: { undo: [], redo: [] },
+        });
       },
 
       apply(cs, opts = {}) {
@@ -327,16 +343,6 @@ export function createDiagramStore(deps: DiagramStoreDeps): StoreApi<DiagramStat
             [...entries].reverse().map((source) => ({ apply: source.forward, source })),
             'redo',
           );
-        });
-      },
-
-      reset() {
-        set({
-          id: null,
-          diagram: null,
-          status: 'idle',
-          error: null,
-          history: { undo: [], redo: [] },
         });
       },
     };

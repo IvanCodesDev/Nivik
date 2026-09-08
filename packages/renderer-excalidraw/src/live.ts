@@ -143,6 +143,7 @@ export async function mountExcalidraw(
     async apply(patch: RendererPatch) {
       diagram = patch.diagram;
       const scene = api.getSceneElementsIncludingDeleted();
+      const sceneWasEmpty = scene.every((el) => el.isDeleted);
       const touched = [...patch.affected.added, ...patch.affected.modified];
       const touchedSet = new Set(touched);
       const deleted = new Set(patch.affected.deleted);
@@ -163,8 +164,10 @@ export async function mountExcalidraw(
         elements: mergeById(scene, { upsert, softDelete }),
         captureUpdate: CaptureUpdateAction.IMMEDIATELY,
       });
-      if (patch.affected.added.length > 0 && !allVisible(patch.affected.added)) {
-        await session.fit(patch.affected.added, { animate: true });
+      // First content is centred even when it would technically fit: at scroll (0, 0) it would sit
+      // in the corner under whatever chrome the host draws over the canvas.
+      if (patch.affected.added.length > 0 && (sceneWasEmpty || !allVisible(patch.affected.added))) {
+        await session.fit(patch.affected.added, { animate: !sceneWasEmpty });
       }
     },
     async replace(d) {
@@ -221,8 +224,12 @@ export async function mountExcalidraw(
       queue.dispose();
       session.clearHighlight();
       overlay.destroy();
-      root.unmount();
-      container.remove();
+      // The host usually destroys from an effect cleanup, i.e. while React is committing its own
+      // tree; unmounting another root synchronously there is a React warning, so defer it.
+      setTimeout(() => {
+        root.unmount();
+        container.remove();
+      }, 0);
     },
   };
   hooks.onReady?.();

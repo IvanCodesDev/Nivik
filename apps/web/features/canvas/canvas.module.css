@@ -6,16 +6,12 @@
 
 /*
  * Appearance preferences (Settings → Canvas & Appearance) arrive as custom properties set by
- * <CanvasWorkspace/>: --canvas-bg, --grid-size, --node-radius, --edge-style, plus the
- * .paper[data-pattern] and .selectionFill modifiers.
+ * <CanvasWorkspace/>: --canvas-bg and --grid-size, plus the .paper[data-pattern] modifier. The
+ * paper shows while the renderer loads; once mounted, the renderer's own canvas covers it.
  */
 .workspace {
-  --grid-scale: 1;
-  --diagram-scale: 1;
   --canvas-bg: var(--nv-canvas-soft);
   --grid-size: 24px;
-  --node-radius: 9px;
-  --edge-style: solid;
   position: relative;
   min-height: 100dvh;
   overflow: hidden;
@@ -23,17 +19,15 @@
 }
 
 /*
- * The paper and everything drawn on it are a light sheet in every theme (the user picked its
- * tint); only the chrome around it follows the theme. `color-scheme` here makes every
- * `light-dark()` token below resolve to its light value.
+ * The paper is a light sheet in every theme (the user picked its tint); only the chrome around it
+ * follows the theme. `color-scheme` here makes every `light-dark()` token below resolve to its
+ * light value.
  */
 .paper,
-.stage,
 .hint {
   color-scheme: light;
 }
 
-/* Grid dots are centred on the viewport; snapping (snap.ts) measures from this element's centre. */
 .paper {
   position: fixed;
   inset: 0;
@@ -43,29 +37,11 @@
 
 .paper[data-pattern="dots"] {
   background-image: radial-gradient(circle, var(--nv-canvas-dot) 0.9px, transparent 1.1px);
-  background-size: calc(var(--grid-size) * var(--grid-scale))
-    calc(var(--grid-size) * var(--grid-scale));
+  background-size: var(--grid-size) var(--grid-size);
   background-position: center;
 }
 
-.stage {
-  position: fixed;
-  top: 44%;
-  left: 50%;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  max-width: calc(100vw - 80px);
-  transform: translate(-50%, -50%) scale(var(--diagram-scale));
-  transition: transform 0.18s ease-out;
-}
-
-.stage.vertical {
-  flex-direction: column;
-}
-
-/* Empty-canvas hint, hand-written by <SketchHint/>. */
+/* Empty-canvas hint, hand-written by <SketchHint/>; sits above the renderer but lets clicks through. */
 .hint {
   position: fixed;
   top: 44%;
@@ -248,106 +224,6 @@
     opacity: 0.45;
     transform: scale(0.75);
   }
-}
-
-/*
- * A node and its drag handle. The offset chosen by dragging lives on the wrapper's `translate`
- * (set inline), which leaves `transform` free for the node's pop-in animation.
- */
-.nodeWrap {
-  position: relative;
-  flex: none;
-}
-
-.node {
-  max-width: 240px;
-  padding: 22px 27px;
-  border: 1px solid var(--nv-node-border);
-  /* Sketch nodes are about twice the height of the settings preview nodes the radius was tuned on. */
-  border-radius: calc(var(--node-radius) * 2);
-  background: color-mix(in srgb, var(--nv-node-bg) 94%, transparent);
-  color: var(--nv-node-text);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.45;
-  text-align: center;
-  box-shadow: 0 10px 30px color-mix(in srgb, var(--nv-shadow-ink) 8%, transparent);
-  outline: 0;
-  animation: nv-pop-in 0.22s ease-out both;
-}
-
-.node:focus-visible,
-.dragging .node {
-  border-color: var(--nv-accent-border);
-  box-shadow: 0 0 0 3px var(--nv-selection-ring);
-}
-
-.selectionFill .node:focus-visible,
-.selectionFill .dragging .node {
-  border-color: var(--nv-node-border);
-  background: var(--nv-node-selected-bg);
-  box-shadow: none;
-}
-
-.grip {
-  position: absolute;
-  top: -11px;
-  left: -11px;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 1px solid var(--nv-node-border);
-  border-radius: 8px;
-  background: var(--nv-node-bg);
-  color: var(--nv-edge);
-  box-shadow: 0 2px 6px color-mix(in srgb, var(--nv-shadow-ink) 10%, transparent);
-  opacity: 0;
-  cursor: grab;
-  touch-action: none;
-  transition: opacity 0.15s;
-}
-
-.grip:focus-visible {
-  outline: 2px solid var(--nv-focus-ring);
-  outline-offset: 2px;
-}
-
-.dragging .grip {
-  opacity: 1;
-  cursor: grabbing;
-}
-
-.nodeWrap:hover .grip,
-.nodeWrap:focus-within .grip {
-  opacity: 1;
-}
-
-.arrow {
-  display: flex;
-  flex: none;
-  align-items: center;
-  color: var(--nv-edge);
-}
-
-/* Connector shaft; the Phosphor arrow supplies the head. */
-.arrow::before {
-  content: "";
-  width: 26px;
-  border-top: 2px var(--edge-style) currentColor;
-}
-
-.vertical .arrow {
-  flex-direction: column;
-}
-
-.vertical .arrow::before {
-  width: 0;
-  height: 26px;
-  border-top: 0;
-  border-left: 2px var(--edge-style) currentColor;
 }
 
 /* composer */
@@ -611,13 +487,13 @@
 }
 
 .drawerStatus[data-status="done"] {
-  background: color-mix(in srgb, var(--nv-pal-mint-fill, #dff3ea) 80%, transparent);
-  color: var(--nv-pal-mint-text, #2f6b57);
+  background: var(--nv-success-soft);
+  color: var(--nv-success-text);
 }
 
 .drawerStatus[data-status="failed"] {
-  background: color-mix(in srgb, var(--nv-pal-coral-fill, #fde4dc) 80%, transparent);
-  color: var(--nv-pal-coral-text, #9a3b2a);
+  background: var(--nv-danger-soft);
+  color: var(--nv-danger);
 }
 
 .drawerEmpty {
@@ -689,11 +565,11 @@
 }
 
 .drawerActions li > svg {
-  color: var(--nv-pal-mint-text, #2f6b57);
+  color: var(--nv-success-text);
 }
 
 .drawerActions li[data-ok="false"] > svg {
-  color: var(--nv-pal-coral-text, #9a3b2a);
+  color: var(--nv-danger);
 }
 
 .drawerActions em,
@@ -703,7 +579,7 @@
 }
 
 .drawerIssues li[data-severity="error"] code {
-  color: var(--nv-pal-coral-text, #9a3b2a);
+  color: var(--nv-danger);
 }
 
 /* Change review bar (PRD 6.4): sits just above the composer after an AI run applied changes. */
@@ -773,42 +649,6 @@
   z-index: 20;
   display: flex;
   gap: 10px;
-}
-
-.zoom {
-  display: flex;
-  align-items: center;
-  width: 146px;
-  height: 42px;
-  border: 1px solid var(--nv-surface-border);
-  border-radius: 14px;
-  background: var(--nv-surface);
-  box-shadow: var(--nv-surface-shadow);
-}
-
-.zoom button {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 42px;
-  height: 100%;
-  border: 0;
-  background: none;
-  color: var(--nv-ink-2);
-  cursor: pointer;
-}
-
-.zoom button:disabled {
-  color: var(--nv-disabled);
-  cursor: default;
-}
-
-.zoom output {
-  flex: 1;
-  color: var(--nv-ink-soft);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
 }
 
 .fit {

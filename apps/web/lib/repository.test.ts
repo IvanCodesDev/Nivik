@@ -24,6 +24,18 @@ describe('openDiagram', () => {
     expect(await repo.get(diagramId)).toBeDefined();
   });
 
+  it('resolves two concurrent opens of a new id to the same record', async () => {
+    const diagramId = id();
+    const [a, b] = await Promise.all([
+      openDiagram(repo, diagramId, { name: 'First' }),
+      openDiagram(repo, diagramId, { name: 'Second' }),
+    ]);
+    expect(a.id).toBe(diagramId);
+    expect(b.id).toBe(diagramId);
+    expect(a.ir).toEqual(b.ir);
+    expect((await repo.list()).filter((d) => d.id === diagramId)).toHaveLength(1);
+  });
+
   it('reopens an existing diagram without touching its IR', async () => {
     const ir = createDiagram({ id: id(), name: 'Kept', type: 'flow' });
     await repo.create(ir);

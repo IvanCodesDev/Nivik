@@ -95,8 +95,9 @@ module.exports = {
     {
       name: 'web-must-not-import-agent-runtime',
       severity: 'error',
-      comment: 'The web app talks to the runtime over HTTP (@nivik/protocol), never by import.',
-      from: { path: '^apps/web/' },
+      comment:
+        'The web app talks to the runtime over HTTP (@nivik/protocol), never by import. Tests may drive the runtime in-process to prove both hosts behave alike.',
+      from: { path: '^apps/web/', pathNot: '\\.test\\.tsx?$' },
       to: { path: '^apps/agent/' },
     },
     {

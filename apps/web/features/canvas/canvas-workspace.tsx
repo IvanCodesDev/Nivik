@@ -18,7 +18,7 @@ import { Popover } from 'radix-ui';
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ChoiceDialog } from '@/components/choice-dialog';
 import { TopBar } from '@/components/top-bar';
-import { HttpAgentClient, LocalAgentClient } from '@/lib/agent-client';
+import { LocalAgentClient, resolveAgentClient } from '@/lib/agent-client';
 import { RENDERERS, type RendererId } from '@/lib/data/integrations';
 import { findTemplate } from '@/lib/data/templates';
 import { installDebugHook } from '@/lib/debug-hook';
@@ -32,6 +32,7 @@ import { useRunStore } from '@/lib/stores/run-store';
 import {
   canvasBackgroundVar,
   type SettingsRenderer,
+  useProviderKeys,
   useSettingsStore,
 } from '@/lib/stores/settings-store';
 import { useResolvedTheme } from '@/lib/theme/use-resolved-theme';
@@ -171,7 +172,8 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
       createRunOrchestrator({
         diagram: diagramStore,
         run: useRunStore,
-        client: () => new HttpAgentClient(savedRef.current.agentRuntimeUrl),
+        // Worker locally, HTTP when a runtime is configured (spec 07 §1.1); keys are read per run.
+        client: () => resolveAgentClient(savedRef.current, useProviderKeys.getState().keys),
         fallback: () => new LocalAgentClient(),
         onNotice: (notice) => notifyRef.current(notice),
       }),

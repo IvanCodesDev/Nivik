@@ -1,8 +1,10 @@
 import { type Agent, createDefaultDeps, createMockAgent } from '@nivik/agent';
+import { newRunId } from '@nivik/ir';
 import {
   type HealthResponse,
   HealthResponseSchema,
   PROTOCOL_VERSION,
+  type ProviderConfig,
   parseNdjsonStream,
   RUNTIME_ROUTES,
   type RunEvent,
@@ -11,6 +13,9 @@ import {
   RunRequestSchema,
   RuntimeErrorSchema,
 } from '@nivik/protocol';
+import { type WorkerOutbound, WorkerOutboundSchema } from '@/lib/agent-worker-protocol';
+import { agentBootstrap } from '@/lib/providers';
+import type { Settings } from '@/lib/stores/settings-store';
 
 /** Build-time default for development; users override it in Settings → AI & Models. */
 export const DEFAULT_AGENT_RUNTIME_URL =
@@ -128,6 +133,109 @@ export class LocalAgentClient implements AgentClient {
   }
 }
 
+/** What the Worker needs to resolve models for one run; assembled at `start()` so keys stay fresh. */
+export interface WorkerBootstrap {
+  providers: ProviderConfig[];
+  keys: Record<string, string>;
+  defaultProviderId: string | null;
+  runtimeUrl: string | null;
+}
+
+/** The slice of `Worker` the client uses, so tests can drive it with an in-process double. */
+export interface WorkerLike {
+  postMessage(message: unknown): void;
+  terminate(): void;
+  onmessage: ((event: MessageEvent<unknown>) => void) | null;
+  // biome-ignore lint/suspicious/noExplicitAny: matches the DOM `Worker.onerror` signature so a real Worker is assignable
+  onerror: ((event: any) => void) | null;
+}
+
+const spawnAgentWorker = (): WorkerLike =>
+  new Worker(new URL('../workers/agent.worker.ts', import.meta.url), { type: 'module' });
+
+/**
+ * Spec 07 §1.1 local mode: the agent runs in a dedicated Web Worker; events arrive by
+ * `postMessage` and cancelling the signal tells the Worker to abort. One Worker per run — it is
+ * terminated as soon as the stream ends, so a leaked run can never outlive its consumer.
+ */
+export class WorkerAgentClient implements AgentClient {
+  readonly #bootstrap: () => WorkerBootstrap;
+  readonly #spawn: () => WorkerLike;
+
+  constructor(bootstrap: () => WorkerBootstrap, spawn: () => WorkerLike = spawnAgentWorker) {
+    this.#bootstrap = bootstrap;
+    this.#spawn = spawn;
+  }
+
+  async *start(request: RunRequestInput, options: StartRunOptions = {}): AsyncGenerator<RunEvent> {
+    const worker = this.#spawn();
+    const queue: WorkerOutbound[] = [];
+    let wake: (() => void) | null = null;
+    const push = (message: WorkerOutbound) => {
+      queue.push(message);
+      wake?.();
+    };
+    worker.onmessage = (event) => {
+      const parsed = WorkerOutboundSchema.safeParse(event.data);
+      push(parsed.success ? parsed.data : { type: 'error', message: 'Malformed worker reply' });
+    };
+    worker.onerror = (event) => {
+      const message =
+        typeof ErrorEvent !== 'undefined' && event instanceof ErrorEvent
+          ? event.message
+          : 'Agent worker crashed';
+      push({ type: 'error', message });
+    };
+    const onAbort = () => worker.postMessage({ type: 'cancel' });
+    options.signal?.addEventListener('abort', onAbort, { once: true });
+    if (options.signal?.aborted) onAbort();
+
+    worker.postMessage({
+      type: 'start',
+      request: { ...request, runId: request.runId ?? newRunId() },
+      ...this.#bootstrap(),
+    });
+
+    try {
+      for (;;) {
+        if (queue.length === 0) {
+          await new Promise<void>((resolve) => {
+            wake = resolve;
+          });
+          wake = null;
+        }
+        while (queue.length > 0) {
+          const message = queue.shift() as WorkerOutbound;
+          if (message.type === 'event') yield message.event;
+          else if (message.type === 'end') return;
+          else throw new Error(message.message);
+        }
+      }
+    } finally {
+      options.signal?.removeEventListener('abort', onAbort);
+      worker.terminate();
+    }
+  }
+}
+
+/**
+ * Spec 07 §1.1 / 05 §9.4 host selection: a configured runtime (Settings, or the build-time
+ * `NEXT_PUBLIC_NIVIK_AGENT_URL`) means HTTP; otherwise the agent runs locally in a Worker, and on
+ * the main thread where Workers are unavailable.
+ */
+export function resolveAgentClient(
+  settings: Pick<Settings, 'agentRuntimeUrl' | 'providers' | 'defaultModel'>,
+  keys: Record<string, string>,
+): AgentClient {
+  const configured = settings.agentRuntimeUrl.trim();
+  const runtimeUrl = configured || process.env.NEXT_PUBLIC_NIVIK_AGENT_URL || null;
+  if (runtimeUrl) return new HttpAgentClient(runtimeUrl);
+  if (typeof Worker !== 'undefined') {
+    return new WorkerAgentClient(() => ({ ...agentBootstrap(settings, keys), runtimeUrl: null }));
+  }
+  return new LocalAgentClient();
+}
+
 async function throwRuntimeError(response: Response): Promise<never> {
   let code = 'HTTP_ERROR';
   let message = `${response.status} ${response.statusText}`.trim();
@@ -141,8 +249,4 @@ async function throwRuntimeError(response: Response): Promise<never> {
     // Non-JSON error body; keep the HTTP status text.
   }
   throw new AgentRuntimeError(response.status, code, message);
-}
-
-function newRunId(): string {
-  return `run_${crypto.randomUUID()}`;
 }

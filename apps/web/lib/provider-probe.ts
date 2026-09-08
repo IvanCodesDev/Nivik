@@ -1,3 +1,19 @@
+import {
+  createLanguageModel,
+  createTransportFetch,
+  type FetchLike,
+  listModels,
+  probeProvider,
+  toProviderError,
+} from '@nivik/agent/providers';
+import {
+  inferProviderKind,
+  type ProbeReport,
+  type ProviderConfig,
+  ProviderConfigSchema,
+  type RunError,
+} from '@nivik/protocol';
+import { APICallError, generateText } from 'ai';
 import type { ApiCompatibility } from '@/lib/stores/settings-store';
 
 /**
@@ -135,19 +151,23 @@ export interface ProbeFailure {
 
 export type ProbeResult<T> = ProbeSuccess<T> | ProbeFailure;
 
-function authHeaders(target: ProbeTarget): Record<string, string> {
-  switch (target.compatibility) {
-    case 'anthropic':
-      return {
-        'x-api-key': target.apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      };
-    case 'gemini':
-      return { 'x-goog-api-key': target.apiKey };
-    default:
-      return { Authorization: `Bearer ${target.apiKey}` };
-  }
+export interface ProbeOptions {
+  /** Agent Runtime to fall back to when the vendor refuses the browser (spec 05 §9.4 `auto`). */
+  runtimeUrl?: string | null;
+  fetch?: FetchLike;
+  signal?: AbortSignal;
+}
+
+/** The provider-layer view of a Settings form target; the model is whatever the user typed. */
+export function targetConfig(target: ProbeTarget, model: string): ProviderConfig {
+  return ProviderConfigSchema.parse({
+    id: 'probe',
+    name: 'probe',
+    kind: inferProviderKind(target.url, target.compatibility),
+    baseUrl: target.url,
+    model,
+    transport: 'auto',
+  });
 }
 
 function httpCode(status: number): ProbeErrorCode {
@@ -163,119 +183,100 @@ function httpCode(status: number): ProbeErrorCode {
   }
 }
 
-function describeError(error: unknown, apiKey: string): Pick<ProbeFailure, 'code' | 'detail'> {
-  if (error instanceof DOMException && error.name === 'AbortError') return { code: 'timeout' };
-  if (error instanceof TypeError) return { code: 'network' };
-  if (!(error instanceof Error)) return { code: 'unexpected' };
-  let detail = apiKey ? error.message.replaceAll(apiKey, '••••') : error.message;
-  if (detail.length > 240) detail = `${detail.slice(0, 237)}…`;
-  return { code: 'unexpected', detail };
+/** Spec 05 §10 codes → the Settings page's failure vocabulary. */
+export function probeFailureFor(error: unknown, elapsedMs: number): ProbeFailure {
+  const runError: RunError = toProviderError(error);
+  const cause = runError.cause;
+  if (APICallError.isInstance(cause) && cause.statusCode) {
+    return { ok: false, code: httpCode(cause.statusCode), elapsedMs };
+  }
+  switch (runError.code) {
+    case 'E_PROVIDER_AUTH':
+      return { ok: false, code: 'http-401', elapsedMs };
+    case 'E_PROVIDER_RATE_LIMIT':
+      return { ok: false, code: 'http-429', elapsedMs };
+    case 'E_PROVIDER_TIMEOUT':
+    case 'E_ABORTED':
+      return { ok: false, code: 'timeout', elapsedMs };
+    case 'E_PROVIDER_CORS':
+      return { ok: false, code: 'network', elapsedMs };
+    case 'E_NO_OBJECT':
+      return { ok: false, code: 'shape', elapsedMs };
+    default: {
+      const detail =
+        runError.message.length > 240 ? `${runError.message.slice(0, 237)}…` : runError.message;
+      return { ok: false, code: 'unexpected', detail, elapsedMs };
+    }
+  }
 }
 
-async function request<T>(
+function transportFor(target: ProbeTarget, model: string, opts: ProbeOptions) {
+  const config = targetConfig(target, model);
+  const transport = createTransportFetch({
+    mode: 'auto',
+    runtimeUrl: opts.runtimeUrl ?? null,
+    timeoutMs: PROBE_TIMEOUT_MS,
+    ...(opts.fetch ? { fetch: opts.fetch } : {}),
+  });
+  return { config, transport };
+}
+
+/** Lists model ids exposed by the provider (probe P1). */
+export async function fetchModels(
   target: ProbeTarget,
-  path: string,
-  init: RequestInit,
-  validate: (data: unknown) => data is T,
-): Promise<ProbeResult<T>> {
+  opts: ProbeOptions = {},
+): Promise<ProbeResult<string[]>> {
   const started = performance.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+  const { config, transport } = transportFor(target, 'probe', opts);
   try {
-    const response = await fetch(`${target.url}${path}`, {
-      ...init,
-      headers: { 'Content-Type': 'application/json', ...authHeaders(target) },
-      credentials: 'omit',
-      redirect: 'error',
-      referrerPolicy: 'no-referrer',
-      signal: controller.signal,
+    const result = await listModels(config, target.apiKey, {
+      transport,
+      ...(opts.signal ? { signal: opts.signal } : {}),
     });
-    const elapsedMs = Math.round(performance.now() - started);
-    if (!response.ok) return { ok: false, code: httpCode(response.status), elapsedMs };
-    const data: unknown = await response.json();
-    if (!validate(data)) return { ok: false, code: 'shape', elapsedMs };
-    return { ok: true, data, elapsedMs };
+    return { ok: true, data: result.models, elapsedMs: Math.round(performance.now() - started) };
   } catch (error) {
-    return {
-      ok: false,
-      ...describeError(error, target.apiKey),
-      elapsedMs: Math.round(performance.now() - started),
-    };
-  } finally {
-    clearTimeout(timer);
+    return probeFailureFor(error, Math.round(performance.now() - started));
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
-
-/** Lists model ids exposed by the provider. */
-export async function fetchModels(target: ProbeTarget): Promise<ProbeResult<string[]>> {
-  const result = await request(target, '/models', { method: 'GET' }, isRecord);
-  if (!result.ok) return result;
-  const data = result.data;
-  let ids: string[] = [];
-  if (target.compatibility === 'gemini' && Array.isArray(data.models)) {
-    ids = data.models
-      .map((m: unknown) => (isRecord(m) && typeof m.name === 'string' ? m.name : ''))
-      .map((name) => name.replace(/^models\//, ''));
-  } else if (Array.isArray(data.data)) {
-    ids = data.data.map((m: unknown) => (isRecord(m) && typeof m.id === 'string' ? m.id : ''));
-  }
-  return { ok: true, data: ids.filter(Boolean).sort(), elapsedMs: result.elapsedMs };
-}
-
-/** Sends one tiny completion request to prove the key + model pair works. */
+/** Sends one tiny completion request to prove the key + model pair works (probe P2). */
 export async function testConnection(
   target: ProbeTarget,
   model: string,
+  opts: ProbeOptions = {},
 ): Promise<ProbeResult<true>> {
-  const encodedModel = encodeURIComponent(model);
-  let result: ProbeResult<Record<string, unknown>>;
-  switch (target.compatibility) {
-    case 'anthropic':
-      result = await request(
-        target,
-        '/messages',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            model,
-            max_tokens: 16,
-            messages: [{ role: 'user', content: 'Reply with OK.' }],
-          }),
-        },
-        (data): data is Record<string, unknown> => isRecord(data) && Array.isArray(data.content),
-      );
-      break;
-    case 'gemini':
-      result = await request(
-        target,
-        `/models/${encodedModel}:generateContent`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: 'Reply with OK.' }] }],
-            generationConfig: { maxOutputTokens: 16 },
-          }),
-        },
-        (data): data is Record<string, unknown> => isRecord(data) && Array.isArray(data.candidates),
-      );
-      break;
-    default:
-      result = await request(
-        target,
-        '/chat/completions',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            model,
-            max_tokens: 16,
-            messages: [{ role: 'user', content: 'Reply with OK.' }],
-          }),
-        },
-        (data): data is Record<string, unknown> => isRecord(data) && Array.isArray(data.choices),
-      );
+  const started = performance.now();
+  const { config, transport } = transportFor(target, model, opts);
+  try {
+    const languageModel = createLanguageModel(config, {
+      apiKey: target.apiKey,
+      fetch: transport.fetch,
+      transport: 'direct',
+    });
+    await generateText({
+      model: languageModel,
+      prompt: 'Reply with OK',
+      maxOutputTokens: 8,
+      maxRetries: 0,
+      timeout: PROBE_TIMEOUT_MS,
+      ...(opts.signal ? { abortSignal: opts.signal } : {}),
+    });
+    return { ok: true, data: true, elapsedMs: Math.round(performance.now() - started) };
+  } catch (error) {
+    return probeFailureFor(error, Math.round(performance.now() - started));
   }
-  return result.ok ? { ok: true, data: true, elapsedMs: result.elapsedMs } : result;
+}
+
+/** The full spec 05 §9.3 report (P1–P4, P5 on request) for the Settings capability panel (task 1.10). */
+export function probeCapabilities(
+  target: ProbeTarget,
+  model: string,
+  opts: ProbeOptions & { vision?: boolean } = {},
+): Promise<ProbeReport> {
+  const { config, transport } = transportFor(target, model, opts);
+  return probeProvider(config, target.apiKey, {
+    transport,
+    ...(opts.vision ? { vision: true } : {}),
+    ...(opts.signal ? { signal: opts.signal } : {}),
+  });
 }

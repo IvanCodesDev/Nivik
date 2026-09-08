@@ -19,6 +19,7 @@
     "deps": "depcruise apps packages --config .dependency-cruiser.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "hint:glyphs": "node scripts/hint-glyphs.mjs",
     "prepare": "node .githooks/install.mjs",
     "hooks:install": "node .githooks/install.mjs",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
+    "@playwright/test": "1.63.0",
     "dependency-cruiser": "18.2.0",
     "fontkit": "^2.0.4",
     "happy-dom": "^20.14.0",

@@ -41,3 +41,38 @@ jobs:
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+
+  # Browser smoke test of the canvas (spec 08 §3 task 1.9). Runs against the dev server with no
+  # Agent Runtime: the canvas falls back to the in-page mock agent.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Canvas smoke test (Playwright)
+        run: pnpm test:e2e
+        env:
+          CI: 'true'
+          NEXT_TELEMETRY_DISABLED: '1'
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

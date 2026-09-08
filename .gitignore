@@ -11,6 +11,11 @@ coverage/
 next-env.d.ts
 *.log
 
+# Playwright output
+test-results/
+playwright-report/
+blob-report/
+
 # env / credentials
 .env
 .env.*

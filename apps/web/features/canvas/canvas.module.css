@@ -124,11 +124,22 @@
 }
 
 /*
+ * The canvas is a fixed, full-bleed surface. The shell pages reserve scrollbar gutters on both
+ * edges (`globals.css`) so their columns never shift; here that would leave two page-coloured
+ * strips beside the canvas, so the gutters are dropped while a workspace is mounted.
+ */
+:global(html):has(.workspace) {
+  scrollbar-gutter: auto;
+  overflow: hidden;
+}
+
+/*
  * The renderer adapter mounts into this box; it must be positioned and sized (Excalidraw fills it).
- * The canvas runs edge to edge under Nivik's floating chrome (logo, page switcher, bell, avatar
- * along the top; help, composer and controls along the bottom). The renderer's own rows are moved
- * so they never share a line with it: its toolbar drops below the top-bar row, its footer (zoom,
- * undo/redo, shortcuts help) keeps the bottom corners while Nivik's controls sit one row up.
+ * The canvas runs edge to edge under Nivik's floating chrome: logo and page switcher at the top
+ * left, bell and avatar at the top right, with Excalidraw's tool strip centred on the same line
+ * (its 16px offset lines its 44px island up with the 46px top-bar controls). Along the bottom the
+ * renderer's footer (zoom, undo/redo, shortcuts help) keeps the corners and Nivik's controls sit
+ * one row up, level with the composer.
  */
 .renderer {
   position: fixed;
@@ -136,8 +147,11 @@
   z-index: 1;
 }
 
-.renderer :global(.excalidraw .App-menu_top) {
-  margin-top: calc(var(--nv-topbar-height) - 16px);
+/* Narrow windows: the tool strip would run into the page switcher, so it takes the next row. */
+@media (max-width: 1240px) {
+  .renderer :global(.excalidraw .App-menu_top) {
+    margin-top: calc(var(--nv-topbar-height) - 16px);
+  }
 }
 
 /*

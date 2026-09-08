@@ -140,9 +140,17 @@
   z-index: 1;
 }
 
-/* Narrow windows: the tool strip would run into the page switcher, so it takes the next row. */
+/*
+ * The shape-properties column is tall and hugs the left edge, where the logo and page switcher
+ * float, so it always starts below that band. The tool strip is short and centred: it shares the
+ * band until the window is narrow enough for the page switcher to reach it.
+ */
+.renderer :global(.excalidraw .App-menu_top__left) {
+  margin-top: calc(var(--nv-topbar-height) - 16px);
+}
+
 @media (max-width: 1240px) {
-  .renderer :global(.excalidraw .App-menu_top) {
+  .renderer :global(.excalidraw .App-menu_top .shapes-section) {
     margin-top: calc(var(--nv-topbar-height) - 16px);
   }
 }

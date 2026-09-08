@@ -4,7 +4,9 @@ import {
   NDJSON_CONTENT_TYPE,
   ndjsonReadableStream,
   PROTOCOL_VERSION,
+  PROXY_HEADERS,
   RUN_ID_HEADER,
+  RUNTIME_ROUTES,
   type RunEvent,
   RunRequestSchema,
   type RuntimeError,
@@ -12,6 +14,7 @@ import {
 import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
+import { type ProxyFetch, proxyHandler } from './routes/proxy';
 import { RunCapacityError, RunConflictError, RunRegistry } from './runs/registry';
 
 export interface AppOptions {
@@ -20,6 +23,10 @@ export interface AppOptions {
   webOrigins?: string[];
   version?: string;
   log?: (message: string, data?: Record<string, unknown>) => void;
+  /** Outbound fetch for the LLM proxy; injected so tests never leave the process. */
+  fetch?: ProxyFetch;
+  /** Spec 06 §6.2: loopback upstreams (self-hosted models) — off in production unless enabled. */
+  proxyAllowLocalhost?: boolean;
 }
 
 export interface AppContext {
@@ -38,9 +45,18 @@ export function createApp(options: AppOptions): AppContext {
     cors({
       origin: webOrigins,
       allowMethods: ['GET', 'POST', 'OPTIONS'],
-      allowHeaders: ['content-type'],
-      exposeHeaders: [RUN_ID_HEADER],
+      allowHeaders: ['content-type', 'accept', ...Object.values(PROXY_HEADERS)],
+      exposeHeaders: [RUN_ID_HEADER, 'x-request-id'],
       maxAge: 600,
+    }),
+  );
+
+  app.post(
+    RUNTIME_ROUTES.proxy,
+    proxyHandler({
+      fetch: options.fetch ?? ((input, init) => globalThis.fetch(input, init)),
+      allowLocalhost: options.proxyAllowLocalhost ?? false,
+      log: (entry) => log('proxy', { ...entry }),
     }),
   );
 

@@ -8,6 +8,17 @@ export const RUNTIME_ROUTES = {
   runs: '/v1/runs',
   run: (runId: string) => `/v1/runs/${encodeURIComponent(runId)}`,
   cancel: (runId: string) => `/v1/runs/${encodeURIComponent(runId)}/cancel`,
+  /** Spec 06 §6.2 stateless LLM proxy; upstream and credentials travel in `PROXY_HEADERS`. */
+  proxy: '/v1/proxy/llm',
+} as const;
+
+/** Request headers understood by the LLM proxy (spec 06 §6.2). */
+export const PROXY_HEADERS = {
+  upstream: 'x-nivik-upstream',
+  authorization: 'x-nivik-authorization',
+  /** JSON object of extra credential headers (`x-api-key`, `anthropic-version`, …). */
+  headers: 'x-nivik-headers',
+  timeoutMs: 'x-nivik-timeout-ms',
 } as const;
 
 /** Response header carrying the runId of a streaming `POST /v1/runs`. */
@@ -40,7 +51,7 @@ export type HealthResponse = z.infer<typeof HealthResponseSchema>;
 /** Body of every non-2xx JSON response from the runtime. */
 export const RuntimeErrorSchema = z.object({
   error: z.object({
-    code: z.enum(['BAD_REQUEST', 'NOT_FOUND', 'CONFLICT', 'INTERNAL']),
+    code: z.enum(['BAD_REQUEST', 'NOT_FOUND', 'CONFLICT', 'FORBIDDEN', 'UPSTREAM', 'INTERNAL']),
     message: z.string(),
     issues: z.array(z.object({ path: z.string(), message: z.string() })).optional(),
   }),

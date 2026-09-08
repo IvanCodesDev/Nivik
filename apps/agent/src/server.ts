@@ -25,6 +25,7 @@ const { app, registry } = createApp({
   agent,
   webOrigins: config.webOrigins,
   version: config.version,
+  proxyAllowLocalhost: config.proxyAllowLocalhost,
   log,
 });
 
@@ -32,6 +33,7 @@ const server = serve({ fetch: app.fetch, hostname: config.host, port: config.por
   log(`listening on http://${info.address}:${info.port}`, {
     webOrigins: config.webOrigins,
     agent: 'mock',
+    proxyAllowLocalhost: config.proxyAllowLocalhost,
   });
 });
 

@@ -154,3 +154,195 @@ describe('run lifecycle', () => {
     expect(registry.get('run_drop_00001')?.status).toBe('aborted');
   });
 });
+
+describe('POST /v1/proxy/llm (spec 06 §6.2)', () => {
+  interface Upstream {
+    url: string;
+    method: string;
+    headers: Record<string, string>;
+    body: string;
+  }
+
+  function buildProxy(
+    respond: (seen: Upstream) => Response | Error = () =>
+      new Response('{"ok":true}', { status: 200, headers: { 'content-type': 'application/json' } }),
+    proxyAllowLocalhost = false,
+  ) {
+    const seen: Upstream[] = [];
+    const logs: Record<string, unknown>[] = [];
+    const fetch = async (input: string | URL, init?: RequestInit) => {
+      const request = new Request(input, init);
+      const headers: Record<string, string> = {};
+      request.headers.forEach((value, name) => {
+        headers[name] = value;
+      });
+      const entry = {
+        url: request.url,
+        method: request.method,
+        headers,
+        body: await request.text(),
+      };
+      seen.push(entry);
+      const out = respond(entry);
+      if (out instanceof Error) throw out;
+      return out;
+    };
+    const ctx = createApp({
+      agent: createMockAgent(createDefaultDeps(), { paceMs: 0 }),
+      registry: new RunRegistry(),
+      webOrigins: [ORIGIN],
+      fetch,
+      proxyAllowLocalhost,
+      log: (message, data) => {
+        if (message === 'proxy' && data) logs.push(data);
+      },
+    });
+    return { app: ctx.app, seen, logs };
+  }
+
+  const UPSTREAM = 'https://api.moonshot.cn/v1/chat/completions';
+  const call = (
+    app: ReturnType<typeof buildProxy>['app'],
+    headers: Record<string, string>,
+    body = '{"a":1}',
+  ) =>
+    app.request('/v1/proxy/llm', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: ORIGIN, ...headers },
+      body,
+    });
+
+  it('forwards body and credentials to the upstream and passes the reply through', async () => {
+    const { app, seen, logs } = buildProxy();
+    const res = await call(app, {
+      'x-nivik-upstream': UPSTREAM,
+      'x-nivik-authorization': 'Bearer sk-1',
+      'x-nivik-headers': JSON.stringify({ 'x-api-key': 'k', 'anthropic-version': '2023-06-01' }),
+      'x-nivik-timeout-ms': '30000',
+      cookie: 'session=abc',
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+    expect(res.headers.get('content-type')).toContain('application/json');
+    expect(res.headers.get('cache-control')).toBe('no-store');
+
+    const upstream = seen[0];
+    expect(upstream?.url).toBe(UPSTREAM);
+    expect(upstream?.method).toBe('POST');
+    expect(upstream?.body).toBe('{"a":1}');
+    expect(upstream?.headers.authorization).toBe('Bearer sk-1');
+    expect(upstream?.headers['x-api-key']).toBe('k');
+    expect(upstream?.headers['anthropic-version']).toBe('2023-06-01');
+    expect(upstream?.headers['content-type']).toBe('application/json');
+    for (const name of Object.keys(upstream?.headers ?? {})) {
+      expect(name.startsWith('x-nivik-')).toBe(false);
+    }
+    expect(upstream?.headers.origin).toBeUndefined();
+    expect(upstream?.headers.cookie).toBeUndefined();
+
+    expect(logs).toEqual([
+      { upstreamHost: 'api.moonshot.cn', status: 200, durationMs: expect.any(Number) },
+    ]);
+    expect(JSON.stringify(logs)).not.toContain('sk-1');
+  });
+
+  it('streams the upstream body chunk by chunk', async () => {
+    const chunks = ['data: 1\n\n', 'data: 2\n\n', 'data: [DONE]\n\n'];
+    const { app } = buildProxy(
+      () =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              for (const chunk of chunks) controller.enqueue(new TextEncoder().encode(chunk));
+              controller.close();
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'text/event-stream' } },
+        ),
+    );
+    const res = await call(app, {
+      'x-nivik-upstream': UPSTREAM,
+      'x-nivik-authorization': 'Bearer x',
+    });
+    expect(res.headers.get('content-type')).toBe('text/event-stream');
+    expect(await res.text()).toBe(chunks.join(''));
+  });
+
+  it('rejects requests without an upstream or with a malformed header envelope', async () => {
+    const { app, seen } = buildProxy();
+    const missing = await call(app, {});
+    expect(missing.status).toBe(400);
+    expect(RuntimeErrorSchema.parse(await missing.json()).error.code).toBe('BAD_REQUEST');
+
+    const badHeaders = await call(app, {
+      'x-nivik-upstream': UPSTREAM,
+      'x-nivik-headers': '[1,2]',
+    });
+    expect(badHeaders.status).toBe(400);
+    expect(seen).toHaveLength(0);
+  });
+
+  it('refuses private, loopback (when disabled) and plain-http upstreams', async () => {
+    const { app, seen } = buildProxy();
+    for (const upstream of [
+      'https://10.0.0.1/v1/chat/completions',
+      'https://169.254.169.254/latest/meta-data',
+      'https://[fd00::1]/v1',
+      'http://localhost:11434/v1/chat/completions',
+      'http://api.openai.com/v1/chat/completions',
+    ]) {
+      const res = await call(app, { 'x-nivik-upstream': upstream });
+      expect(res.status).toBe(403);
+      expect(RuntimeErrorSchema.parse(await res.json()).error.code).toBe('FORBIDDEN');
+    }
+    expect(seen).toHaveLength(0);
+  });
+
+  it('allows loopback upstreams when the runtime enables them', async () => {
+    const { app, seen } = buildProxy(undefined, true);
+    const res = await call(app, {
+      'x-nivik-upstream': 'http://localhost:11434/v1/chat/completions',
+    });
+    expect(res.status).toBe(200);
+    expect(seen[0]?.url).toBe('http://localhost:11434/v1/chat/completions');
+  });
+
+  it('reports upstream failures as 502 without leaking details', async () => {
+    const { app, logs } = buildProxy(() => new TypeError('connect ECONNREFUSED sk-secret'));
+    const res = await call(app, {
+      'x-nivik-upstream': UPSTREAM,
+      'x-nivik-authorization': 'Bearer sk-secret',
+    });
+    expect(res.status).toBe(502);
+    const body = RuntimeErrorSchema.parse(await res.json());
+    expect(body.error.code).toBe('UPSTREAM');
+    expect(JSON.stringify(body)).not.toContain('sk-secret');
+    expect(logs[0]).toMatchObject({ upstreamHost: 'api.moonshot.cn', status: 0 });
+  });
+
+  it('is only reachable from the allowed web origin', async () => {
+    const { app } = buildProxy();
+    const preflight = await app.request('/v1/proxy/llm', {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'https://evil.example',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'x-nivik-upstream',
+      },
+    });
+    expect(preflight.headers.get('access-control-allow-origin')).toBeNull();
+
+    const allowed = await app.request('/v1/proxy/llm', {
+      method: 'OPTIONS',
+      headers: {
+        origin: ORIGIN,
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'x-nivik-upstream',
+      },
+    });
+    expect(allowed.headers.get('access-control-allow-origin')).toBe(ORIGIN);
+    expect(allowed.headers.get('access-control-allow-headers')?.toLowerCase()).toContain(
+      'x-nivik-upstream',
+    );
+  });
+});

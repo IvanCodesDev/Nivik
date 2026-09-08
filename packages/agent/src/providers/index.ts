@@ -2,6 +2,15 @@ export { toProviderError } from './errors';
 export { type CreateModelOptions, createLanguageModel } from './factory';
 export { createMockModel, type MockModelOptions, type MockTurn } from './mock';
 export {
+  contextLengthFor,
+  DEFAULT_CONTEXT_LENGTH,
+  KNOWN_CONTEXT_LENGTHS,
+  type ListModelsResult,
+  listModels,
+  type ProbeOptions,
+  probeProvider,
+} from './probe';
+export {
   AUTHORIZATION_HEADER,
   CREDENTIAL_HEADER_PATTERN,
   createTransportFetch,

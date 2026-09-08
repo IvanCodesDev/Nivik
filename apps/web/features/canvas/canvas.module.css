@@ -125,17 +125,19 @@
 
 /*
  * The renderer adapter mounts into this box; it must be positioned and sized (Excalidraw fills it).
- * It starts below the top bar so the renderer's own top toolbar never sits under Nivik's chrome;
- * the bottom row (zoom, undo/redo, help) keeps the corners, so Nivik's floating controls live one
- * row up, level with the composer.
+ * The canvas runs edge to edge under Nivik's floating chrome (logo, page switcher, bell, avatar
+ * along the top; help, composer and controls along the bottom). The renderer's own rows are moved
+ * so they never share a line with it: its toolbar drops below the top-bar row, its footer (zoom,
+ * undo/redo, shortcuts help) keeps the bottom corners while Nivik's controls sit one row up.
  */
 .renderer {
   position: fixed;
-  top: var(--nv-topbar-height);
-  right: 0;
-  bottom: 0;
-  left: 0;
+  inset: 0;
   z-index: 1;
+}
+
+.renderer :global(.excalidraw .App-menu_top) {
+  margin-top: calc(var(--nv-topbar-height) - 16px);
 }
 
 /*

@@ -1,17 +1,24 @@
 import { RunError } from '@nivik/protocol';
+import type { LanguageModel } from 'ai';
+import type { StageName } from './harness/stage';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+/** Spec 05 §9.5 / §12.1: which model a stage talks to; the host builds it from the provider layer. */
+export type ModelResolver = (stage: StageName) => LanguageModel;
 
 /**
  * Everything the core needs from its host. Both hosts (browser Worker and the Node runtime)
  * implement this; the core itself never touches timers, crypto or the network directly.
- * The model factory (`model(stage)`) joins this interface with the provider layer (task 1.5).
+ * `model` is optional so model-free agents (the mock) keep working; stages that need one get
+ * `E_INTERNAL` when it is missing.
  */
 export interface AgentDeps {
   now(): number;
   sleep(ms: number, signal?: AbortSignal): Promise<void>;
   newRunId(): string;
   log(level: LogLevel, message: string, data?: Record<string, unknown>): void;
+  model?: ModelResolver;
 }
 
 /** Standard-library implementation; works unchanged in browsers, Workers and Node ≥ 20. */

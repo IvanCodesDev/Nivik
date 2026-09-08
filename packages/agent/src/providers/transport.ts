@@ -1,7 +1,7 @@
 import { RunError } from '@nivik/protocol';
 
 export type TransportMode = 'auto' | 'direct' | 'proxy';
-export type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+export type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 export interface TransportOptions {
   mode: TransportMode;
@@ -72,7 +72,7 @@ export function toProxyRequest(
 
 /** Normalises the three `fetch(input)` shapes into a url plus init the proxy rewrite understands. */
 async function normalise(
-  input: RequestInfo | URL,
+  input: string | URL | Request,
   init: RequestInit | undefined,
 ): Promise<{ url: string; init: RequestInit | undefined }> {
   if (typeof input === 'string') return { url: input, init };

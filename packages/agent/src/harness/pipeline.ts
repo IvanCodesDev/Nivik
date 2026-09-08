@@ -30,6 +30,7 @@ export async function* runStage<I, O>(
       sleep: (ms) => ctx.deps.sleep(ms, signal),
       redact: ctx.redact,
       log: (message, data) => ctx.deps.log('debug', `[${stage.name}] ${message}`, data),
+      model: () => ctx.model(stage.name),
     };
 
     try {

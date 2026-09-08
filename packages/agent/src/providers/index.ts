@@ -11,6 +11,12 @@ export {
   probeProvider,
 } from './probe';
 export {
+  createModelResolver,
+  type ModelResolverOptions,
+  type ResolveModelOptions,
+  resolveProvider,
+} from './resolve';
+export {
   AUTHORIZATION_HEADER,
   CREDENTIAL_HEADER_PATTERN,
   createTransportFetch,

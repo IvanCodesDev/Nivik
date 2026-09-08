@@ -4,6 +4,7 @@ export {
   abortError,
   createDefaultDeps,
   type LogLevel,
+  type ModelResolver,
   sleepWithSignal,
 } from './deps';
 export { type BudgetLimits, BudgetTracker } from './harness/budget';
@@ -14,6 +15,7 @@ export {
   throwIfAborted,
   toRunError,
 } from './harness/context';
+export { callModel, type ModelCallResult } from './harness/model';
 export { runPipeline, runStage } from './harness/pipeline';
 export { redact } from './harness/redact';
 export type { Stage, StageContext, StageName } from './harness/stage';

@@ -1,4 +1,5 @@
 import type { RunErrorCode, RunEvent } from '@nivik/protocol';
+import type { LanguageModel } from 'ai';
 import type { BudgetLimits, BudgetTracker } from './budget';
 
 export type StageName = 'plan' | 'build' | 'repair' | 'review' | 'explain';
@@ -24,4 +25,6 @@ export interface StageContext {
   sleep(ms: number): Promise<void>;
   redact(text: string): string;
   log(message: string, data?: Record<string, unknown>): void;
+  /** The model this stage should call (spec 05 §9.5 routing happens in the host's resolver). */
+  model(): LanguageModel;
 }

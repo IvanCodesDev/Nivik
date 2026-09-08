@@ -1,8 +1,10 @@
 import { RunError } from '@nivik/protocol';
+import type { LanguageModel } from 'ai';
 import type { AgentDeps } from '../deps';
 import { abortError } from '../deps';
 import { type BudgetLimits, BudgetTracker } from './budget';
 import { redact } from './redact';
+import type { StageName } from './stage';
 
 /** Run-scoped state shared by every stage of one run. */
 export interface RunContext {
@@ -11,6 +13,8 @@ export interface RunContext {
   readonly budget: BudgetTracker;
   readonly signal: AbortSignal;
   redact(text: string): string;
+  /** Spec 05 §12.1: the model for a stage, resolved by the host (`AgentDeps.model`). */
+  model(stage: StageName): LanguageModel;
 }
 
 export interface CreateRunContextOptions {
@@ -27,6 +31,16 @@ export function createRunContext(options: CreateRunContextOptions): RunContext {
     budget: new BudgetTracker(options.limits, options.deps.now),
     signal: options.signal ?? new AbortController().signal,
     redact,
+    model(stage) {
+      const resolver = options.deps.model;
+      if (!resolver) {
+        throw new RunError(
+          'E_INTERNAL',
+          `No model configured for this run (stage "${stage}" needs one)`,
+        );
+      }
+      return resolver(stage);
+    },
   };
 }
 

@@ -26,7 +26,6 @@ import {
   setFavorite,
 } from '@/lib/library-actions';
 import { getRepository } from '@/lib/repository';
-import { DiagramDetailsDialog } from './diagram-details';
 import styles from './library.module.css';
 
 interface DiagramGridProps {
@@ -37,7 +36,6 @@ interface DiagramGridProps {
 type Pending =
   | { kind: 'menu'; item: LibraryItem }
   | { kind: 'rename'; item: LibraryItem }
-  | { kind: 'details'; item: LibraryItem }
   | { kind: 'export'; item: LibraryItem }
   | { kind: 'delete'; item: LibraryItem }
   | null;
@@ -143,7 +141,7 @@ export function DiagramGrid({ diagrams, emptyText }: DiagramGridProps) {
           return item.favorite ? t.library.unfavorited(item.name) : t.library.favorited(item.name);
         }),
     },
-    { label: t.library.viewDetails, onSelect: () => setPending({ kind: 'details', item }) },
+    { label: t.library.viewDetails, onSelect: () => router.push(`/diagram/${item.id}`) },
     { label: t.library.export, onSelect: () => setPending({ kind: 'export', item }) },
     {
       label: t.library.delete,
@@ -203,12 +201,6 @@ export function DiagramGrid({ diagrams, emptyText }: DiagramGridProps) {
             return t.library.renamed(record.name);
           });
         }}
-      />
-
-      <DiagramDetailsDialog
-        open={pending?.kind === 'details'}
-        onOpenChange={closePending}
-        item={pending?.kind === 'details' ? pending.item : null}
       />
 
       <ChoiceDialog

@@ -44,3 +44,43 @@ export { type TrimOptions, trimMessages } from './harness/trim';
 export { createMockAgent, type MockAgentOptions } from './mock/mock-agent';
 export { splitSteps } from './mock/steps';
 export { diagramPatchFromPlan } from './stages/plan-patch';
+export {
+  type ActionOutcome,
+  type ApplyActionsResult,
+  createDocuments,
+  type Documents,
+  type DocumentsOptions,
+  type RejectedAction,
+  type StagingDoc,
+} from './tools/documents';
+export {
+  type ConvergedDocument,
+  type Convergence,
+  converge,
+  type FinishInput,
+} from './tools/finish';
+export {
+  type DescribeInput,
+  describe,
+  type ElementKind,
+  type FindElementsInput,
+  type FoundElement,
+  findElements,
+} from './tools/read';
+export {
+  createTools,
+  stageOf,
+  summarizeToolResult,
+  TOOL_NAMES,
+  type ToolContext,
+  type ToolName,
+  type ToolState,
+} from './tools/registry';
+export {
+  chunkSource,
+  type ReadSourceInput,
+  readSource,
+  type SearchHit,
+  type SourceChunk,
+  searchSources,
+} from './tools/sources';

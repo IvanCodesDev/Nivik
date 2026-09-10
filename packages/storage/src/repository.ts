@@ -17,7 +17,13 @@ import {
   type StoragePolicy,
   versionsToPrune,
 } from './policy';
-import type { ChangeSetRecord, DiagramRecord, VersionReason, VersionRecord } from './records';
+import type {
+  ChangeSetRecord,
+  DiagramRecord,
+  SourceRecord,
+  VersionReason,
+  VersionRecord,
+} from './records';
 
 export type StorageErrorCode =
   | 'E_DIAGRAM_NOT_FOUND'
@@ -138,6 +144,11 @@ export class DiagramRepository {
   async list(): Promise<DiagramSummary[]> {
     const rows = await this.db.diagrams.orderBy('updatedAt').reverse().toArray();
     return rows.map(({ ir: _ir, thumbnail: _thumbnail, ...summary }) => summary);
+  }
+
+  /** Context sources attached to a diagram (spec 06 §2.1), in insertion order. */
+  listSources(id: Id): Promise<SourceRecord[]> {
+    return this.db.sources.where('diagramId').equals(id).toArray();
   }
 
   /** Deletes the diagram with its snapshots, change sets, runs and sources. */

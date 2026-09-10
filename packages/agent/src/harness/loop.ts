@@ -15,7 +15,8 @@ import { type TrimOptions, trimMessages } from './trim';
 
 export interface ToolLoopOptions {
   model: LanguageModel;
-  system: string;
+  /** Static, or re-read before every step (hint packs join once the plan names a type). */
+  system: string | (() => string);
   messages: ModelMessage[];
   tools: ToolSet;
   budget: SoftBudget;
@@ -71,9 +72,11 @@ export async function runToolLoop(opts: ToolLoopOptions): Promise<ToolLoopResult
   let aborted = false;
   let steps = 0;
 
+  const systemNow = () => (typeof opts.system === 'function' ? opts.system() : opts.system);
+
   const result = streamText({
     model: opts.model,
-    system: opts.system,
+    system: systemNow(),
     messages: opts.messages,
     tools: opts.tools,
     abortSignal: opts.signal,
@@ -83,11 +86,10 @@ export async function runToolLoop(opts: ToolLoopOptions): Promise<ToolLoopResult
     prepareStep: ({ messages }) => {
       const trimmed = trimMessages(messages, { ...opts.trim, summarize });
       const wrappingUp = opts.budget.phase() !== 'normal';
+      const system = systemNow();
       return {
         messages: trimmed,
-        ...(wrappingUp
-          ? { system: `${opts.system}\n\n${opts.wrapUpNotice ?? DEFAULT_WRAP_UP}` }
-          : {}),
+        system: wrappingUp ? `${system}\n\n${opts.wrapUpNotice ?? DEFAULT_WRAP_UP}` : system,
       };
     },
   });

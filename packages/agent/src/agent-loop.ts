@@ -1,5 +1,5 @@
 import { toReadout } from '@nivik/ir';
-import { RunError, type RunEvent, type RunRequest } from '@nivik/protocol';
+import { type Plan, RunError, type RunEvent, type RunRequest } from '@nivik/protocol';
 import type { ModelMessage } from 'ai';
 import type { Agent, RunOptions } from './agent';
 import type { AgentDeps } from './deps';
@@ -9,25 +9,30 @@ import { runToolLoop, type ToolLoopResult } from './harness/loop';
 import { createQuestions } from './harness/questions';
 import type { Transcript } from './harness/recorder';
 import { SoftBudget } from './harness/soft-budget';
+import { buildSystemPrompt } from './prompts/system';
 import { createDocuments } from './tools/documents';
 import { converge } from './tools/finish';
 import {
   createTools,
   stageOf,
   summarizeToolResult,
-  TOOL_NAMES,
   type ToolState,
+  toolNamesFor,
 } from './tools/registry';
 
 export interface SystemPromptInput {
   request: RunRequest;
   tools: readonly string[];
+  /** The plan so far — the prompt is rebuilt before every step so hint packs can join. */
+  plan: Plan | null;
 }
 
 export interface LoopAgentOptions {
-  /** Builds the system prompt; the default is the minimal one below (task 1.7 supplies the real one). */
+  /** Builds the system prompt; the default is spec 05 §4.3 (`buildSystemPrompt`). */
   system?(input: SystemPromptInput): string;
   keepRecentSteps?: number;
+  /** Sub-agent call timeout; default 30 s. */
+  subagentTimeoutMs?: number;
   /** Called with the transcript when a run ends, however it ends (recording, RunRecord). */
   onTranscript?(runId: string, transcript: Transcript): void;
 }
@@ -39,15 +44,12 @@ export interface LoopAgent extends Agent {
   pendingQuestions(): { questionId: string; text: string }[];
 }
 
-const MINIMAL_SYSTEM = (input: SystemPromptInput): string =>
-  [
-    'You edit structured diagrams for a user. You work in a loop with tools.',
-    'The only way to change a diagram is the applyActions tool; read its result and fix what was rejected.',
-    'Use setPlan first to say what you intend to do. Use findElements / describe / searchSources / readSource when the Readout is not enough.',
-    'Ask the user with the ask tool only for decisions they must make. When the work is complete, call finish with a short summary.',
-    `Tools available: ${input.tools.join(', ')}.`,
-    'You have no step limit, but a token / time budget; when told the budget is almost spent, call finish immediately.',
-  ].join('\n');
+const DEFAULT_SYSTEM = (input: SystemPromptInput): string =>
+  buildSystemPrompt({
+    tools: input.tools,
+    capabilities: input.request.capabilities,
+    plan: input.plan,
+  });
 
 /**
  * D14′ / spec 05 §1.1: the open tool loop as an `Agent`. One `run` = one `runToolLoop`; the
@@ -80,11 +82,26 @@ export function createLoopAgent(deps: AgentDeps, opts: LoopAgentOptions = {}): L
         active = questions;
         const documents = createDocuments(request.diagram, { now: deps.now, runId });
         const state: ToolState = { plan: null, finish: null };
-        const tools = createTools(
-          { runId, documents, sources: request.sources, questions, budget, emit, now: deps.now },
-          state,
-        );
-        const system = (opts.system ?? MINIMAL_SYSTEM)({ request, tools: TOOL_NAMES });
+        const context = {
+          runId,
+          documents,
+          sources: request.sources,
+          questions,
+          budget,
+          emit,
+          now: deps.now,
+          request: request.prompt,
+          canAsk: request.capabilities.ask,
+          subagents: {
+            model: resolver,
+            signal,
+            ...(opts.subagentTimeoutMs !== undefined ? { timeoutMs: opts.subagentTimeoutMs } : {}),
+          },
+        };
+        const tools = createTools(context, state);
+        const toolNames = toolNamesFor(context);
+        const buildSystem = opts.system ?? DEFAULT_SYSTEM;
+        const system = () => buildSystem({ request, tools: toolNames, plan: state.plan });
         const readout = toReadout(request.diagram, {
           scope: request.selection.length ? { selection: request.selection, hops: 2 } : 'all',
           selection: request.selection,

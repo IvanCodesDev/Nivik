@@ -17,7 +17,8 @@ export interface MockTurn {
 export interface MockModelOptions {
   modelId?: string;
   provider?: string;
-  onCall?(index: number): void;
+  /** Observes each call with the prompt the SDK sent (system + messages), for assertions. */
+  onCall?(index: number, prompt: unknown): void;
 }
 
 const usageOf = (turn: MockTurn) => ({
@@ -53,10 +54,10 @@ const textOf = (turn: MockTurn): string | null => {
 export function createMockModel(turns: MockTurn[], opts: MockModelOptions = {}): LanguageModel {
   if (turns.length === 0) throw new Error('createMockModel needs at least one turn');
   let calls = 0;
-  const next = (): { turn: MockTurn; index: number } => {
+  const next = (prompt: unknown): { turn: MockTurn; index: number } => {
     const index = calls;
     const turn = turns[Math.min(calls, turns.length - 1)] as MockTurn;
-    opts.onCall?.(index);
+    opts.onCall?.(index, prompt);
     calls += 1;
     if (turn.error !== undefined) throw turn.error;
     return { turn, index };
@@ -69,8 +70,8 @@ export function createMockModel(turns: MockTurn[], opts: MockModelOptions = {}):
   return new MockLanguageModelV4({
     modelId: opts.modelId ?? 'mock-model',
     provider: opts.provider ?? 'nivik-mock',
-    doGenerate: async () => {
-      const { turn, index } = next();
+    doGenerate: async (options) => {
+      const { turn, index } = next(options.prompt);
       const text = textOf(turn);
       const content = [
         ...(text !== null ? [{ type: 'text' as const, text }] : []),
@@ -83,8 +84,8 @@ export function createMockModel(turns: MockTurn[], opts: MockModelOptions = {}):
       ];
       return { content, finishReason: finishReason(turn), usage: usageOf(turn), warnings: [] };
     },
-    doStream: async () => {
-      const { turn, index } = next();
+    doStream: async (options) => {
+      const { turn, index } = next(options.prompt);
       const text = textOf(turn);
       const textId = `text_${index + 1}`;
       const parts: unknown[] = [{ type: 'stream-start', warnings: [] }];

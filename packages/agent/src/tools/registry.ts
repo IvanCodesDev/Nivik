@@ -6,10 +6,16 @@ import {
   type RunEvent,
   type RunStage,
 } from '@nivik/protocol';
-import { type ToolSet, tool } from 'ai';
+import { type LanguageModel, type ToolSet, tool } from 'ai';
 import { z } from 'zod';
 import type { Questions } from '../harness/questions';
 import type { SoftBudget } from '../harness/soft-budget';
+import {
+  critiquePlan,
+  type ReviewOutput,
+  reviewDiagram,
+  type SubagentCall,
+} from '../subagents/review';
 import type { Documents } from './documents';
 import { converge, type FinishInput } from './finish';
 import { describe, findElements } from './read';
@@ -23,6 +29,16 @@ export interface ToolContext {
   budget: SoftBudget;
   emit(event: RunEvent): void;
   now(): number;
+  /** The person's request, handed to the sub-agents as their brief. */
+  request?: string;
+  /** False → no `ask` tool (the host cannot show a question). Default true. */
+  canAsk?: boolean;
+  /** Absent → no sub-agent tools (no model for them). */
+  subagents?: {
+    model(role: 'review' | 'critiquePlan'): LanguageModel;
+    signal: AbortSignal;
+    timeoutMs?: number;
+  };
 }
 
 /** What the loop learns from the tools between steps: the plan so far and how it ended. */
@@ -41,14 +57,26 @@ export const TOOL_NAMES = [
   'createDiagram',
   'switchDiagram',
   'ask',
+  'review',
+  'critiquePlan',
   'finish',
 ] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
+
+/** The names a run actually registers, given what the host can do. */
+export function toolNamesFor(ctx: Pick<ToolContext, 'canAsk' | 'subagents'>): ToolName[] {
+  return TOOL_NAMES.filter((name) => {
+    if (name === 'ask') return ctx.canAsk !== false;
+    if (name === 'review' || name === 'critiquePlan') return ctx.subagents !== undefined;
+    return true;
+  });
+}
 
 /** Spec 05 §12.1: the loop's `status` follows what the model is doing. */
 export function stageOf(toolName: string): RunStage | null {
   switch (toolName) {
     case 'setPlan':
+    case 'critiquePlan':
       return 'thinking';
     case 'findElements':
     case 'describe':
@@ -59,6 +87,8 @@ export function stageOf(toolName: string): RunStage | null {
     case 'createDiagram':
     case 'switchDiagram':
       return 'building';
+    case 'review':
+      return 'reviewing';
     case 'ask':
       return 'asking';
     default:
@@ -85,6 +115,9 @@ export function summarizeToolResult(toolName: string, output: unknown): string {
           : 'ok';
     case 'ask':
       return typeof o.answer === 'string' ? `answer: ${o.answer.slice(0, 80)}` : 'no answer';
+    case 'review':
+    case 'critiquePlan':
+      return `${Array.isArray(o.issues) ? o.issues.length : 0} issue(s), intent ${String(o.intentMatch ?? '?')}`;
     case 'setPlan':
       return typeof o.summary === 'string' ? o.summary.slice(0, 120) : 'plan set';
     case 'finish':
@@ -222,33 +255,8 @@ export function createTools(ctx: ToolContext, state: ToolState): ToolSet {
         };
       },
     }),
-    ask: tool({
-      description:
-        'Ask the user one specific question when you need a decision only they can make. Offer choices when there are natural options. The run waits for the answer.',
-      inputSchema: z.object({
-        text: z.string().min(1).max(300),
-        choices: z.array(z.string().min(1).max(120)).max(5).optional(),
-        allowFreeText: z.boolean().default(true),
-      }),
-      execute: async (input) => {
-        const { questionId, answer } = ctx.questions.ask(input);
-        ctx.emit({
-          type: 'question',
-          questionId,
-          text: input.text,
-          ...(input.choices ? { choices: input.choices } : {}),
-          allowFreeText: input.allowFreeText,
-        });
-        ctx.budget.pause();
-        try {
-          const text = await answer;
-          ctx.emit({ type: 'answer', questionId, text });
-          return { answer: text };
-        } finally {
-          ctx.budget.resume();
-        }
-      },
-    }),
+    ...(ctx.canAsk === false ? {} : { ask: askTool(ctx) }),
+    ...(ctx.subagents ? subagentTools(ctx, ctx.subagents) : {}),
     finish: tool({
       description:
         'Declare the work complete. Summarise what you did for the user and list anything you could not do in `unresolved`.',
@@ -264,6 +272,104 @@ export function createTools(ctx: ToolContext, state: ToolState): ToolSet {
         state.finish = { ...input, convergence };
         return { ok: true, outcome: convergence.outcome, documents: convergence.documents.length };
       },
+    }),
+  };
+}
+
+function askTool(ctx: ToolContext) {
+  return tool({
+    description:
+      'Ask the user one specific question when you need a decision only they can make. Offer choices when there are natural options. The run waits for the answer.',
+    inputSchema: z.object({
+      text: z.string().min(1).max(300),
+      choices: z.array(z.string().min(1).max(120)).max(5).optional(),
+      allowFreeText: z.boolean().default(true),
+    }),
+    execute: async (input) => {
+      const { questionId, answer } = ctx.questions.ask(input);
+      ctx.emit({
+        type: 'question',
+        questionId,
+        text: input.text,
+        ...(input.choices ? { choices: input.choices } : {}),
+        allowFreeText: input.allowFreeText,
+      });
+      ctx.budget.pause();
+      try {
+        const text = await answer;
+        ctx.emit({ type: 'answer', questionId, text });
+        return { answer: text };
+      } finally {
+        ctx.budget.resume();
+      }
+    },
+  });
+}
+
+/**
+ * Design §3: the sub-agents are tools of the main loop — the model decides when to use them. Each
+ * is one structured call on the fast model with its own context; its tokens count towards the
+ * run's budget and its issues come back as the tool result and as a `subagent` event.
+ */
+function subagentTools(
+  ctx: ToolContext,
+  subagents: NonNullable<ToolContext['subagents']>,
+): ToolSet {
+  const run = async (
+    role: 'review' | 'critiquePlan',
+    work: () => Promise<SubagentCall<ReviewOutput>>,
+  ) => {
+    ctx.emit({ type: 'subagent', role, status: 'start' });
+    const { result, usage } = await work();
+    ctx.budget.addTokens(usage);
+    ctx.budget.addCall();
+    ctx.emit({
+      type: 'subagent',
+      role,
+      status: 'end',
+      issues: result.issues,
+      usage: { ...usage, calls: 1 },
+    });
+    return result;
+  };
+  const deps = (role: 'review' | 'critiquePlan') => ({
+    model: subagents.model(role),
+    signal: subagents.signal,
+    ...(subagents.timeoutMs !== undefined ? { timeoutMs: subagents.timeoutMs } : {}),
+  });
+
+  return {
+    review: tool({
+      description:
+        'Have an independent reviewer check the current diagram against the request (missing elements, orphans, bad connections, unclear labels). Returns issues you may act on.',
+      inputSchema: z.object({
+        documentId: IdSchema.optional(),
+        focus: z.string().max(200).optional(),
+      }),
+      execute: async ({ documentId, focus }) => {
+        const doc = documentId ? ctx.documents.get(documentId) : ctx.documents.current();
+        if (!doc) return { error: `Unknown document "${documentId}"` };
+        return run('review', () =>
+          reviewDiagram(deps('review'), {
+            diagram: doc.staging,
+            request: ctx.request ?? '',
+            ...(focus ? { focus } : {}),
+          }),
+        );
+      },
+    }),
+    critiquePlan: tool({
+      description:
+        'Have an independent critic check a plan before you build: does the type / layout fit, are the steps complete, is anything in the request ignored?',
+      inputSchema: z.object({ plan: PlanSchema }),
+      execute: async ({ plan }) =>
+        run('critiquePlan', () =>
+          critiquePlan(deps('critiquePlan'), {
+            plan,
+            diagram: ctx.documents.current().staging,
+            request: ctx.request ?? '',
+          }),
+        ),
     }),
   };
 }

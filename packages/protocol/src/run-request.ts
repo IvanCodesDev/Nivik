@@ -77,9 +77,13 @@ export const SessionSchema = z.object({
 });
 export type Session = z.infer<typeof SessionSchema>;
 
-/** What the host registered beyond the isomorphic core (spec 05 §9.4: Node-only tools live in the runtime). */
+/**
+ * What the host can do for the loop: Node-only tools live in the runtime (spec 05 §9.4); `ask`
+ * needs a UI that can show a question and relay the answer (spec 09 §3.2).
+ */
 export const RunCapabilitiesSchema = z.object({
   runtimeTools: z.boolean().default(false),
+  ask: z.boolean().default(true),
 });
 export type RunCapabilities = z.infer<typeof RunCapabilitiesSchema>;
 
@@ -112,7 +116,7 @@ export const RunRequestSchema = z.object({
   }),
   /** D14′: cross-run memory, host capabilities and the soft budget; all optional on the wire. */
   session: SessionSchema.default({ recentTurns: [], summary: null }),
-  capabilities: RunCapabilitiesSchema.default({ runtimeTools: false }),
+  capabilities: RunCapabilitiesSchema.default({ runtimeTools: false, ask: true }),
   budget: RunBudgetSchema.default(DEFAULT_RUN_BUDGET),
 });
 

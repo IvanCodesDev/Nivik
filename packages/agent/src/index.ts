@@ -49,7 +49,18 @@ export type { Stage, StageContext, StageName } from './harness/stage';
 export { type TrimOptions, trimMessages } from './harness/trim';
 export { createMockAgent, type MockAgentOptions } from './mock/mock-agent';
 export { splitSteps } from './mock/steps';
+export { GRID_SNIPPET, HINT_PACKS, hintsFor } from './prompts/hints';
+export { buildSystemPrompt, type SystemPromptOptions } from './prompts/system';
+export { vocabularySection } from './prompts/vocabulary';
 export { diagramPatchFromPlan } from './stages/plan-patch';
+export {
+  critiquePlan,
+  type ReviewOutput,
+  ReviewOutputSchema,
+  reviewDiagram,
+  type SubagentCall,
+  type SubagentDeps,
+} from './subagents/review';
 export {
   type ActionOutcome,
   type ApplyActionsResult,
@@ -81,6 +92,7 @@ export {
   type ToolContext,
   type ToolName,
   type ToolState,
+  toolNamesFor,
 } from './tools/registry';
 export {
   chunkSource,

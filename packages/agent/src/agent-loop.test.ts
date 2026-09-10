@@ -324,4 +324,122 @@ describe('createLoopAgent (D14′ end to end on a scripted model)', () => {
       outcome: 'finished',
     });
   });
+
+  it('uses the real system prompt and lets hint packs join once the plan names a type', async () => {
+    const systems: string[] = [];
+    const main = createMockModel(
+      [
+        {
+          toolCalls: [
+            {
+              name: 'setPlan',
+              input: { ...plan, diagramType: 'swot', layout: { algorithm: 'grid' } },
+            },
+          ],
+        },
+        { toolCalls: [{ name: 'finish', input: { summary: 'Nothing to do.' } }] },
+      ],
+      {
+        onCall: (_i, prompt) => {
+          const first = (prompt as { role: string; content: string }[])[0];
+          if (first?.role === 'system') systems.push(first.content);
+        },
+      },
+    );
+    const agent = createLoopAgent(
+      createDefaultDeps({ now: () => 5_000, newRunId: () => 'run_00000001', model: () => main }),
+    );
+    await collect(agent.run(request()));
+
+    expect(systems).toHaveLength(2);
+    expect(systems[0]).toContain('## Vocabulary');
+    expect(systems[0]).toContain('## Tools\nsetPlan, findElements');
+    expect(systems[0]).toContain(', ask, review, critiquePlan, finish');
+    expect(systems[0]).not.toContain('## Hints: SWOT');
+    expect(systems[1]).toContain('## Hints: SWOT');
+    expect(systems[1]).toContain('## Grid placement');
+  });
+
+  it('routes review / critiquePlan to the fast model and folds their issues and tokens into the run', async () => {
+    const main = createMockModel([
+      { toolCalls: [{ name: 'setPlan', input: plan }] },
+      { toolCalls: [{ name: 'critiquePlan', input: { plan } }] },
+      {
+        toolCalls: [{ name: 'review', input: { focus: 'edges' } }],
+        usage: { input: 10, output: 5 },
+      },
+      { toolCalls: [{ name: 'finish', input: { summary: 'Reviewed.' } }] },
+    ]);
+    const roles: string[] = [];
+    const fast = createMockModel([
+      { json: { intentMatch: 'yes', issues: [] }, usage: { input: 300, output: 20 } },
+      {
+        json: {
+          intentMatch: 'partial',
+          issues: [{ severity: 'warning', message: 'Payments is missing', ids: [] }],
+        },
+        usage: { input: 400, output: 30 },
+      },
+    ]);
+    const agent = createLoopAgent(
+      createDefaultDeps({
+        now: () => 5_000,
+        newRunId: () => 'run_00000001',
+        model: (role) => {
+          roles.push(role);
+          return role === 'main' ? main : fast;
+        },
+      }),
+    );
+    const events = await collect(agent.run(request()));
+
+    expect(roles).toEqual(['main', 'critiquePlan', 'review']);
+    const subagent = events.filter((e) => e.type === 'subagent');
+    expect(subagent.map((e) => `${e.role}:${e.status}`)).toEqual([
+      'critiquePlan:start',
+      'critiquePlan:end',
+      'review:start',
+      'review:end',
+    ]);
+    expect(subagent[3]).toMatchObject({
+      issues: [{ severity: 'warning', message: 'Payments is missing' }],
+      usage: { inputTokens: 400, outputTokens: 30, calls: 1 },
+    });
+    const stages = events.filter((e) => e.type === 'status').map((s) => s.stage);
+    expect(stages).toContain('reviewing');
+    const budget = events.filter((e) => e.type === 'budget').at(-1);
+    expect(budget?.used.inputTokens).toBeGreaterThanOrEqual(700);
+    expect(budget?.used.calls).toBeGreaterThanOrEqual(5);
+    const reviewEnd = events.find(
+      (e) => e.type === 'tool' && e.name === 'review' && e.status === 'end',
+    );
+    expect(reviewEnd).toMatchObject({ summary: '1 issue(s), intent partial' });
+  });
+
+  it('registers no ask tool when the host cannot show questions', async () => {
+    const systems: string[] = [];
+    const main = createMockModel(
+      [
+        { toolCalls: [{ name: 'ask', input: { text: 'Retry?' } }] },
+        { toolCalls: [{ name: 'finish', input: { summary: 'ok' } }] },
+      ],
+      {
+        onCall: (_i, prompt) => {
+          const first = (prompt as { role: string; content: string }[])[0];
+          if (first?.role === 'system') systems.push(first.content);
+        },
+      },
+    );
+    const agent = createLoopAgent(
+      createDefaultDeps({ now: () => 5_000, newRunId: () => 'run_00000001', model: () => main }),
+    );
+    const events = await collect(
+      agent.run(request({ capabilities: { runtimeTools: false, ask: false } })),
+    );
+    expect(systems[0]).toContain('You cannot ask the person questions in this run');
+    expect(systems[0]).not.toContain(', ask,');
+    // The SDK reports the unknown tool as an error part; the loop keeps going and the model finishes.
+    expect(events.some((e) => e.type === 'question')).toBe(false);
+    expect(events.at(-1)).toMatchObject({ type: 'done', outcome: 'no-changes' });
+  });
 });

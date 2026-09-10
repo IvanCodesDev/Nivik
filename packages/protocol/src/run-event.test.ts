@@ -27,7 +27,7 @@ describe('RunRequestSchema', () => {
     });
     // D14′: memory, host capabilities and the soft budget all have wire defaults.
     expect(parsed.session).toEqual({ recentTurns: [], summary: null });
-    expect(parsed.capabilities).toEqual({ runtimeTools: false });
+    expect(parsed.capabilities).toEqual({ runtimeTools: false, ask: true });
     expect(parsed.budget).toEqual({ maxTokens: 400_000, maxMs: 600_000 });
   });
 

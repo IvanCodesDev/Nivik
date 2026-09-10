@@ -35,3 +35,10 @@ export {
   type StorageErrorCode,
   type UpdateOptions,
 } from './repository';
+export {
+  DEVICE_KEY_SETTING,
+  type DeviceKeyStore,
+  SecretVault,
+  type SecretVaultDeps,
+  settingsKeyStore,
+} from './secrets';

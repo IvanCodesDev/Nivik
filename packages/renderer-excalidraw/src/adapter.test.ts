@@ -1,4 +1,5 @@
 import { validateDiagram } from '@nivik/ir';
+import { type NativePart, tagOf } from '@nivik/renderer-core';
 import { describe, expect, it } from 'vitest';
 import { capabilities, excalidrawAdapter, importDocument } from './adapter';
 import { serializeScene } from './file';
@@ -54,6 +55,107 @@ describe('importDocument (spec 04 §6.5 import → §5.3 promotion)', () => {
       },
     ]);
   });
+
+  it('treats a scene exported by Nivik as a foreign document: tags are hints, structure comes back', async () => {
+    // What `toExcalidraw` + the browser bundle write: tagged main parts, bound labels, a frame, an
+    // entity with tagged column texts.
+    const tag = (id: string, part: NativePart = 'main') => ({
+      customData: { nivik: tagOf(id, part, 0) },
+    });
+    const text = serializeScene([
+      el('rectangle', {
+        id: 'x1',
+        x: 0,
+        y: 0,
+        boundElements: [{ id: 'x1t', type: 'text' }],
+        frameId: 'xf',
+        ...tag('n_web'),
+      }),
+      el('text', {
+        id: 'x1t',
+        x: 0,
+        y: 0,
+        originalText: 'Web',
+        containerId: 'x1',
+        ...tag('n_web', 'label'),
+      }),
+      el('rectangle', {
+        id: 'x2',
+        x: 300,
+        y: 0,
+        boundElements: [{ id: 'x2t', type: 'text' }],
+        frameId: 'xf',
+        ...tag('n_api'),
+      }),
+      el('text', {
+        id: 'x2t',
+        x: 300,
+        y: 0,
+        originalText: 'API',
+        containerId: 'x2',
+        ...tag('n_api', 'label'),
+      }),
+      el('arrow', {
+        id: 'xa',
+        x: 120,
+        y: 28,
+        startBinding: { elementId: 'x1', focus: 0, gap: 0 },
+        endBinding: { elementId: 'x2', focus: 0, gap: 0 },
+        ...tag('e_1'),
+      }),
+      el('frame', {
+        id: 'xf',
+        x: -20,
+        y: -60,
+        width: 500,
+        height: 200,
+        name: 'Edge',
+        ...tag('g_edge'),
+      }),
+      // An entity: plain rectangle plus a free-standing label text with one line per column.
+      el('rectangle', { id: 'x3', x: 0, y: 300, ...tag('n_users') }),
+      el('text', {
+        id: 'x3l',
+        x: 12,
+        y: 308,
+        originalText: 'users\nid: uuid\nemail',
+        ...tag('n_users', 'label'),
+      }),
+      // A participant: rounded box with a bound label plus a dashed lifeline.
+      el('rectangle', {
+        id: 'x4',
+        x: 600,
+        y: 0,
+        roundness: { type: 3 },
+        boundElements: [{ id: 'x4t', type: 'text' }],
+        ...tag('n_svc'),
+      }),
+      el('text', {
+        id: 'x4t',
+        x: 600,
+        y: 0,
+        originalText: 'Service',
+        containerId: 'x4',
+        ...tag('n_svc', 'label'),
+      }),
+      el('line', { id: 'x4l', x: 660, y: 56, locked: true, ...tag('n_svc', 'lifeline') }),
+    ]);
+    const { diagram, fidelity } = await importDocument(text, { name: 'Round trip' });
+    expect(diagram.nodes.map((n) => n.label).sort()).toEqual(['API', 'Service', 'Web', 'users']);
+    expect(diagram.nodes.every((n) => n.id.startsWith('n_'))).toBe(true);
+    expect(diagram.edges).toHaveLength(1);
+    expect(diagram.groups.map((g) => g.label)).toEqual(['Edge']);
+    expect(fidelity.lossless).toBe(false);
+    expect(fidelity.lost).toEqual([
+      {
+        kind: 'node',
+        ids: ['x4l'],
+        reason:
+          'detail of a shape exported by Nivik (columns, lifelines); imported as a plain shape',
+      },
+    ]);
+  });
+
   it('declares Excalidraw as a push-selection, overlay-highlight live renderer', () => {
     expect(capabilities).toMatchObject({
       levels: { export: true, import: true, live: true },

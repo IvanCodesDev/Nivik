@@ -52,12 +52,30 @@ export function DiagramGrid({ diagrams, emptyText }: DiagramGridProps) {
   const [newOpen, setNewOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  // Spec 04 §4: say what an approximate format dropped, in one line.
+  // Spec 04 §4: say in one line what an approximate format dropped or redrew.
   const fidelityNote = (fidelity: FidelityReport | null) => {
     if (!fidelity || fidelity.lossless) return null;
-    const count = fidelity.lost.reduce((sum, entry) => sum + entry.ids.length, 0);
-    const reasons = fidelity.lost.slice(0, 2).map((entry) => entry.reason);
-    return t.library.fidelityLost(count, reasons.join('; '));
+    const lost = fidelity.lost.filter((entry) => entry.ids.length > 0);
+    const approximated = fidelity.approximated.filter((entry) => entry.ids.length > 0);
+    const parts: string[] = [];
+    if (lost.length > 0) {
+      const count = lost.reduce((sum, entry) => sum + entry.ids.length, 0);
+      parts.push(
+        t.library.fidelityLost(
+          count,
+          lost
+            .slice(0, 2)
+            .map((e) => e.reason)
+            .join('; '),
+        ),
+      );
+    }
+    if (approximated.length > 0) {
+      const count = approximated.reduce((sum, entry) => sum + entry.ids.length, 0);
+      const kinds = Array.from(new Set(approximated.map((e) => `${e.from} → ${e.to}`))).slice(0, 2);
+      parts.push(t.library.fidelityApproximated(count, kinds.join('; ')));
+    }
+    return parts.length > 0 ? parts.join(' ') : null;
   };
 
   const exportAs = (item: LibraryItem, format: DiagramFileFormat) =>

@@ -105,6 +105,8 @@ export const en = {
       'That file is neither a Nivik document (.nivik.json) nor an Excalidraw scene (.excalidraw).',
     fidelityLost: (count: number, reasons: string) =>
       `${count} ${count === 1 ? 'item' : 'items'} could not be carried over (${reasons}).`,
+    fidelityApproximated: (count: number, kinds: string) =>
+      `${count} ${count === 1 ? 'shape was' : 'shapes were'} approximated (${kinds}).`,
     details: {
       description: 'What is stored for this diagram on this device.',
       type: 'Type',

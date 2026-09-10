@@ -100,6 +100,7 @@ export const zhCN: Dictionary = {
     unknownFormat:
       '这个文件既不是 Nivik 文档（.nivik.json），也不是 Excalidraw 场景（.excalidraw）。',
     fidelityLost: (count, reasons) => `${count} 项未能带过来（${reasons}）。`,
+    fidelityApproximated: (count, kinds) => `${count} 个形状被近似（${kinds}）。`,
     details: {
       description: '这张图在本设备上保存的信息。',
       type: '类型',

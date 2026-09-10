@@ -1,3 +1,4 @@
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import {
   applyChangeSet,
   createDiagram,
@@ -11,6 +12,9 @@ import {
   type ExportResult,
   emptyFidelity,
   type ImportResult,
+  isNivik,
+  type NativeElement,
+  type NativeSnapshot,
   type RendererAdapter,
   type RendererCapabilities,
   reconcile,
@@ -46,8 +50,47 @@ export const capabilities: RendererCapabilities = {
 };
 
 /**
- * Spec 04 §6.5 import: every user-drawn element goes through the §5.3 promotion rules against an
- * empty diagram; what is not promoted stays an annotation and is reported as lost.
+ * A file is a foreign document: tags left by whichever diagram exported it point at ids that mean
+ * nothing here. Main parts become plain elements and go through promotion like hand-drawn ones.
+ * A free-standing `label` part (how entities carry their text) hands its first line to its main
+ * part; other decorative parts (lifelines, icons) are dropped — the main part carries the meaning.
+ */
+function asForeign(
+  snapshot: NativeSnapshot,
+  raw: readonly ExcalidrawElement[],
+): { snapshot: NativeSnapshot; detailIds: string[] } {
+  // The snapshot strips text from tagged parts on purpose; read the entity labels off the scene.
+  const labels = new Map<string, string>();
+  for (const el of raw) {
+    if (el.type !== 'text' || el.containerId || el.isDeleted || !isNivik(el.customData)) continue;
+    if (el.customData.nivik.part !== 'label') continue;
+    const first = el.originalText.split('\n')[0]?.trim();
+    if (first) labels.set(el.customData.nivik.id, first);
+  }
+  const detailIds: string[] = [];
+  const elements: NativeElement[] = [];
+  for (const el of snapshot.elements) {
+    if (!el.nivik) {
+      elements.push(el);
+      continue;
+    }
+    if (el.nivik.part !== 'main') {
+      if (el.nivik.part !== 'label' && !el.deleted) detailIds.push(el.nativeId);
+      continue;
+    }
+    const label = labels.get(el.nivik.id);
+    elements.push({
+      ...el,
+      nivik: null,
+      ...(label !== undefined && el.label === undefined ? { label } : {}),
+    });
+  }
+  return { snapshot: { ...snapshot, elements }, detailIds };
+}
+
+/**
+ * Spec 04 §6.5 import: every element goes through the §5.3 promotion rules against an empty
+ * diagram; what is not promoted stays an annotation and is reported as lost.
  */
 export async function importDocument(
   input: Blob | string,
@@ -55,7 +98,7 @@ export async function importDocument(
 ): Promise<ImportResult> {
   const text = typeof input === 'string' ? input : await input.text();
   const { elements } = parseScene(text);
-  const snapshot = fromExcalidraw(elements);
+  const { snapshot, detailIds } = asForeign(fromExcalidraw(elements), elements);
   const empty = createDiagram({ name: opts.name ?? 'Imported diagram' });
   const cs = reconcile(empty, snapshot, { newNodeId, newEdgeId, newGroupId });
   let diagram = empty;
@@ -88,6 +131,13 @@ export async function importDocument(
       kind: 'other',
       ids: lost,
       reason: 'kept as an annotation, not part of the diagram structure',
+    });
+  }
+  if (detailIds.length > 0) {
+    fidelity.lost.push({
+      kind: 'node',
+      ids: detailIds,
+      reason: 'detail of a shape exported by Nivik (columns, lifelines); imported as a plain shape',
     });
   }
   fidelity.lossless = fidelity.lost.length === 0;

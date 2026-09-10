@@ -335,9 +335,13 @@ export const zhCN: Dictionary = {
       fastNote: '快速模型负责简短的规划步骤，默认模型负责画图。不设置则全部使用默认模型。',
       runtime: 'Agent Runtime',
       runtimeDescription:
-        '运行 Nivik Agent 的 Node 服务：推送生成进度，并为不允许浏览器直连的服务做代理。',
+        '可选的 Node 服务：代替浏览器运行 Nivik Agent，并为不允许浏览器直连的服务做代理。没有它时，Agent 直接在本标签页内运行。',
       runtimeUrl: 'Runtime 地址',
-      runtimeUrlDescription: (url) => `留空则使用 ${url}。`,
+      runtimeUrlLocalMode: '留空 = 本地模式：Agent 在浏览器内运行，直接调用你配置的模型服务。',
+      runtimeUrlBuildDefault: (url) => `留空则使用 ${url}（构建时设定）。`,
+      runtimeModeLocal:
+        '本地模式 · 提示词和 API 密钥直接从本标签页发往模型服务。拒绝浏览器直连的服务需要 Runtime。',
+      runtimeModeRemote: 'Runtime 模式 · 生成在 Runtime 上进行，每次请求都会把 API 密钥发给它。',
       check: '检测',
       checking: '检测中…',
       runtimeOnline: (version, running) => `Runtime 在线 · v${version} · ${running} 个运行中的任务`,

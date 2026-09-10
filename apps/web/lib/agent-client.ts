@@ -17,9 +17,14 @@ import { type WorkerOutbound, WorkerOutboundSchema } from '@/lib/agent-worker-pr
 import { agentBootstrap } from '@/lib/providers';
 import type { Settings } from '@/lib/stores/settings-store';
 
-/** Build-time default for development; users override it in Settings → AI & Models. */
-export const DEFAULT_AGENT_RUNTIME_URL =
-  process.env.NEXT_PUBLIC_NIVIK_AGENT_URL ?? 'http://localhost:3400';
+/**
+ * Runtime URL baked in at build time (`NEXT_PUBLIC_NIVIK_AGENT_URL`), or null: with nothing
+ * configured in Settings either, the agent runs in local mode (a Worker in this tab).
+ */
+export const BUILD_RUNTIME_URL: string | null = process.env.NEXT_PUBLIC_NIVIK_AGENT_URL || null;
+
+/** Where `HttpAgentClient` points when constructed without a URL (development convenience). */
+export const DEFAULT_AGENT_RUNTIME_URL = BUILD_RUNTIME_URL ?? 'http://localhost:3400';
 
 export interface StartRunOptions {
   signal?: AbortSignal;
@@ -229,7 +234,7 @@ export function resolveAgentClient(
   keys: Record<string, string>,
 ): AgentClient {
   const configured = settings.agentRuntimeUrl.trim();
-  const runtimeUrl = configured || process.env.NEXT_PUBLIC_NIVIK_AGENT_URL || null;
+  const runtimeUrl = configured || BUILD_RUNTIME_URL;
   if (runtimeUrl) return new HttpAgentClient(runtimeUrl);
   if (typeof Worker !== 'undefined') {
     return new WorkerAgentClient(() => ({ ...agentBootstrap(settings, keys), runtimeUrl: null }));

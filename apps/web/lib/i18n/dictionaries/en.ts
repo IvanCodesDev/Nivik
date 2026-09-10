@@ -360,9 +360,16 @@ export const en = {
         'A fast model answers the short planning step; the default model does the drawing. Leave it unset to use the default for everything.',
       runtime: 'Agent Runtime',
       runtimeDescription:
-        'The Node service that runs the Nivik Agent, streams progress, and proxies providers that block browser requests.',
+        'Optional Node service that runs the Nivik Agent for you and proxies providers that block browser requests. Without one, the agent runs inside this tab.',
       runtimeUrl: 'Runtime URL',
-      runtimeUrlDescription: (url: string) => `Leave empty to use ${url}.`,
+      runtimeUrlLocalMode:
+        'Leave empty for local mode: the agent runs in this browser and calls your providers directly.',
+      runtimeUrlBuildDefault: (url: string) =>
+        `Leave empty to use ${url} (set when this build was made).`,
+      runtimeModeLocal:
+        'Local mode · Prompts and API keys go straight from this tab to your providers. Providers that refuse browser requests need a runtime.',
+      runtimeModeRemote:
+        'Runtime mode · Generation runs on the runtime; your API keys are sent to it with each request.',
       check: 'Check',
       checking: 'Checking…',
       runtimeOnline: (version: string, running: number) =>

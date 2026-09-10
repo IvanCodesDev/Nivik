@@ -7,7 +7,7 @@ import { useState } from 'react';
 import {
   AgentRuntimeError,
   AgentRuntimeUnavailableError,
-  DEFAULT_AGENT_RUNTIME_URL,
+  BUILD_RUNTIME_URL,
   HttpAgentClient,
 } from '@/lib/agent-client';
 import { useT } from '@/lib/i18n/provider';
@@ -101,7 +101,11 @@ export function AiSection({ onAddProvider, onEditProvider }: AiSectionProps) {
         <SettingRow
           htmlFor="agent-runtime-url"
           label={copy.runtimeUrl}
-          description={copy.runtimeUrlDescription(DEFAULT_AGENT_RUNTIME_URL)}
+          description={
+            BUILD_RUNTIME_URL
+              ? copy.runtimeUrlBuildDefault(BUILD_RUNTIME_URL)
+              : copy.runtimeUrlLocalMode
+          }
           width="form"
           control={
             <div className={styles.inlineControl}>
@@ -109,15 +113,20 @@ export function AiSection({ onAddProvider, onEditProvider }: AiSectionProps) {
                 id="agent-runtime-url"
                 type="url"
                 inputMode="url"
-                placeholder={DEFAULT_AGENT_RUNTIME_URL}
+                placeholder={BUILD_RUNTIME_URL ?? 'http://localhost:3400'}
                 spellCheck={false}
                 value={draft.agentRuntimeUrl}
                 onChange={(event) => update({ agentRuntimeUrl: event.target.value })}
               />
-              <RuntimeCheckButton url={draft.agentRuntimeUrl} />
+              <RuntimeCheckButton url={draft.agentRuntimeUrl.trim() || BUILD_RUNTIME_URL} />
             </div>
           }
         />
+        <p className={styles.quietNote}>
+          {draft.agentRuntimeUrl.trim() || BUILD_RUNTIME_URL
+            ? copy.runtimeModeRemote
+            : copy.runtimeModeLocal}
+        </p>
       </RowsCard>
 
       <RowsCard>
@@ -149,13 +158,15 @@ export function AiSection({ onAddProvider, onEditProvider }: AiSectionProps) {
   );
 }
 
-function RuntimeCheckButton({ url }: { url: string }) {
+/** `null` in local mode: there is no runtime to check. */
+function RuntimeCheckButton({ url }: { url: string | null }) {
   const t = useT();
   const copy = t.settings.ai;
   const toast = useToast();
   const [checking, setChecking] = useState(false);
 
   const check = async () => {
+    if (!url) return;
     setChecking(true);
     const client = new HttpAgentClient(url);
     try {
@@ -175,7 +186,7 @@ function RuntimeCheckButton({ url }: { url: string }) {
   };
 
   return (
-    <Button size="sm" variant="secondary" disabled={checking} onClick={check}>
+    <Button size="sm" variant="secondary" disabled={checking || !url} onClick={check}>
       <CloudCheck size={15} aria-hidden="true" /> {checking ? copy.checking : copy.check}
     </Button>
   );

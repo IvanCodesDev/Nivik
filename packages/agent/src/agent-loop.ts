@@ -1,6 +1,6 @@
 import { toReadout } from '@nivik/ir';
 import { type Plan, RunError, type RunEvent, type RunRequest } from '@nivik/protocol';
-import type { ModelMessage } from 'ai';
+import type { ModelMessage, ToolSet } from 'ai';
 import type { Agent, RunOptions } from './agent';
 import type { AgentDeps } from './deps';
 import { toRunError } from './harness/context';
@@ -16,6 +16,8 @@ import {
   createTools,
   stageOf,
   summarizeToolResult,
+  TOOL_NAMES,
+  type ToolContext,
   type ToolState,
   toolNamesFor,
 } from './tools/registry';
@@ -33,6 +35,8 @@ export interface LoopAgentOptions {
   keepRecentSteps?: number;
   /** Sub-agent call timeout; default 30 s. */
   subagentTimeoutMs?: number;
+  /** Runtime-only tools to register alongside the core diagram tools for each run. */
+  tools?(context: ToolContext, options: { signal: AbortSignal }): ToolSet;
   /** Called with the transcript when a run ends, however it ends (recording, RunRecord). */
   onTranscript?(runId: string, transcript: Transcript): void;
 }
@@ -41,7 +45,7 @@ export interface LoopAgentOptions {
 export interface LoopAgent extends Agent {
   answer(questionId: string, text: string): boolean;
   /** Questions the running run is waiting on (empty when idle). */
-  pendingQuestions(): { questionId: string; text: string }[];
+  pendingQuestions(runId?: string): { questionId: string; text: string }[];
 }
 
 const DEFAULT_SYSTEM = (input: SystemPromptInput): string =>
@@ -113,7 +117,9 @@ export function createLoopAgent(deps: AgentDeps, opts: LoopAgentOptions = {}): L
         const tools = { ...hostTools, ...createTools(context, state) };
         const toolNames = [
           ...toolNamesFor(context),
-          ...Object.keys(hostTools).filter((name) => !(TOOL_NAMES as readonly string[]).includes(name)),
+          ...Object.keys(hostTools).filter(
+            (name) => !(TOOL_NAMES as readonly string[]).includes(name),
+          ),
         ];
         const buildSystem = opts.system ?? DEFAULT_SYSTEM;
         const system = () => buildSystem({ request, tools: toolNames, plan: state.plan });

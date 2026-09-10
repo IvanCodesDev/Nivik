@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { loadDeviceKeys } from '@/lib/provider-keys';
 import { useFavoritesStore } from '@/lib/stores/favorites-store';
+import { useLibraryPrefs } from '@/lib/stores/library-prefs-store';
 import { useProviderKeys, useSettingsStore } from '@/lib/stores/settings-store';
 
 /**
@@ -14,6 +15,7 @@ export function StoreHydrator() {
   useEffect(() => {
     let cancelled = false;
     void useFavoritesStore.persist.rehydrate();
+    void useLibraryPrefs.persist.rehydrate();
     void Promise.resolve(useSettingsStore.persist.rehydrate()).then(async () => {
       if (useSettingsStore.getState().saved.keyStorage !== 'device') return;
       const keys = await loadDeviceKeys();

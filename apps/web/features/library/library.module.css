@@ -100,6 +100,33 @@
   font-size: 14px;
 }
 
+.details {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0 0;
+}
+
+.detailsRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--nv-card-border);
+  font-size: 13px;
+}
+
+.detailsRow dt {
+  color: var(--nv-muted);
+}
+
+.detailsRow dd {
+  margin: 0;
+  color: var(--nv-ink);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1250px) {
   .grid {
     grid-template-columns: repeat(3, 280px);

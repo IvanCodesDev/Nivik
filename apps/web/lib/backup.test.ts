@@ -2,7 +2,16 @@ import 'fake-indexeddb/auto';
 import { createDiagram } from '@nivik/ir';
 import { DiagramRepository, NivikDB, SecretVault } from '@nivik/storage';
 import { describe, expect, it, vi } from 'vitest';
-import { backupFilename, clearLocalData, exportAllData } from './backup';
+import {
+  BackupError,
+  backupBlob,
+  backupFilename,
+  clearLocalData,
+  exportAllData,
+  parseBackup,
+  restoreBackup,
+} from './backup';
+import { renameDiagram } from './library-actions';
 import { DEFAULT_SETTINGS } from './stores/settings-store';
 
 let counter = 0;
@@ -68,6 +77,93 @@ describe('exportAllData (spec 06 §6.2)', () => {
 
   it('names the file after the day', () => {
     expect(backupFilename(new Date(2026, 8, 9))).toBe('nivik-backup-2026-09-09.json');
+  });
+});
+
+describe('restoreBackup (spec 06 §4, §8 backup row)', () => {
+  it('export → clear → restore brings diagrams, history and change sets back identical', async () => {
+    const db = freshDb();
+    const repo = new DiagramRepository(db);
+    await repo.create(createDiagram({ id: 'd_rt0000001', name: 'One', type: 'flow', now: 1 }), {
+      tags: ['a'],
+    });
+    await repo.create(createDiagram({ id: 'd_rt0000002', name: 'Two', type: 'erd', now: 2 }));
+    await renameDiagram(repo, 'd_rt0000001', 'One renamed', () => 3);
+    await repo.update('d_rt0000002', { favorite: true });
+    await db.settings.put({ key: 'onboarding', value: { seen: true }, updatedAt: 4 });
+    const before = {
+      diagrams: await db.diagrams.toArray(),
+      versions: await db.versions.toArray(),
+      changeSets: await db.changeSets.toArray(),
+      settings: await db.settings.toArray(),
+    };
+
+    const text = await backupBlob(
+      await exportAllData(db, { ...DEFAULT_SETTINGS, userName: 'Sam', keyStorage: 'device' }),
+    ).text();
+    await clearLocalData({ db, storage: null, clearKeys: () => {}, reload: () => {} });
+    expect(await db.diagrams.count()).toBe(0);
+
+    const backup = parseBackup(text);
+    const restoredSettings: unknown[] = [];
+    const counts = await restoreBackup(db, backup, { settings: (s) => restoredSettings.push(s) });
+
+    expect(counts).toEqual({
+      diagrams: 2,
+      versions: 2,
+      changeSets: 1,
+      runs: 0,
+      sources: 0,
+      templates: 0,
+      providers: 0,
+      settings: 1,
+    });
+    expect(await db.diagrams.toArray()).toEqual(before.diagrams);
+    expect(await db.versions.toArray()).toEqual(before.versions);
+    expect(await db.changeSets.toArray()).toEqual(before.changeSets);
+    expect(await db.settings.toArray()).toEqual(before.settings);
+    expect(await db.secrets.count()).toBe(0);
+    expect(restoredSettings).toEqual([
+      { ...DEFAULT_SETTINGS, userName: 'Sam', keyStorage: 'device' },
+    ]);
+  });
+
+  it('merges: same ids are overwritten, other diagrams are kept, preferences only on request', async () => {
+    const source = freshDb();
+    const sourceRepo = new DiagramRepository(source);
+    await sourceRepo.create(
+      createDiagram({ id: 'd_mg0000001', name: 'Shared', type: 'flow', now: 1 }),
+    );
+    const backup = parseBackup(
+      await backupBlob(await exportAllData(source, DEFAULT_SETTINGS)).text(),
+    );
+
+    const target = freshDb();
+    const targetRepo = new DiagramRepository(target);
+    await targetRepo.create(
+      createDiagram({ id: 'd_mg0000001', name: 'Stale copy', type: 'flow', now: 5 }),
+    );
+    await targetRepo.create(
+      createDiagram({ id: 'd_mg0000009', name: 'Mine', type: 'flow', now: 6 }),
+    );
+
+    const settings = vi.fn();
+    await restoreBackup(target, backup);
+    expect(settings).not.toHaveBeenCalled();
+    expect((await targetRepo.list()).map((d) => d.name).sort()).toEqual(['Mine', 'Shared']);
+  });
+
+  it('refuses anything that is not a Nivik backup, with a pointer to the problem', async () => {
+    expect(() => parseBackup('{')).toThrow(BackupError);
+    expect(() => parseBackup('{"format":"other"}')).toThrow(/format/);
+    const db = freshDb();
+    const good = await backupBlob(await exportAllData(db, DEFAULT_SETTINGS)).text();
+    const broken = JSON.parse(good) as { tables: { diagrams: unknown[] } };
+    broken.tables.diagrams.push({ id: 'd_bad', ir: { schema: 'nivik.diagram/1', nodes: 'nope' } });
+    expect(() => parseBackup(JSON.stringify(broken))).toThrow(
+      /tables\.diagrams\.0: invalid diagram document/,
+    );
+    expect(parseBackup(good).settings).toEqual(DEFAULT_SETTINGS);
   });
 });
 

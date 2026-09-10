@@ -591,6 +591,19 @@ export const zhCN: Dictionary = {
       exporting: '导出中…',
       exportedAll: (diagrams) => `备份已下载 · ${diagrams} 张图。不包含任何 API 密钥。`,
       exportFailed: (message) => `导出失败：${message}`,
+      restore: '导入备份',
+      restoreDescription:
+        '把 Nivik 备份（nivik-backup-….json）导入这个浏览器。id 相同的图会被替换，其余保留。备份里永远没有 API 密钥。',
+      restoreButton: '导入备份',
+      restoring: '恢复中…',
+      restoreConfirmTitle: '恢复这份备份？',
+      restoreConfirmText: (diagrams, versions, exportedAt) =>
+        `${diagrams} 张图、${versions} 个版本，导出于 ${exportedAt}。本设备已有的图保留各自历史；若备份里有同一张图，则以备份为准替换。完成后 Nivik 将重新加载。`,
+      restoreWithPreferences: '恢复图表和偏好设置',
+      restoreDiagramsOnly: '只恢复图表',
+      restored: (diagrams) => `备份已恢复 · ${diagrams} 张图。`,
+      restoreInvalid: (message) => `不是 Nivik 备份：${message}`,
+      restoreFailed: (message) => `恢复失败：${message}`,
       clearLocal: '清空本地数据',
       clearLocalDescription:
         '删除这个浏览器里的所有图、运行记录、模板、偏好设置和保存的 API 密钥。想保留的话请先导出。',

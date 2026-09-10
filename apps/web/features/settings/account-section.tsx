@@ -1,10 +1,19 @@
 'use client';
 
 import { Button, buttonVariants, cn, Input, useToast } from '@nivik/ui';
-import { Camera, DownloadSimple, Trash } from '@phosphor-icons/react';
-import { type ChangeEvent, useId, useState } from 'react';
+import { Camera, DownloadSimple, Trash, UploadSimple } from '@phosphor-icons/react';
+import { type ChangeEvent, useId, useRef, useState } from 'react';
 import { ChoiceDialog } from '@/components/choice-dialog';
-import { backupBlob, backupFilename, clearLocalData, exportAllData } from '@/lib/backup';
+import {
+  type Backup,
+  backupBlob,
+  backupFilename,
+  clearLocalData,
+  exportAllData,
+  parseBackup,
+  restoreBackup,
+} from '@/lib/backup';
+import { download } from '@/lib/download';
 import { useT } from '@/lib/i18n/provider';
 import { getRepository } from '@/lib/repository';
 import {
@@ -17,15 +26,6 @@ import {
 } from '@/lib/stores/settings-store';
 import { CardHeading, RowsCard, SettingRow } from './primitives';
 import styles from './settings.module.css';
-
-function download(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-}
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const AVATAR_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -47,7 +47,9 @@ export function AccountSection() {
   const fileId = useId();
   const [deleteNotice, setDeleteNotice] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [busy, setBusy] = useState<'export' | 'clear' | null>(null);
+  const [busy, setBusy] = useState<'export' | 'clear' | 'restore' | null>(null);
+  const [pendingBackup, setPendingBackup] = useState<Backup | null>(null);
+  const backupInput = useRef<HTMLInputElement>(null);
 
   const [from, to] = AVATAR_TONES[draft.avatarColor];
   const initial = (draft.userName.trim().charAt(0) || FALLBACK_INITIAL).toUpperCase();
@@ -91,6 +93,38 @@ export function AccountSection() {
       toast(copy.exportFailed(error instanceof Error ? error.message : String(error)));
     } finally {
       setBusy(null);
+    }
+  };
+
+  const onBackupFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      setPendingBackup(parseBackup(await file.text()));
+    } catch (error) {
+      toast(copy.restoreInvalid(error instanceof Error ? error.message : String(error)), {
+        tone: 'light',
+      });
+    }
+  };
+
+  // Spec 06 §4: merge into this device; the same ids are overwritten, everything else stays.
+  const restore = async (backup: Backup, withPreferences: boolean) => {
+    setBusy('restore');
+    try {
+      const counts = await restoreBackup(getRepository().db, backup, {
+        settings: withPreferences
+          ? (saved) => useSettingsStore.setState({ saved, draft: saved })
+          : undefined,
+      });
+      toast(copy.restored(counts.diagrams));
+      window.location.reload();
+    } catch (error) {
+      setBusy(null);
+      toast(copy.restoreFailed(error instanceof Error ? error.message : String(error)), {
+        tone: 'light',
+      });
     }
   };
 
@@ -231,6 +265,31 @@ export function AccountSection() {
           }
         />
         <SettingRow
+          label={copy.restore}
+          description={copy.restoreDescription}
+          width="auto"
+          control={
+            <>
+              <Button
+                size="sm"
+                onClick={() => backupInput.current?.click()}
+                disabled={busy !== null}
+              >
+                <UploadSimple size={15} aria-hidden="true" />{' '}
+                {busy === 'restore' ? copy.restoring : copy.restoreButton}
+              </Button>
+              <input
+                ref={backupInput}
+                type="file"
+                accept=".json,application/json"
+                aria-label={copy.restoreButton}
+                className={styles.fileInput}
+                onChange={(event) => void onBackupFile(event)}
+              />
+            </>
+          }
+        />
+        <SettingRow
           label={copy.dataExport}
           description={copy.dataExportDescription}
           width="auto"
@@ -257,6 +316,34 @@ export function AccountSection() {
           }
         />
       </RowsCard>
+
+      <ChoiceDialog
+        open={pendingBackup !== null}
+        onOpenChange={(open) => !open && setPendingBackup(null)}
+        title={copy.restoreConfirmTitle}
+        description={
+          pendingBackup
+            ? copy.restoreConfirmText(
+                pendingBackup.tables.diagrams.length,
+                pendingBackup.tables.versions.length,
+                pendingBackup.exportedAt.slice(0, 10),
+              )
+            : ''
+        }
+        layout="stack"
+        actions={[
+          {
+            label: copy.restoreWithPreferences,
+            variant: 'primary',
+            onSelect: () => pendingBackup && void restore(pendingBackup, true),
+          },
+          {
+            label: copy.restoreDiagramsOnly,
+            onSelect: () => pendingBackup && void restore(pendingBackup, false),
+          },
+          { label: t.common.cancel, onSelect: () => {} },
+        ]}
+      />
 
       <ChoiceDialog
         open={confirmClear}

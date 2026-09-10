@@ -636,6 +636,20 @@ export const en = {
       exportedAll: (diagrams: number) =>
         `Backup downloaded · ${diagrams} ${diagrams === 1 ? 'diagram' : 'diagrams'}. No API keys included.`,
       exportFailed: (message: string) => `Export failed: ${message}`,
+      restore: 'Import backup',
+      restoreDescription:
+        'Bring a Nivik backup (nivik-backup-….json) into this browser. Diagrams with the same id are replaced; everything else stays. API keys are never in a backup.',
+      restoreButton: 'Import backup',
+      restoring: 'Restoring…',
+      restoreConfirmTitle: 'Restore this backup?',
+      restoreConfirmText: (diagrams: number, versions: number, exportedAt: string) =>
+        `${diagrams} ${diagrams === 1 ? 'diagram' : 'diagrams'} and ${versions} ${versions === 1 ? 'version' : 'versions'}, exported ${exportedAt}. Diagrams already on this device keep their own history unless the backup has the same diagram, which then replaces it. Nivik restarts afterwards.`,
+      restoreWithPreferences: 'Restore diagrams and preferences',
+      restoreDiagramsOnly: 'Restore diagrams only',
+      restored: (diagrams: number) =>
+        `Backup restored · ${diagrams} ${diagrams === 1 ? 'diagram' : 'diagrams'}.`,
+      restoreInvalid: (message: string) => `Not a Nivik backup: ${message}`,
+      restoreFailed: (message: string) => `Restore failed: ${message}`,
       clearLocal: 'Clear local data',
       clearLocalDescription:
         'Deletes every diagram, run, template, preference and stored API key from this browser. Export first if you want to keep anything.',

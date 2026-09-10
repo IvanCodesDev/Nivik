@@ -1,5 +1,7 @@
+import { parseDiagram } from '@nivik/ir';
 import type { NivikDB } from '@nivik/storage';
-import type { Settings } from '@/lib/stores/settings-store';
+import { z } from 'zod';
+import { normalizeSettings, type Settings } from '@/lib/stores/settings-store';
 
 export const BACKUP_FORMAT = 'nivik-backup';
 export const BACKUP_VERSION = 1;
@@ -64,6 +66,112 @@ export function backupFilename(now: Date = new Date()): string {
 
 export function backupBlob(backup: Backup): Blob {
   return new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+}
+
+export class BackupError extends Error {
+  readonly code: 'E_INVALID_BACKUP';
+  constructor(message: string) {
+    super(message);
+    this.name = 'BackupError';
+    this.code = 'E_INVALID_BACKUP';
+  }
+}
+
+const row = z.record(z.string(), z.unknown());
+const keyed = (key: string) =>
+  row.refine((r) => typeof r[key] === 'string' && r[key] !== '', `missing ${key}`);
+
+/**
+ * What `exportAllData` wrote, checked before anything touches the database: every table is a list
+ * of keyed rows, diagram rows carry a document `parseDiagram` accepts. Rows are not deep-validated
+ * beyond that — they came out of this app's own tables.
+ */
+export const BackupSchema = z
+  .object({
+    format: z.literal(BACKUP_FORMAT),
+    version: z.literal(BACKUP_VERSION),
+    exportedAt: z.string(),
+    settings: z.unknown(),
+    tables: z.object({
+      diagrams: z.array(keyed('id').refine((r) => safeDiagram(r.ir), 'invalid diagram document')),
+      versions: z.array(keyed('id')),
+      changeSets: z.array(keyed('id')),
+      runs: z.array(keyed('id')),
+      sources: z.array(keyed('id')),
+      templates: z.array(keyed('id')),
+      providers: z.array(keyed('id')),
+      settings: z.array(keyed('key')),
+    }),
+  })
+  .strict();
+
+function safeDiagram(ir: unknown): boolean {
+  try {
+    parseDiagram(ir);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function parseBackup(text: string): Backup {
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch (error) {
+    throw new BackupError(
+      `Not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  const result = BackupSchema.safeParse(json);
+  if (!result.success) {
+    const issue = result.error.issues[0];
+    throw new BackupError(
+      issue ? `${issue.path.join('.') || 'backup'}: ${issue.message}` : 'Not a Nivik backup',
+    );
+  }
+  const parsed = result.data;
+  return {
+    ...parsed,
+    settings: normalizeSettings(parsed.settings as Partial<Settings> | undefined),
+    tables: parsed.tables as Backup['tables'],
+  };
+}
+
+export type RestoreCounts = Record<BackupTable, number>;
+
+export interface RestoreOptions {
+  /** Receives the backup's preferences when the user asked for them to be restored too. */
+  settings?: (saved: Settings) => void;
+}
+
+/**
+ * Spec 06 §4 "Import backup": merges the backup into this device in one transaction — rows with
+ * the same key are overwritten, everything else is kept. `secrets` is never in a backup and the
+ * device key never leaves its browser, so keys are untouched. Preferences are applied last, and
+ * only if asked.
+ */
+export async function restoreBackup(
+  db: NivikDB,
+  backup: Backup,
+  opts: RestoreOptions = {},
+): Promise<RestoreCounts> {
+  const counts = {} as RestoreCounts;
+  const tables = BACKUP_TABLES.map((name) => db.table(name));
+  await db.transaction('rw', tables, async () => {
+    for (const name of BACKUP_TABLES) {
+      const rows =
+        name === 'settings'
+          ? backup.tables.settings.filter(
+              (r) => (r as { key?: unknown }).key !== DEVICE_KEY_SETTING,
+            )
+          : backup.tables[name];
+      if (rows.length > 0) await db.table(name).bulkPut(rows);
+      counts[name] = rows.length;
+    }
+  });
+  opts.settings?.(backup.settings);
+  return counts;
 }
 
 export interface ClearLocalDataDeps {

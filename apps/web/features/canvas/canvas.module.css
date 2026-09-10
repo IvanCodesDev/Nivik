@@ -51,6 +51,15 @@
   text-align: center;
   transform: translate(-50%, -50%);
   pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+/*
+ * The hint is a sibling of the renderer, so it also paints over the renderer's own popovers. The
+ * right-click menu opens under the pointer, often right where the hint sits; step aside for it.
+ */
+.workspace:has(:global(.excalidraw .context-menu)) .hint {
+  opacity: 0;
 }
 
 .hintTitle {
@@ -162,6 +171,97 @@
 .renderer :global(.excalidraw .App-menu_top .dropdown-menu-button),
 .renderer :global(.excalidraw .default-sidebar-trigger) {
   display: none;
+}
+
+/*
+ * Excalidraw's right-click menu (`ul.context-menu > li > button.context-menu-item`) restyled as a
+ * liquid-glass pane: a sheer blurred fill with a top sheen and a specular rim, lifted by a soft
+ * shadow. Rows never get a hover box; only their text changes colour. Every selector repeats
+ * Excalidraw's own under `.renderer`, one class more specific, so no `!important` is needed.
+ */
+.renderer :global(.excalidraw .context-menu) {
+  margin: 2px 0 0 2px;
+  padding: 8px 0;
+  border: 1px solid var(--nv-glass-liquid-edge);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, var(--nv-glass-liquid-sheen), transparent 46%), var(--nv-glass-liquid);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--nv-glass-liquid-rim) 45%, transparent),
+    inset 0 1.5px 0 var(--nv-glass-liquid-rim),
+    var(--nv-shadow-glass-liquid);
+  backdrop-filter: blur(28px) saturate(170%);
+  transform-origin: top left;
+  animation: glass-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.renderer :global(.excalidraw .context-menu-item) {
+  min-width: 13rem;
+  min-height: 32px;
+  padding: 6px 14px 6px 22px;
+  color: var(--nv-ink);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  line-height: 20px;
+  transition: color 0.12s ease;
+}
+
+.renderer :global(.excalidraw .context-menu-item.checkmark::before) {
+  left: 9px;
+  color: var(--nv-accent-text);
+}
+
+.renderer :global(.excalidraw .context-menu-item .context-menu-item__label) {
+  margin-inline-end: 28px;
+  color: inherit;
+}
+
+.renderer :global(.excalidraw .context-menu-item .context-menu-item__shortcut) {
+  color: var(--nv-muted);
+  font-size: 11px;
+  letter-spacing: 0;
+  opacity: 1;
+  transition: color 0.12s ease;
+}
+
+.renderer :global(.excalidraw .context-menu-item:hover),
+.renderer :global(.excalidraw .context-menu-item:focus-visible) {
+  background-color: transparent;
+  color: var(--nv-accent-text);
+}
+
+.renderer :global(.excalidraw .context-menu-item:hover .context-menu-item__shortcut),
+.renderer :global(.excalidraw .context-menu-item:focus-visible .context-menu-item__shortcut) {
+  color: var(--nv-ink-2);
+}
+
+.renderer :global(.excalidraw .context-menu-item.dangerous .context-menu-item__label) {
+  color: var(--nv-danger);
+}
+
+.renderer :global(.excalidraw .context-menu-item:hover.dangerous) {
+  background-color: transparent;
+}
+
+.renderer :global(.excalidraw .context-menu-item:hover.dangerous .context-menu-item__label) {
+  color: var(--nv-danger-strong);
+}
+
+.renderer :global(.excalidraw .context-menu-item-separator) {
+  margin: 6px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--nv-ink) 9%, transparent);
+}
+
+@keyframes glass-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Loading / invalid-link message where the canvas would be. */
@@ -359,20 +459,11 @@
   border-radius: 14px;
   background: var(--nv-gradient-submit);
   color: var(--nv-on-accent);
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--nv-shadow-accent) 28%, transparent);
   cursor: pointer;
-  transition:
-    transform 0.15s,
-    filter 0.15s;
 }
 
 .submit:hover {
-  filter: brightness(1.03);
-  transform: translateY(-1px);
-}
-
-.submit:active {
-  transform: translateY(0);
+  background: var(--nv-gradient-submit-hover);
 }
 
 .rendererTag {
@@ -691,6 +782,18 @@
   border-radius: 14px;
 }
 
+/*
+ * Sharing the composer's row only works while the row is wide enough: the composer is 760px and
+ * grows to within 40px of both edges below 840px, so under ~1024px it runs straight into these.
+ * The composer wins that fight; the run pill and the review bar still reach the drawer.
+ */
+@media (max-width: 1023px) {
+  .help,
+  .controls {
+    display: none;
+  }
+}
+
 @media (max-width: 640px) {
   .composerWrap {
     bottom: 84px;
@@ -704,11 +807,5 @@
 
   .input {
     font-size: 15px;
-  }
-
-  /* The composer spans the row on small screens; the pill and review bar still reach the drawer. */
-  .help,
-  .controls {
-    display: none;
   }
 }

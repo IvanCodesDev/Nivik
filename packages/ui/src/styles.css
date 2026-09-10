@@ -166,7 +166,6 @@
   overflow: auto;
   background: var(--nv-dialog-backdrop);
   backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   animation: nv-fade-in 0.16s ease-out;
 }
 

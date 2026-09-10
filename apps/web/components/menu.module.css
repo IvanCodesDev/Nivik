@@ -8,7 +8,6 @@
   background: var(--nv-glass);
   box-shadow: var(--nv-shadow-menu);
   backdrop-filter: blur(24px) saturate(115%);
-  -webkit-backdrop-filter: blur(24px) saturate(115%);
   outline: none;
   animation: menu-in 0.16s ease-out both;
 }

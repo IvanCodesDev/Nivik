@@ -104,6 +104,11 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
   );
   const validId = isId(diagramId);
 
+  // Third-party renderers ship their own canvas chrome (Excalidraw puts a zoom island bottom-left
+  // and a help button bottom-right); ours would stack on top of theirs. Only our own engine leaves
+  // that row free, so the floating help / fit controls belong to it alone.
+  const nativeCanvas = renderer?.id === 'nivik';
+
   // Only offered once at least one model is configured; a single model has nothing to switch to.
   const modelOptions = useMemo<SelectOption[]>(() => {
     const configured = saved.providers.map((p) => ({
@@ -416,10 +421,12 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
         </form>
       </div>
 
-      <Button variant="surface" className={styles.help} onClick={() => setHelpOpen(true)}>
-        <Question size={20} aria-hidden="true" />
-        <span>{t.common.help}</span>
-      </Button>
+      {nativeCanvas && (
+        <Button variant="surface" className={styles.help} onClick={() => setHelpOpen(true)}>
+          <Question size={20} aria-hidden="true" />
+          <span>{t.common.help}</span>
+        </Button>
+      )}
 
       <div className={styles.controls}>
         <IconButton
@@ -430,15 +437,17 @@ export function CanvasWorkspace({ diagramId }: CanvasWorkspaceProps) {
         >
           <ListMagnifyingGlass size={18} aria-hidden="true" />
         </IconButton>
-        <IconButton
-          variant="surface"
-          className={styles.fit}
-          aria-label={t.canvas.fitToScreen}
-          disabled={!session}
-          onClick={() => void session?.fit()}
-        >
-          <CornersOut size={18} aria-hidden="true" />
-        </IconButton>
+        {nativeCanvas && (
+          <IconButton
+            variant="surface"
+            className={styles.fit}
+            aria-label={t.canvas.fitToScreen}
+            disabled={!session}
+            onClick={() => void session?.fit()}
+          >
+            <CornersOut size={18} aria-hidden="true" />
+          </IconButton>
+        )}
       </div>
 
       <ChoiceDialog

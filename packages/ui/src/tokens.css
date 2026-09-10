@@ -43,6 +43,16 @@
   --nv-surface-shadow: 0 3px 9px light-dark(rgba(40, 43, 55, 0.035), rgba(0, 0, 0, 0.35));
   --nv-glass: light-dark(rgba(255, 255, 255, 0.92), rgba(30, 30, 37, 0.92));
   --nv-glass-border: light-dark(rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.06));
+  /*
+   * Liquid glass: a thin translucent pane over the canvas. The fill stays sheer so the drawing
+   * bleeds through the blur; the sheen fades down from the top edge, the rim is the specular
+   * highlight along it, and the edge is the faint hairline that keeps the pane's outline on a
+   * background that is nearly the same colour.
+   */
+  --nv-glass-liquid: light-dark(rgba(255, 255, 255, 0.55), rgba(34, 34, 42, 0.6));
+  --nv-glass-liquid-sheen: light-dark(rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.07));
+  --nv-glass-liquid-rim: light-dark(rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.18));
+  --nv-glass-liquid-edge: light-dark(rgba(84, 70, 128, 0.13), rgba(0, 0, 0, 0.6));
   --nv-line: light-dark(#eeedf3, #2a2a32);
   --nv-hover: light-dark(#f3f1f8, #26262e);
   --nv-hover-strong: light-dark(#eeebf2, #2d2d37);
@@ -128,6 +138,18 @@
       light-dark(#c1a8fa, #7f5ce8) 52%,
       light-dark(#d8c8ff, #9d80ff)
     );
+  --nv-gradient-submit-hover:
+    radial-gradient(
+      ellipse at 70% 80%,
+      light-dark(rgba(150, 128, 244, 0.5), rgba(122, 90, 246, 0.5)),
+      transparent 50%
+    ),
+    linear-gradient(
+      135deg,
+      light-dark(#b49bff, #7c58e8),
+      light-dark(#ab8ef7, #6d49df) 52%,
+      light-dark(#c6b2ff, #8a6bf9)
+    );
   /* Composer halo stops; the conic gradient itself lives in canvas.module.css because its angle is animated there. */
   --nv-composer-1: light-dark(#eadcff, #3a2d5c);
   --nv-composer-2: light-dark(#f8efff, #2e2540);
@@ -145,6 +167,9 @@
     0 18px 48px light-dark(rgba(99, 84, 145, 0.1), rgba(0, 0, 0, 0.55)),
     0 0 0 5px light-dark(rgba(190, 151, 255, 0.055), rgba(190, 151, 255, 0.06)),
     8px 12px 34px light-dark(rgba(255, 224, 135, 0.08), rgba(0, 0, 0, 0.3));
+  --nv-shadow-glass-liquid:
+    0 22px 56px light-dark(rgba(84, 70, 128, 0.17), rgba(0, 0, 0, 0.6)),
+    0 3px 10px light-dark(rgba(60, 50, 90, 0.07), rgba(0, 0, 0, 0.45));
 
   /*
    * Canvas paper (Settings → Canvas Background) and what is drawn on it. The paper is the user's

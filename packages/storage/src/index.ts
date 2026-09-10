@@ -1,3 +1,5 @@
+/** Re-exported so the UI can subscribe to repository queries without depending on Dexie itself. */
+export { liveQuery } from 'dexie';
 export { DB_NAME, NivikDB } from './db';
 export {
   autoSnapshotDue,

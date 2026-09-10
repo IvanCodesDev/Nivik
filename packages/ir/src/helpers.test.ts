@@ -4,6 +4,7 @@ import {
   childrenOf,
   createDiagram,
   descendantsOf,
+  duplicateDiagram,
   indexDiagram,
   neighborhood,
 } from './helpers';
@@ -39,6 +40,29 @@ describe('createDiagram', () => {
   it('defaults the type to generic until the plan stage classifies the diagram', () => {
     expect(createDiagram({ name: 'Blank' }).type).toBe('generic');
     expect(createDiagram({ name: 'Open', type: 'customer-journey' }).type).toBe('customer-journey');
+  });
+});
+
+describe('duplicateDiagram', () => {
+  it('copies the document under a new id at version 1 and leaves the original alone', () => {
+    const source = { ...orderPlatform(), version: 7, meta: { createdAt: 1, updatedAt: 2 } };
+    const before = structuredClone(source);
+    const copy = duplicateDiagram(source, { now: 99 });
+
+    expect(DiagramSchema.safeParse(copy).success).toBe(true);
+    expect(copy.id).not.toBe(source.id);
+    expect(copy.id.startsWith('d_')).toBe(true);
+    expect(copy.version).toBe(1);
+    expect(copy.meta).toEqual({ createdAt: 99, updatedAt: 99 });
+    expect(copy.name).toBe(source.name);
+    expect(copy.nodes).toEqual(source.nodes);
+    expect(copy.nodes).not.toBe(source.nodes);
+    expect(source).toEqual(before);
+  });
+
+  it('takes an explicit id and name', () => {
+    const copy = duplicateDiagram(orderPlatform(), { id: 'd_copy0001', name: 'Copy of Order' });
+    expect(copy).toMatchObject({ id: 'd_copy0001', name: 'Copy of Order' });
   });
 });
 

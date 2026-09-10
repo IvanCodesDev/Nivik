@@ -39,6 +39,32 @@ export function createDiagram(init: CreateDiagramInit): Diagram {
   };
 }
 
+export interface DuplicateDiagramOptions {
+  /** Id of the copy; a fresh `d_…` id by default. */
+  id?: Id;
+  /** Name of the copy; the original's name by default. */
+  name?: string;
+  /** Epoch ms stamped on the copy's `meta`; defaults to `Date.now()`. */
+  now?: number;
+}
+
+/**
+ * "Duplicate" (PRD §5.3): a deep copy of the whole document under a new id, back at version 1
+ * with fresh document timestamps. Elements keep their ids and history — they are the same
+ * drawing — so renderer state that refers to them stays valid.
+ */
+export function duplicateDiagram(source: Diagram, opts: DuplicateDiagramOptions = {}): Diagram {
+  const now = opts.now ?? Date.now();
+  const copy = structuredClone(source);
+  return {
+    ...copy,
+    id: opts.id ?? newDiagramId(),
+    name: opts.name ?? copy.name,
+    version: 1,
+    meta: { ...copy.meta, createdAt: now, updatedAt: now },
+  };
+}
+
 export interface DiagramIndex {
   nodes: Map<Id, DiagramNode>;
   edges: Map<Id, DiagramEdge>;

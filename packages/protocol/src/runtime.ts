@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { RunErrorCodeSchema } from './error-codes';
+import { ProviderConfigSchema } from './providers';
 import { RunIdSchema } from './run-request';
 
 /** HTTP surface of `apps/agent` (spec 07 §1.2). Paths are relative to the runtime origin. */
@@ -26,6 +27,22 @@ export const PROXY_HEADERS = {
 /** Response header carrying the runId of a streaming `POST /v1/runs`. */
 export const RUN_ID_HEADER = 'x-nivik-run-id';
 export const NDJSON_CONTENT_TYPE = 'application/x-ndjson';
+
+/**
+ * Request header of `POST /v1/runs` carrying the providers and keys the runtime should drive the
+ * run with (D14′ design §6: the runtime holds keys only for the duration of the run, in memory,
+ * never in logs). Absent → the runtime uses whatever agent it was started with.
+ */
+export const RUN_BOOTSTRAP_HEADER = 'x-nivik-bootstrap';
+
+export const RunBootstrapSchema = z.object({
+  providers: z.array(ProviderConfigSchema).max(50),
+  /** API keys by provider id. */
+  keys: z.record(z.string(), z.string()),
+  defaultProviderId: z.string().nullable().default(null),
+  fastProviderId: z.string().nullable().default(null),
+});
+export type RunBootstrap = z.infer<typeof RunBootstrapSchema>;
 
 export const RUN_STATUSES = ['running', 'done', 'error', 'aborted'] as const;
 export const RunStatusSchema = z.enum(RUN_STATUSES);

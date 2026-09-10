@@ -57,12 +57,22 @@ const DEFAULT_SYSTEM = (input: SystemPromptInput): string =>
  * budget safety net or an abort ends the run when the model does not.
  */
 export function createLoopAgent(deps: AgentDeps, opts: LoopAgentOptions = {}): LoopAgent {
-  let active: ReturnType<typeof createQuestions> | null = null;
+  // One agent may host several runs at once (the runtime does); each keeps its own question table.
+  const active = new Map<string, ReturnType<typeof createQuestions>>();
 
   const agent: LoopAgent = {
-    answer: (questionId, text) => active?.answer(questionId, text) ?? false,
-    pendingQuestions: () =>
-      active?.pending().map(({ questionId, text }) => ({ questionId, text })) ?? [],
+    answer: (questionId, text) => {
+      for (const questions of active.values()) {
+        if (questions.answer(questionId, text)) return true;
+      }
+      return false;
+    },
+    pendingQuestions: (runId) =>
+      [...active.entries()]
+        .filter(([id]) => runId === undefined || id === runId)
+        .flatMap(([, questions]) =>
+          questions.pending().map(({ questionId, text }) => ({ questionId, text })),
+        ),
     async *run(request: RunRequest, options: RunOptions = {}): AsyncGenerator<RunEvent> {
       const runId = request.runId ?? deps.newRunId();
       const signal = options.signal ?? new AbortController().signal;
@@ -79,10 +89,10 @@ export function createLoopAgent(deps: AgentDeps, opts: LoopAgentOptions = {}): L
           now: deps.now,
           newId: () => `q_${deps.newRunId().slice(4, 12)}`,
         });
-        active = questions;
+        active.set(runId, questions);
         const documents = createDocuments(request.diagram, { now: deps.now, runId });
         const state: ToolState = { plan: null, finish: null };
-        const context = {
+        const context: ToolContext = {
           runId,
           documents,
           sources: request.sources,
@@ -98,8 +108,13 @@ export function createLoopAgent(deps: AgentDeps, opts: LoopAgentOptions = {}): L
             ...(opts.subagentTimeoutMs !== undefined ? { timeoutMs: opts.subagentTimeoutMs } : {}),
           },
         };
-        const tools = createTools(context, state);
-        const toolNames = toolNamesFor(context);
+        // Host tools (runtime-only browseRepo / fetchUrl) join the core set; the core wins on a name clash.
+        const hostTools = opts.tools?.(context, { signal }) ?? {};
+        const tools = { ...hostTools, ...createTools(context, state) };
+        const toolNames = [
+          ...toolNamesFor(context),
+          ...Object.keys(hostTools).filter((name) => !(TOOL_NAMES as readonly string[]).includes(name)),
+        ];
         const buildSystem = opts.system ?? DEFAULT_SYSTEM;
         const system = () => buildSystem({ request, tools: toolNames, plan: state.plan });
         const readout = toReadout(request.diagram, {
@@ -143,7 +158,7 @@ export function createLoopAgent(deps: AgentDeps, opts: LoopAgentOptions = {}): L
           }
           throw runError;
         } finally {
-          active = null;
+          active.delete(runId);
         }
 
         const summaryFromReply = lastReply(result.transcript) ?? 'Done.';

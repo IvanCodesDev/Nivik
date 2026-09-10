@@ -1,5 +1,6 @@
 'use client';
 
+import { PROVIDER_PRESETS } from '@nivik/protocol';
 import { Button, Input, Pill, Select, useToast } from '@nivik/ui';
 import { CloudCheck, LockSimple, PlugsConnected, Plus } from '@phosphor-icons/react';
 import { useState } from 'react';
@@ -17,6 +18,7 @@ import {
   useSettingsStore,
 } from '@/lib/stores/settings-store';
 import { CardHeading, RowsCard, SettingRow } from './primitives';
+import { formatContextLength } from './provider-form';
 import styles from './settings.module.css';
 
 interface AiSectionProps {
@@ -71,9 +73,15 @@ export function AiSection({ onAddProvider, onEditProvider }: AiSectionProps) {
                 provider={provider}
                 hasKey={Boolean(keys[provider.id])}
                 isDefault={provider.id === draft.defaultModel}
+                isFast={provider.id === draft.fastModel}
                 onSetDefault={() => {
                   update({ defaultModel: provider.id });
                   toast(copy.defaultChanged(provider.name));
+                }}
+                onToggleFast={() => {
+                  const next = provider.id === draft.fastModel ? null : provider.id;
+                  update({ fastModel: next });
+                  toast(next ? copy.fastChanged(provider.name) : copy.fastCleared);
                 }}
                 onConfigure={() => onEditProvider(provider.id)}
                 onRemove={() => {
@@ -83,6 +91,7 @@ export function AiSection({ onAddProvider, onEditProvider }: AiSectionProps) {
               />
             ))}
             <p className={styles.quietNote}>{copy.defaultNote}</p>
+            <p className={styles.quietNote}>{copy.fastNote}</p>
           </>
         )}
       </RowsCard>
@@ -184,22 +193,43 @@ interface ProviderRowProps {
   provider: ProviderConfig;
   hasKey: boolean;
   isDefault: boolean;
+  isFast: boolean;
   onSetDefault: () => void;
+  onToggleFast: () => void;
   onConfigure: () => void;
   onRemove: () => void;
 }
+
+/** "3 days ago" style stamp for a verification; `at: 0` is a result from before probing existed. */
+function verifiedText(
+  copy: ReturnType<typeof useT>['settings']['ai'],
+  verified: NonNullable<ProviderConfig['verified']>,
+  now: number,
+): string {
+  if (verified.at === 0) return copy.testedLegacy(verified.latencyMs);
+  const days = Math.floor((now - verified.at) / 86_400_000);
+  return copy.verified(verified.latencyMs, days);
+}
+
+const CAPABILITY_ORDER = ['text', 'json', 'tools', 'vision'] as const;
 
 function ProviderRow({
   provider,
   hasKey,
   isDefault,
+  isFast,
   onSetDefault,
+  onToggleFast,
   onConfigure,
   onRemove,
 }: ProviderRowProps) {
   const t = useT();
   const copy = t.settings.ai;
   const keyStorage = useSettingsStore((s) => s.saved.keyStorage);
+  const driver =
+    provider.kind === 'openai-compatible'
+      ? copy.formats[provider.compatibility]
+      : PROVIDER_PRESETS[provider.kind].name;
 
   return (
     <div className={styles.providerRow}>
@@ -207,6 +237,7 @@ function ProviderRow({
         <div className={styles.providerName}>
           {provider.name}
           {isDefault && <Pill className={styles.defaultPill}>{copy.defaultBadge}</Pill>}
+          {isFast && <Pill className={styles.fastPill}>{copy.fastBadge}</Pill>}
           <Pill>
             {hasKey
               ? keyStorage === 'device'
@@ -216,10 +247,20 @@ function ProviderRow({
           </Pill>
         </div>
         <p className={styles.providerMeta}>
-          {provider.model} · {copy.formats[provider.compatibility]} · {hostOf(provider.url)}
+          {provider.model} · {driver} · {hostOf(provider.url)}
         </p>
         <p className={styles.providerCaps}>
-          {provider.verified ? copy.tested(provider.verified.latencyMs) : copy.notTested}
+          {provider.verified ? verifiedText(copy, provider.verified, Date.now()) : copy.notTested}
+          {provider.capabilities && (
+            <>
+              {' · '}
+              {CAPABILITY_ORDER.filter((name) => provider.capabilities?.[name])
+                .map((name) => copy.capabilityNames[name])
+                .join(' · ')}
+              {' · '}
+              {copy.contextLength(formatContextLength(provider.capabilities.contextLength))}
+            </>
+          )}
         </p>
       </div>
       <div className={styles.providerActions}>
@@ -228,6 +269,9 @@ function ProviderRow({
             {copy.setDefault}
           </Button>
         )}
+        <Button size="sm" variant="ghost" onClick={onToggleFast}>
+          {isFast ? copy.clearFast : copy.setFast}
+        </Button>
         <Button size="sm" onClick={onConfigure}>
           {t.common.configure}
         </Button>

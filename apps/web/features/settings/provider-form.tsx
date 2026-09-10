@@ -1,20 +1,22 @@
 'use client';
 
-import { inferProviderKind } from '@nivik/protocol';
-import { Button, cn, Input, Select, type SelectOption, useToast } from '@nivik/ui';
+import { inferProviderKind, type ProbeReport, type ProviderCapabilities } from '@nivik/protocol';
+import { Button, cn, Input, Pill, Select, type SelectOption, useToast } from '@nivik/ui';
 import { ArrowLeft, ArrowsClockwise } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 import { useT } from '@/lib/i18n/provider';
 import { forgetKey, persistKey } from '@/lib/provider-keys';
 import {
   CUSTOM_PRESET,
+  capabilitiesFromReport,
   fetchModels,
   PRESETS,
   type ProbeFailure,
   type ProbeTarget,
   presetFor,
+  probeCapabilities,
+  probeStepsFromReport,
   suggestName,
-  testConnection,
   validateBaseUrl,
 } from '@/lib/provider-probe';
 import {
@@ -41,6 +43,8 @@ interface TestState {
   steps: Record<'url' | 'key' | 'model', StepState>;
   elapsedMs: number | null;
   message: TestMessage;
+  /** Spec 05 §9.3 report of the last successful probe; what Save stores as capabilities. */
+  report: ProbeReport | null;
 }
 
 const IDLE_TEST: TestState = {
@@ -48,7 +52,14 @@ const IDLE_TEST: TestState = {
   steps: { url: 'idle', key: 'idle', model: 'idle' },
   elapsedMs: null,
   message: { kind: 'idle' },
+  report: null,
 };
+
+/** Human-readable context window: 131072 → "128K", 1048576 → "1M". */
+export function formatContextLength(tokens: number): string {
+  if (tokens >= 1_000_000) return `${Math.round(tokens / 1_048_576) || 1}M`;
+  return `${Math.round(tokens / 1024)}K`;
+}
 
 const STEP_GLYPH: Record<StepState, string> = { idle: '○', running: '…', ok: '✓', error: '!' };
 
@@ -105,6 +116,7 @@ export function ProviderForm({ providerId, onDone }: ProviderFormProps) {
   const upsertProvider = useSettingsStore((s) => s.upsertProvider);
   // Keys follow the *saved* storage mode: a draft switch only takes effect on Save changes.
   const keyStorage = useSettingsStore((s) => s.saved.keyStorage);
+  const runtimeUrl = useSettingsStore((s) => s.saved.agentRuntimeUrl.trim() || null);
   const existingKey = useProviderKeys((s) => (providerId ? s.keys[providerId] : undefined));
 
   const [form, setForm] = useState<FormState>(() => initialForm(existing, existingKey ?? ''));
@@ -206,6 +218,7 @@ export function ProviderForm({ providerId, onDone }: ProviderFormProps) {
         steps: { url: 'error', key: 'idle', model: 'idle' },
         elapsedMs: null,
         message: { kind: 'failure', failure: probe.failure },
+        report: null,
       });
       return;
     }
@@ -215,6 +228,7 @@ export function ProviderForm({ providerId, onDone }: ProviderFormProps) {
         steps: { url: 'ok', key: 'error', model: 'idle' },
         elapsedMs: null,
         message: { kind: 'key-required' },
+        report: null,
       });
       return;
     }
@@ -224,6 +238,7 @@ export function ProviderForm({ providerId, onDone }: ProviderFormProps) {
         steps: { url: 'ok', key: 'ok', model: 'error' },
         elapsedMs: null,
         message: { kind: 'model-required' },
+        report: null,
       });
       return;
     }
@@ -232,23 +247,27 @@ export function ProviderForm({ providerId, onDone }: ProviderFormProps) {
       steps: { url: 'ok', key: 'running', model: 'running' },
       elapsedMs: null,
       message: { kind: 'contacting' },
+      report: null,
     });
-    const result = await testConnection(probe.target, form.model.trim());
-    if (result.ok) {
+    // Spec 05 §9.3: one Test Connection = the whole probe set (models, text, json, tools).
+    const report = await probeCapabilities(probe.target, form.model.trim(), { runtimeUrl });
+    const view = probeStepsFromReport(report);
+    if (view.failure === null) {
       setTest({
         status: 'ok',
-        steps: { url: 'ok', key: 'ok', model: 'ok' },
-        elapsedMs: result.elapsedMs,
+        steps: view.steps,
+        elapsedMs: view.elapsedMs,
         message: { kind: 'connected' },
+        report,
       });
       return;
     }
-    const keyProblem = result.code === 'http-401' || result.code === 'http-403';
     setTest({
       status: 'error',
-      steps: { url: 'ok', key: keyProblem ? 'error' : 'ok', model: keyProblem ? 'idle' : 'error' },
-      elapsedMs: result.elapsedMs,
-      message: { kind: 'failure', failure: result },
+      steps: view.steps,
+      elapsedMs: view.elapsedMs,
+      message: { kind: 'failure', failure: view.failure },
+      report: null,
     });
   };
 
@@ -261,9 +280,12 @@ export function ProviderForm({ providerId, onDone }: ProviderFormProps) {
     if (!name) return toast(copy.nameRequired);
 
     const id = existing?.id ?? crypto.randomUUID();
+    const probed: ProviderCapabilities | null = test.report
+      ? capabilitiesFromReport(test.report)
+      : null;
     const verifiedNow =
       test.status === 'ok' && test.elapsedMs !== null
-        ? { at: Date.now(), latencyMs: test.elapsedMs, detected: false }
+        ? { at: Date.now(), latencyMs: test.elapsedMs, detected: probed !== null }
         : null;
     upsertProvider({
       id,
@@ -273,7 +295,7 @@ export function ProviderForm({ providerId, onDone }: ProviderFormProps) {
       kind: inferProviderKind(url.url, form.compatibility),
       model,
       transport: existing?.transport ?? 'auto',
-      capabilities: existing?.capabilities ?? null,
+      capabilities: probed ?? existing?.capabilities ?? null,
       verified: verifiedNow ?? existing?.verified ?? null,
     });
     if (form.apiKey.trim()) void persistKey(id, form.apiKey.trim(), keyStorage);
@@ -492,6 +514,41 @@ export function ProviderForm({ providerId, onDone }: ProviderFormProps) {
           >
             {messageText(test.message)}
           </p>
+          {test.report && (
+            <ul className={styles.capabilities} aria-label={copy.capabilities}>
+              {(
+                [
+                  ['text', test.report.text],
+                  ['json', test.report.json],
+                  ['tools', test.report.tools],
+                  ...(test.report.vision === null ? [] : [['vision', test.report.vision] as const]),
+                ] as const
+              ).map(([name, supported]) => (
+                <li key={name}>
+                  <Pill className={cn(styles.capability, supported ? styles.ok : styles.missing)}>
+                    {supported ? '✓' : '✗'} {copy.capabilityNames[name]}
+                  </Pill>
+                </li>
+              ))}
+              {test.report.contextLength && (
+                <li>
+                  <Pill className={styles.capability}>
+                    {copy.contextLength(
+                      formatContextLength(test.report.contextLength.value),
+                      test.report.contextLength.estimated,
+                    )}
+                  </Pill>
+                </li>
+              )}
+              {test.report.models && (
+                <li>
+                  <Pill className={styles.capability}>
+                    {copy.modelsListed(test.report.models.length)}
+                  </Pill>
+                </li>
+              )}
+            </ul>
+          )}
         </div>
       </RowsCard>
 

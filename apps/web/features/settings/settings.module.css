@@ -300,6 +300,11 @@
   color: var(--nv-accent-text);
 }
 
+.fastPill {
+  background: var(--nv-success-soft);
+  color: var(--nv-success-text);
+}
+
 .providerMeta {
   margin: 4px 0 0;
   color: var(--nv-muted);
@@ -832,6 +837,30 @@
 
 .testResult.error {
   color: var(--nv-danger-text);
+}
+
+.capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.capability {
+  font-variant-numeric: tabular-nums;
+}
+
+.capability.ok {
+  background: var(--nv-success-soft);
+  color: var(--nv-success-text);
+}
+
+.capability.missing {
+  color: var(--nv-muted-soft);
+  text-decoration: line-through;
 }
 
 .formFooter {

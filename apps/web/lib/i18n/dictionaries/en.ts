@@ -344,7 +344,20 @@ export const en = {
       keyOnDevice: 'Key on this device',
       keyNeeded: 'Key needed',
       tested: (ms: number) => `Tested · ${ms} ms`,
+      testedLegacy: (ms: number) => `Tested before capability probing · ${ms} ms`,
+      verified: (ms: number, daysAgo: number) =>
+        `Verified ${daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`} · ${ms} ms`,
       notTested: 'Not tested',
+      capabilityNames: { text: 'Text', json: 'JSON', tools: 'Tools', vision: 'Vision' },
+      contextLength: (size: string, estimated = false) => `${estimated ? '≈' : ''}${size} context`,
+      fastBadge: 'Fast',
+      setFast: 'Use for planning',
+      clearFast: 'Stop using for planning',
+      fastChanged: (name: string) =>
+        `${name} will handle the planning stage. Save changes to keep it.`,
+      fastCleared: 'Planning goes back to the default model. Save changes to keep it.',
+      fastNote:
+        'A fast model answers the short planning step; the default model does the drawing. Leave it unset to use the default for everything.',
       runtime: 'Agent Runtime',
       runtimeDescription:
         'The Node service that runs the Nivik Agent, streams progress, and proxies providers that block browser requests.',
@@ -419,10 +432,21 @@ export const en = {
       stepUrl: 'Base URL',
       stepKey: 'API Key',
       stepModel: 'Model',
+      capabilities: 'Detected capabilities',
+      capabilityNames: {
+        text: 'Text',
+        json: 'Structured output',
+        tools: 'Tool calls',
+        vision: 'Vision',
+      },
+      contextLength: (size: string, estimated: boolean) =>
+        `${estimated ? '≈' : ''}${size} context${estimated ? ' (estimated)' : ''}`,
+      modelsListed: (count: number) => `${count} models listed`,
       responseTimeNone: 'Response time —',
       responseTime: (ms: number) => `Response time ${ms} ms`,
       elapsed: (ms: number) => `Elapsed ${ms} ms`,
-      notTested: 'Not tested · Sends one short request to your provider. Usage charges may apply.',
+      notTested:
+        'Not tested · Sends a few short requests to your provider (text, structured output, tool call). Usage charges may apply.',
       contacting: 'Contacting the endpoint…',
       connected: 'Connected. API key accepted and a model response received.',
       keyRequired: 'API key is required to test the connection.',

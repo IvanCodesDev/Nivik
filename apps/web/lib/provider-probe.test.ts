@@ -1,5 +1,90 @@
+import type { ProbeReport } from '@nivik/protocol';
 import { describe, expect, it } from 'vitest';
-import { CUSTOM_PRESET, PRESETS, presetFor, suggestName, validateBaseUrl } from './provider-probe';
+import {
+  CUSTOM_PRESET,
+  capabilitiesFromReport,
+  PRESETS,
+  presetFor,
+  probeStepsFromReport,
+  suggestName,
+  validateBaseUrl,
+} from './provider-probe';
+
+const report = (over: Partial<ProbeReport> = {}): ProbeReport => ({
+  models: ['a', 'b'],
+  text: true,
+  json: true,
+  tools: false,
+  vision: null,
+  latencyMs: 320,
+  contextLength: { value: 131_072, estimated: true },
+  errors: [],
+  ...over,
+});
+
+describe('capabilitiesFromReport', () => {
+  it('stores only what was proved and never assumes vision or thinking', () => {
+    expect(capabilitiesFromReport(report())).toEqual({
+      text: true,
+      json: true,
+      tools: false,
+      vision: false,
+      thinking: false,
+      contextLength: 131_072,
+    });
+    expect(capabilitiesFromReport(report({ vision: true, contextLength: null })).vision).toBe(true);
+    expect(capabilitiesFromReport(report({ contextLength: null })).contextLength).toBe(32_768);
+  });
+});
+
+describe('probeStepsFromReport', () => {
+  it('a working text probe means key and model are fine, whatever else failed', () => {
+    const view = probeStepsFromReport(
+      report({
+        models: null,
+        tools: false,
+        errors: [{ probe: 'models', code: 'E_PROVIDER_AUTH', message: 'x' }],
+      }),
+    );
+    expect(view).toEqual({
+      steps: { url: 'ok', key: 'ok', model: 'ok' },
+      failure: null,
+      elapsedMs: 320,
+    });
+  });
+
+  it('blames the key for auth failures and the model for everything else', () => {
+    const auth = probeStepsFromReport(
+      report({
+        text: false,
+        latencyMs: null,
+        errors: [{ probe: 'text', code: 'E_PROVIDER_AUTH', message: '401' }],
+      }),
+    );
+    expect(auth.steps).toEqual({ url: 'ok', key: 'error', model: 'idle' });
+    expect(auth.failure).toEqual({ code: 'http-401' });
+
+    const cors = probeStepsFromReport(
+      report({
+        text: false,
+        errors: [{ probe: 'text', code: 'E_PROVIDER_CORS', message: 'blocked' }],
+      }),
+    );
+    expect(cors.steps).toEqual({ url: 'ok', key: 'ok', model: 'error' });
+    expect(cors.failure).toEqual({ code: 'network' });
+
+    const odd = probeStepsFromReport(
+      report({
+        text: false,
+        errors: [{ probe: 'text', code: 'E_INTERNAL', message: 'Provider responded 500' }],
+      }),
+    );
+    expect(odd.failure).toEqual({ code: 'unexpected', detail: 'Provider responded 500' });
+    expect(probeStepsFromReport(report({ text: false, errors: [] })).failure).toEqual({
+      code: 'unexpected',
+    });
+  });
+});
 
 describe('validateBaseUrl', () => {
   it('accepts https and strips trailing slashes', () => {

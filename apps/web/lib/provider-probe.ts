@@ -1,6 +1,6 @@
 import {
-  createLanguageModel,
   createTransportFetch,
+  DEFAULT_CONTEXT_LENGTH,
   type FetchLike,
   listModels,
   probeProvider,
@@ -9,11 +9,12 @@ import {
 import {
   inferProviderKind,
   type ProbeReport,
+  type ProviderCapabilities,
   type ProviderConfig,
   ProviderConfigSchema,
   type RunError,
 } from '@nivik/protocol';
-import { APICallError, generateText } from 'ai';
+import { APICallError } from 'ai';
 import type { ApiCompatibility } from '@/lib/stores/settings-store';
 
 /**
@@ -239,32 +240,64 @@ export async function fetchModels(
   }
 }
 
-/** Sends one tiny completion request to prove the key + model pair works (probe P2). */
-export async function testConnection(
-  target: ProbeTarget,
-  model: string,
-  opts: ProbeOptions = {},
-): Promise<ProbeResult<true>> {
-  const started = performance.now();
-  const { config, transport } = transportFor(target, model, opts);
-  try {
-    const languageModel = createLanguageModel(config, {
-      apiKey: target.apiKey,
-      fetch: transport.fetch,
-      transport: 'direct',
-    });
-    await generateText({
-      model: languageModel,
-      prompt: 'Reply with OK',
-      maxOutputTokens: 8,
-      maxRetries: 0,
-      timeout: PROBE_TIMEOUT_MS,
-      ...(opts.signal ? { abortSignal: opts.signal } : {}),
-    });
-    return { ok: true, data: true, elapsedMs: Math.round(performance.now() - started) };
-  } catch (error) {
-    return probeFailureFor(error, Math.round(performance.now() - started));
+/** Spec 05 §9.3 → the stored `ProviderCapabilities`: what the probes proved, nothing assumed. */
+export function capabilitiesFromReport(report: ProbeReport): ProviderCapabilities {
+  return {
+    text: report.text,
+    json: report.json,
+    tools: report.tools,
+    vision: report.vision === true,
+    thinking: false,
+    contextLength: report.contextLength?.value ?? DEFAULT_CONTEXT_LENGTH,
+  };
+}
+
+export type ProbeStepState = 'idle' | 'running' | 'ok' | 'error';
+
+export interface ProbeStepsView {
+  /** The three steps the form shows; `url` is already known good when a report exists. */
+  steps: Record<'url' | 'key' | 'model', ProbeStepState>;
+  /** `null` = connected; otherwise why the text probe failed, in the form's vocabulary. */
+  failure: Pick<ProbeFailure, 'code' | 'detail'> | null;
+  elapsedMs: number | null;
+}
+
+/**
+ * Reads the report the way the form's step indicator does: the text probe decides whether the
+ * key and the model work (an auth error is the key's fault, anything else the model's); the model
+ * list and the capability probes never fail the connection.
+ */
+export function probeStepsFromReport(report: ProbeReport): ProbeStepsView {
+  if (report.text) {
+    return {
+      steps: { url: 'ok', key: 'ok', model: 'ok' },
+      failure: null,
+      elapsedMs: report.latencyMs,
+    };
   }
+  const textError = report.errors.find((error) => error.probe === 'text');
+  const code = textError?.code ?? 'E_INTERNAL';
+  const keyProblem = code === 'E_PROVIDER_AUTH';
+  const failure: Pick<ProbeFailure, 'code' | 'detail'> =
+    code === 'E_PROVIDER_AUTH'
+      ? { code: 'http-401' }
+      : code === 'E_PROVIDER_RATE_LIMIT'
+        ? { code: 'http-429' }
+        : code === 'E_PROVIDER_TIMEOUT' || code === 'E_ABORTED'
+          ? { code: 'timeout' }
+          : code === 'E_PROVIDER_CORS'
+            ? { code: 'network' }
+            : code === 'E_NO_OBJECT'
+              ? { code: 'shape' }
+              : {
+                  code: 'unexpected',
+                  ...(textError?.message ? { detail: textError.message } : {}),
+                };
+  return {
+    steps: { url: 'ok', key: keyProblem ? 'error' : 'ok', model: keyProblem ? 'idle' : 'error' },
+    failure,
+    elapsedMs: report.latencyMs,
+  };
 }
 
 /** The full spec 05 §9.3 report (P1–P4, P5 on request) for the Settings capability panel (task 1.10). */

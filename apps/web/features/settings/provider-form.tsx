@@ -5,6 +5,7 @@ import { Button, cn, Input, Select, type SelectOption, useToast } from '@nivik/u
 import { ArrowLeft, ArrowsClockwise } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 import { useT } from '@/lib/i18n/provider';
+import { forgetKey, persistKey } from '@/lib/provider-keys';
 import {
   CUSTOM_PRESET,
   fetchModels,
@@ -102,9 +103,9 @@ export function ProviderForm({ providerId, onDone }: ProviderFormProps) {
     providerId ? s.draft.providers.find((p) => p.id === providerId) : undefined,
   );
   const upsertProvider = useSettingsStore((s) => s.upsertProvider);
+  // Keys follow the *saved* storage mode: a draft switch only takes effect on Save changes.
+  const keyStorage = useSettingsStore((s) => s.saved.keyStorage);
   const existingKey = useProviderKeys((s) => (providerId ? s.keys[providerId] : undefined));
-  const setKey = useProviderKeys((s) => s.setKey);
-  const deleteKey = useProviderKeys((s) => s.deleteKey);
 
   const [form, setForm] = useState<FormState>(() => initialForm(existing, existingKey ?? ''));
   const [showKey, setShowKey] = useState(false);
@@ -275,7 +276,7 @@ export function ProviderForm({ providerId, onDone }: ProviderFormProps) {
       capabilities: existing?.capabilities ?? null,
       verified: verifiedNow ?? existing?.verified ?? null,
     });
-    if (form.apiKey.trim()) setKey(id, form.apiKey.trim());
+    if (form.apiKey.trim()) void persistKey(id, form.apiKey.trim(), keyStorage);
     toast(copy.saved);
     onDone();
   };
@@ -395,7 +396,7 @@ export function ProviderForm({ providerId, onDone }: ProviderFormProps) {
                     type="button"
                     className={styles.textButton}
                     onClick={() => {
-                      if (providerId) deleteKey(providerId);
+                      if (providerId) void forgetKey(providerId);
                       patch({ apiKey: '' });
                       toast(copy.keyRemoved);
                     }}

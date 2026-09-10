@@ -341,6 +341,7 @@ export const en = {
         gemini: 'Gemini',
       },
       keyInSession: 'Key in session',
+      keyOnDevice: 'Key on this device',
       keyNeeded: 'Key needed',
       tested: (ms: number) => `Tested · ${ms} ms`,
       notTested: 'Not tested',
@@ -356,8 +357,27 @@ export const en = {
       runtimeUnreachable: (url: string) => `Could not reach ${url}. Is the Agent Runtime started?`,
       runtimeError: (message: string) => `Runtime error: ${message}`,
       checkTimedOut: 'Connection check timed out.',
+      keySecurity: 'Key security',
+      keySecurityDescription:
+        'Where API keys live between page loads. They never leave this browser and are never part of settings or exports.',
+      keyStorage: 'Key storage',
+      keyStorageOptions: {
+        session: {
+          label: 'This session only',
+          description: 'Kept in tab memory; reloading the page clears them. The safest choice.',
+        },
+        device: {
+          label: 'On this device',
+          description:
+            'Encrypted (AES-GCM) in the browser database with a key that scripts cannot export. Protects against copying the database files; does not protect against scripts running on this page.',
+        },
+      },
+      keyStorageMovedToDevice: 'Keys are now stored encrypted on this device.',
+      keyStorageMovedToSession: 'Stored keys were erased; they now live in this tab only.',
       keysNote:
         'Local-only keys · Masked, kept in tab memory, and excluded from exports. Reloading clears them.',
+      keysNoteDevice:
+        'Local-only keys · Masked, encrypted in this browser, and excluded from exports. Switch back to “This session only” to erase them.',
     },
     providerForm: {
       root: 'AI & Models',

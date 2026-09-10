@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { matchLanguages } from '@/lib/i18n/locales';
 import { useLocale, useT } from '@/lib/i18n/provider';
-import { selectIsDirty, useSettingsStore } from '@/lib/stores/settings-store';
+import { applyKeyStorageChange } from '@/lib/provider-keys';
+import { selectIsDirty, useProviderKeys, useSettingsStore } from '@/lib/stores/settings-store';
 import { AccountSection } from './account-section';
 import { AiSection } from './ai-section';
 import { AppearanceSection } from './appearance-section';
@@ -138,6 +139,22 @@ export function SettingsPage({ section }: SettingsPageProps) {
                   disabled={!dirty}
                   onClick={() => {
                     const message = savedToast();
+                    const { saved, draft } = useSettingsStore.getState();
+                    // A key-storage change moves the keys themselves (spec 06 §6.1), not just the flag.
+                    if (saved.keyStorage !== draft.keyStorage) {
+                      void applyKeyStorageChange(
+                        saved.keyStorage,
+                        draft.keyStorage,
+                        useProviderKeys.getState().keys,
+                      ).then(() =>
+                        toast(
+                          draft.keyStorage === 'device'
+                            ? t.settings.ai.keyStorageMovedToDevice
+                            : t.settings.ai.keyStorageMovedToSession,
+                          { tone: 'light' },
+                        ),
+                      );
+                    }
                     save();
                     toast(message);
                   }}

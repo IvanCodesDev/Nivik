@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Input, Pill, useToast } from '@nivik/ui';
+import { Button, Input, Pill, Select, useToast } from '@nivik/ui';
 import { CloudCheck, LockSimple, PlugsConnected, Plus } from '@phosphor-icons/react';
 import { useState } from 'react';
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/lib/agent-client';
 import { useT } from '@/lib/i18n/provider';
 import {
+  KEY_STORAGES,
   type ProviderConfig,
   useProviderKeys,
   useSettingsStore,
@@ -110,9 +111,30 @@ export function AiSection({ onAddProvider, onEditProvider }: AiSectionProps) {
         />
       </RowsCard>
 
+      <RowsCard>
+        <CardHeading title={copy.keySecurity} description={copy.keySecurityDescription} />
+        <SettingRow
+          htmlFor="key-storage"
+          label={copy.keyStorage}
+          description={copy.keyStorageOptions[draft.keyStorage].description}
+          width="form"
+          control={
+            <Select
+              id="key-storage"
+              value={draft.keyStorage}
+              options={KEY_STORAGES.map((value) => ({
+                value,
+                label: copy.keyStorageOptions[value].label,
+              }))}
+              onValueChange={(keyStorage) => update({ keyStorage })}
+            />
+          }
+        />
+      </RowsCard>
+
       <p className={styles.note}>
         <LockSimple size={14} aria-hidden="true" />
-        {copy.keysNote}
+        {draft.keyStorage === 'device' ? copy.keysNoteDevice : copy.keysNote}
       </p>
     </>
   );
@@ -177,6 +199,7 @@ function ProviderRow({
 }: ProviderRowProps) {
   const t = useT();
   const copy = t.settings.ai;
+  const keyStorage = useSettingsStore((s) => s.saved.keyStorage);
 
   return (
     <div className={styles.providerRow}>
@@ -184,7 +207,13 @@ function ProviderRow({
         <div className={styles.providerName}>
           {provider.name}
           {isDefault && <Pill className={styles.defaultPill}>{copy.defaultBadge}</Pill>}
-          <Pill>{hasKey ? copy.keyInSession : copy.keyNeeded}</Pill>
+          <Pill>
+            {hasKey
+              ? keyStorage === 'device'
+                ? copy.keyOnDevice
+                : copy.keyInSession
+              : copy.keyNeeded}
+          </Pill>
         </div>
         <p className={styles.providerMeta}>
           {provider.model} · {copy.formats[provider.compatibility]} · {hostOf(provider.url)}

@@ -318,6 +318,7 @@ export const zhCN: Dictionary = {
         gemini: 'Gemini',
       },
       keyInSession: '密钥已就位',
+      keyOnDevice: '密钥已存于本设备',
       keyNeeded: '需要密钥',
       tested: (ms) => `已测试 · ${ms} ms`,
       notTested: '未测试',
@@ -332,7 +333,26 @@ export const zhCN: Dictionary = {
       runtimeUnreachable: (url) => `无法连接 ${url}，Agent Runtime 已启动了吗？`,
       runtimeError: (message) => `Runtime 错误：${message}`,
       checkTimedOut: '连接检测超时。',
+      keySecurity: '密钥安全',
+      keySecurityDescription:
+        'API 密钥在两次打开页面之间存放在哪里。它们永远不离开这个浏览器，也不会进入设置或导出文件。',
+      keyStorage: '密钥存储',
+      keyStorageOptions: {
+        session: {
+          label: '仅本次会话',
+          description: '只保存在标签页内存中，刷新页面即清除。最安全的选择。',
+        },
+        device: {
+          label: '保存在此设备',
+          description:
+            '以 AES-GCM 加密存入浏览器数据库，密钥不可被脚本导出。能防止拷走数据库文件即得明文；不能防御在本页面上运行的脚本。',
+        },
+      },
+      keyStorageMovedToDevice: '密钥已加密保存在此设备。',
+      keyStorageMovedToSession: '已抹掉设备上保存的密钥，现在只存在于本标签页。',
       keysNote: '密钥仅在本地 · 已脱敏、只保存在标签页内存中、不会随导出泄露。刷新页面即清除。',
+      keysNoteDevice:
+        '密钥仅在本地 · 已脱敏、加密保存在此浏览器、不会随导出泄露。切回"仅本次会话"即可抹掉。',
     },
     providerForm: {
       root: 'AI 与模型',

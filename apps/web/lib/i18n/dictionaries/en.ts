@@ -568,6 +568,27 @@ export const en = {
       exportButton: 'Export settings',
       exportScope: 'Local Nivik preferences only; API keys excluded',
       exported: 'Settings exported. No API keys included.',
+      localData: 'Local data',
+      localDataDescription:
+        'Everything Nivik keeps lives in this browser: diagrams, their history, templates and your preferences.',
+      exportAll: 'Export all data',
+      exportAllDescription:
+        'One JSON file with every diagram, its version history, runs, templates and settings. API keys are never included.',
+      exportAllButton: 'Export all data',
+      exporting: 'Exporting…',
+      exportedAll: (diagrams: number) =>
+        `Backup downloaded · ${diagrams} ${diagrams === 1 ? 'diagram' : 'diagrams'}. No API keys included.`,
+      exportFailed: (message: string) => `Export failed: ${message}`,
+      clearLocal: 'Clear local data',
+      clearLocalDescription:
+        'Deletes every diagram, run, template, preference and stored API key from this browser. Export first if you want to keep anything.',
+      clearLocalButton: 'Clear local data',
+      clearing: 'Clearing…',
+      clearConfirmTitle: 'Clear all local data?',
+      clearConfirmText:
+        'This removes every diagram and its history, all runs, templates, preferences and any API keys stored on this device. It cannot be undone. Nivik will restart empty.',
+      clearConfirmButton: 'Delete everything',
+      clearFailed: (message: string) => `Could not clear local data: ${message}`,
       deleteAccount: 'Delete Account',
       deleteDescription: 'Permanently remove your account and cloud data.',
       deleteButton: 'Delete account',

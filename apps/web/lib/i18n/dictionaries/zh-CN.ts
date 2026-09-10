@@ -531,6 +531,26 @@ export const zhCN: Dictionary = {
       exportButton: '导出设置',
       exportScope: '仅包含本地 Nivik 偏好设置；不含 API 密钥',
       exported: '设置已导出，不包含任何 API 密钥。',
+      localData: '本地数据',
+      localDataDescription:
+        'Nivik 的所有数据都保存在这个浏览器里：图、历史版本、模板和你的偏好设置。',
+      exportAll: '导出全部数据',
+      exportAllDescription:
+        '一个 JSON 文件，包含所有图、版本历史、运行记录、模板和设置。永远不包含 API 密钥。',
+      exportAllButton: '导出全部数据',
+      exporting: '导出中…',
+      exportedAll: (diagrams) => `备份已下载 · ${diagrams} 张图。不包含任何 API 密钥。`,
+      exportFailed: (message) => `导出失败：${message}`,
+      clearLocal: '清空本地数据',
+      clearLocalDescription:
+        '删除这个浏览器里的所有图、运行记录、模板、偏好设置和保存的 API 密钥。想保留的话请先导出。',
+      clearLocalButton: '清空本地数据',
+      clearing: '清空中…',
+      clearConfirmTitle: '清空全部本地数据？',
+      clearConfirmText:
+        '将删除所有图及其历史、全部运行记录、模板、偏好设置，以及保存在此设备上的 API 密钥。此操作无法撤销，Nivik 将以空白状态重新开始。',
+      clearConfirmButton: '全部删除',
+      clearFailed: (message) => `无法清空本地数据：${message}`,
       deleteAccount: '删除账户',
       deleteDescription: '永久删除你的账户与云端数据。',
       deleteButton: '删除账户',

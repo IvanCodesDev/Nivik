@@ -1,18 +1,31 @@
 'use client';
 
 import { Button, buttonVariants, cn, Input, useToast } from '@nivik/ui';
-import { Camera, DownloadSimple } from '@phosphor-icons/react';
+import { Camera, DownloadSimple, Trash } from '@phosphor-icons/react';
 import { type ChangeEvent, useId, useState } from 'react';
+import { ChoiceDialog } from '@/components/choice-dialog';
+import { backupBlob, backupFilename, clearLocalData, exportAllData } from '@/lib/backup';
 import { useT } from '@/lib/i18n/provider';
+import { getRepository } from '@/lib/repository';
 import {
   AVATAR_COLORS,
   AVATAR_TONES,
   type AvatarColor,
   FALLBACK_INITIAL,
+  useProviderKeys,
   useSettingsStore,
 } from '@/lib/stores/settings-store';
 import { CardHeading, RowsCard, SettingRow } from './primitives';
 import styles from './settings.module.css';
+
+function download(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const AVATAR_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -33,6 +46,8 @@ export function AccountSection() {
   const update = useSettingsStore((s) => s.update);
   const fileId = useId();
   const [deleteNotice, setDeleteNotice] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [busy, setBusy] = useState<'export' | 'clear' | null>(null);
 
   const [from, to] = AVATAR_TONES[draft.avatarColor];
   const initial = (draft.userName.trim().charAt(0) || FALLBACK_INITIAL).toUpperCase();
@@ -58,14 +73,40 @@ export function AccountSection() {
       scope: copy.exportScope,
       settings: draft,
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'nivik-settings.json';
-    link.click();
-    URL.revokeObjectURL(url);
+    download(
+      new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }),
+      'nivik-settings.json',
+    );
     toast(copy.exported);
+  };
+
+  // Spec 06 §6.2: diagrams, versions, runs, templates and the saved settings; never the API keys.
+  const exportAll = async () => {
+    setBusy('export');
+    try {
+      const backup = await exportAllData(getRepository().db, useSettingsStore.getState().saved);
+      download(backupBlob(backup), backupFilename());
+      toast(copy.exportedAll(backup.tables.diagrams.length));
+    } catch (error) {
+      toast(copy.exportFailed(error instanceof Error ? error.message : String(error)));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const clearAll = async () => {
+    setBusy('clear');
+    try {
+      await clearLocalData({
+        db: getRepository().db,
+        storage: typeof localStorage === 'undefined' ? null : localStorage,
+        clearKeys: () => useProviderKeys.getState().clear(),
+        reload: () => window.location.assign('/'),
+      });
+    } catch (error) {
+      setBusy(null);
+      toast(copy.clearFailed(error instanceof Error ? error.message : String(error)));
+    }
   };
 
   return (
@@ -177,7 +218,18 @@ export function AccountSection() {
       </RowsCard>
 
       <RowsCard>
-        <CardHeading title={copy.dataAccount} />
+        <CardHeading title={copy.localData} description={copy.localDataDescription} />
+        <SettingRow
+          label={copy.exportAll}
+          description={copy.exportAllDescription}
+          width="auto"
+          control={
+            <Button size="sm" onClick={() => void exportAll()} disabled={busy !== null}>
+              <DownloadSimple size={15} aria-hidden="true" />{' '}
+              {busy === 'export' ? copy.exporting : copy.exportAllButton}
+            </Button>
+          }
+        />
         <SettingRow
           label={copy.dataExport}
           description={copy.dataExportDescription}
@@ -188,6 +240,37 @@ export function AccountSection() {
             </Button>
           }
         />
+        <SettingRow
+          label={copy.clearLocal}
+          description={copy.clearLocalDescription}
+          width="auto"
+          control={
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={() => setConfirmClear(true)}
+              disabled={busy !== null}
+            >
+              <Trash size={15} aria-hidden="true" />{' '}
+              {busy === 'clear' ? copy.clearing : copy.clearLocalButton}
+            </Button>
+          }
+        />
+      </RowsCard>
+
+      <ChoiceDialog
+        open={confirmClear}
+        onOpenChange={setConfirmClear}
+        title={copy.clearConfirmTitle}
+        description={copy.clearConfirmText}
+        actions={[
+          { label: t.common.cancel, onSelect: () => {} },
+          { label: copy.clearConfirmButton, variant: 'danger', onSelect: () => void clearAll() },
+        ]}
+      />
+
+      <RowsCard>
+        <CardHeading title={copy.dataAccount} />
         <SettingRow
           label={copy.deleteAccount}
           description={copy.deleteDescription}

@@ -1,5 +1,11 @@
 export type { Agent, RunOptions } from './agent';
 export {
+  createLoopAgent,
+  type LoopAgent,
+  type LoopAgentOptions,
+  type SystemPromptInput,
+} from './agent-loop';
+export {
   type AgentDeps,
   abortError,
   createDefaultDeps,

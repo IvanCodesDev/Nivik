@@ -1,4 +1,5 @@
-import { createDefaultDeps, createMockAgent } from '@nivik/agent';
+import { createDefaultDeps, createLoopAgent, createMockAgent } from '@nivik/agent';
+import { createMockModel } from '@nivik/agent/providers';
 import { createDiagram } from '@nivik/ir';
 import type { RunEvent, RunRequestInput } from '@nivik/protocol';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -156,6 +157,52 @@ describe('WorkerAgentClient', () => {
     }
     expect(events.at(-1)).toMatchObject({ type: 'error', code: 'E_ABORTED' });
     expect(worker.terminated).toBe(true);
+  });
+
+  it('relays an answer to the loop agent waiting inside the worker (D14′ ask)', async () => {
+    const scripted = createMockModel([
+      { toolCalls: [{ name: 'ask', input: { text: 'Which region?', choices: ['EU', 'US'] } }] },
+      {
+        text: 'EU it is.',
+        toolCalls: [{ name: 'finish', input: { summary: 'Chose the EU region' } }],
+      },
+    ]);
+    const worker: WorkerLike & { terminated: boolean } = {
+      terminated: false,
+      onmessage: null,
+      onerror: null,
+      postMessage(message) {
+        void host.handle(message);
+      },
+      terminate() {
+        this.terminated = true;
+      },
+    };
+    const host = createWorkerHost(
+      (m) => queueMicrotask(() => worker.onmessage?.({ data: m } as MessageEvent<unknown>)),
+      (deps) => createLoopAgent({ ...deps, model: () => scripted }),
+    );
+    const client = new WorkerAgentClient(
+      () => bootstrap,
+      () => worker,
+    );
+    const events: RunEvent[] = [];
+    for await (const event of client.start(request('Deploy it'))) {
+      events.push(event);
+      if (event.type === 'question') {
+        expect(event.choices).toEqual(['EU', 'US']);
+        client.answer(event.questionId, 'EU');
+      }
+    }
+    expect(events.some((e) => e.type === 'answer' && e.text === 'EU')).toBe(true);
+    expect(events.at(-1)).toMatchObject({
+      type: 'done',
+      outcome: 'no-changes',
+      summary: 'Chose the EU region',
+    });
+    expect(worker.terminated).toBe(true);
+    // Answering after the run is over is a harmless no-op.
+    client.answer('q_stale', 'x');
   });
 
   it('surfaces worker-level failures as thrown errors', async () => {

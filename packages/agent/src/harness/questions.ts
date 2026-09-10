@@ -19,6 +19,8 @@ export interface Questions {
   pending(): PendingQuestion[];
   /** Rejects every waiting question (cancellation); idempotent. */
   rejectAll(error?: RunError): void;
+  /** True when the run was cancelled while a question was still open (design §1.1 `clarify-pending`). */
+  interruptedWhileWaiting(): boolean;
 }
 
 export interface QuestionsOptions {
@@ -38,8 +40,11 @@ interface Waiting extends PendingQuestion {
  */
 export function createQuestions(opts: QuestionsOptions): Questions {
   const waiting = new Map<string, Waiting>();
-  const abortAll = () =>
+  let interrupted = false;
+  const abortAll = () => {
+    if (waiting.size > 0) interrupted = true;
     rejectAll(new RunError('E_ABORTED', 'Run cancelled while waiting for an answer'));
+  };
   const rejectAll = (error = new RunError('E_ABORTED', 'Run cancelled')) => {
     for (const q of waiting.values()) q.reject(error);
     waiting.clear();
@@ -71,5 +76,6 @@ export function createQuestions(opts: QuestionsOptions): Questions {
       return Array.from(waiting.values()).map(({ resolve: _r, reject: _j, ...rest }) => rest);
     },
     rejectAll,
+    interruptedWhileWaiting: () => interrupted,
   };
 }

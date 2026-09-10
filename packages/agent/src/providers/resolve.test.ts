@@ -34,7 +34,10 @@ describe('resolveProvider (spec 05 §9.5, minimal)', () => {
     const opts = { defaultProviderId: 'p1', fastProviderId: 'p2' };
     expect(resolveProvider('auto', providers, { ...opts, stage: 'plan' }).id).toBe('p2');
     expect(resolveProvider('auto', providers, { ...opts, stage: 'build' }).id).toBe('p1');
-    expect(resolveProvider('auto', providers, { ...opts, stage: 'review' }).id).toBe('p1');
+    expect(resolveProvider('auto', providers, { ...opts, stage: 'main' }).id).toBe('p1');
+    // D14′: the review / critiquePlan sub-agents are quick, fresh-context calls — fast as well.
+    expect(resolveProvider('auto', providers, { ...opts, stage: 'review' }).id).toBe('p2');
+    expect(resolveProvider('auto', providers, { ...opts, stage: 'critiquePlan' }).id).toBe('p2');
     expect(resolveProvider('auto', providers, opts).id).toBe('p1');
     expect(
       resolveProvider('auto', providers, { ...opts, fastProviderId: 'gone', stage: 'plan' }).id,
@@ -91,7 +94,9 @@ describe('createModelResolver', () => {
       typeof model === 'string' ? model : model.modelId;
     expect(modelId(resolve('plan'))).toBe('p2-model');
     expect(modelId(resolve('build'))).toBe('p1-model');
-    expect(resolve('build')).toBe(resolve('review'));
+    expect(modelId(resolve('review'))).toBe('p2-model');
+    // Same provider + model → the same cached instance (one transport state per provider).
+    expect(resolve('build')).toBe(resolve('main'));
   });
 
   it('refuses to build a model without a key', () => {

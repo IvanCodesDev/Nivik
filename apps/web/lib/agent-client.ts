@@ -36,6 +36,11 @@ export interface StartRunOptions {
  */
 export interface AgentClient {
   start(request: RunRequestInput, options?: StartRunOptions): AsyncGenerator<RunEvent>;
+  /**
+   * D14′: the user's reply to a `question` event of the run in progress. Optional — the HTTP
+   * runtime grows its endpoint in task 1.7b; clients without it cannot host `ask`.
+   */
+  answer?(questionId: string, text: string): void;
 }
 
 /** The runtime could not be reached at all (offline, wrong URL, CORS). */
@@ -167,14 +172,21 @@ const spawnAgentWorker = (): WorkerLike =>
 export class WorkerAgentClient implements AgentClient {
   readonly #bootstrap: () => WorkerBootstrap;
   readonly #spawn: () => WorkerLike;
+  #worker: WorkerLike | null = null;
 
   constructor(bootstrap: () => WorkerBootstrap, spawn: () => WorkerLike = spawnAgentWorker) {
     this.#bootstrap = bootstrap;
     this.#spawn = spawn;
   }
 
+  /** Relays the reply to the Worker of the run in progress; a no-op when no run is live. */
+  answer(questionId: string, text: string): void {
+    this.#worker?.postMessage({ type: 'answer', questionId, text });
+  }
+
   async *start(request: RunRequestInput, options: StartRunOptions = {}): AsyncGenerator<RunEvent> {
     const worker = this.#spawn();
+    this.#worker = worker;
     const queue: WorkerOutbound[] = [];
     let wake: (() => void) | null = null;
     const push = (message: WorkerOutbound) => {
@@ -219,6 +231,7 @@ export class WorkerAgentClient implements AgentClient {
       }
     } finally {
       options.signal?.removeEventListener('abort', onAbort);
+      if (this.#worker === worker) this.#worker = null;
       worker.terminate();
     }
   }

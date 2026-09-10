@@ -1,20 +1,19 @@
 import { type ModelRef, type ProviderConfig, RunError } from '@nivik/protocol';
 import type { LanguageModel } from 'ai';
-import type { ModelResolver } from '../deps';
-import type { StageName } from '../harness/stage';
+import type { ModelResolver, ModelRole } from '../deps';
 import { createLanguageModel } from './factory';
 import { createTransportFetch, type FetchLike, type TransportFetch } from './transport';
 
 export interface ResolveModelOptions {
   /** The provider marked as default in Settings; `'auto'` falls back to it, then to the first one. */
   defaultProviderId?: string | null;
-  /** The provider tagged `fast` in Settings: `'auto'` sends the plan stage there (spec 05 §9.5). */
+  /** The provider tagged `fast` in Settings: `'auto'` sends planning and review roles there (spec 05 §9.5). */
   fastProviderId?: string | null;
-  stage?: StageName;
+  stage?: ModelRole;
 }
 
-/** Stages that trade a little quality for latency under `nivik-auto` (spec 05 §9.5). */
-const FAST_STAGES: ReadonlySet<StageName> = new Set(['plan']);
+/** Roles that trade a little quality for latency under `nivik-auto` (spec 05 §9.5; D14′ sub-agents included). */
+const FAST_STAGES: ReadonlySet<ModelRole> = new Set(['plan', 'review', 'critiquePlan']);
 
 /**
  * Spec 05 §9.5: an explicit reference must match a configured provider (the request may override

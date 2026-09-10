@@ -1,6 +1,7 @@
 import { type Agent, type AgentDeps, createDefaultDeps } from '@nivik/agent';
 import { createModelResolver } from '@nivik/agent/providers';
 import {
+  AnswerRequestSchema,
   ProviderConfigSchema,
   type RunEvent,
   RunEventSchema,
@@ -20,6 +21,8 @@ export const WorkerInboundSchema = z.discriminatedUnion('type', [
     runtimeUrl: z.string().nullable(),
   }),
   z.object({ type: z.literal('cancel') }),
+  /** D14′: the user's reply to a pending `ask` (spec 09 §3.2). */
+  AnswerRequestSchema.extend({ type: z.literal('answer') }),
 ]);
 export type WorkerInbound = z.infer<typeof WorkerInboundSchema>;
 export type WorkerStart = Extract<WorkerInbound, { type: 'start' }>;
@@ -48,12 +51,18 @@ export interface WorkerHostOptions {
  * `start` builds the model resolver from the bootstrap and streams the agent's events back,
  * `cancel` aborts it; when the stream ends the host posts `end` and the client terminates the Worker.
  */
+/** An agent that can take the user's reply to a pending question (`createLoopAgent`). */
+type AnsweringAgent = Agent & { answer(questionId: string, text: string): boolean };
+const canAnswer = (agent: Agent): agent is AnsweringAgent =>
+  typeof (agent as Partial<AnsweringAgent>).answer === 'function';
+
 export function createWorkerHost(
   post: (message: WorkerOutbound) => void,
   makeAgent: (deps: AgentDeps) => Agent,
   options: WorkerHostOptions = {},
 ): WorkerHost {
   let controller: AbortController | null = null;
+  let agent: Agent | null = null;
 
   const run = async (start: WorkerStart) => {
     controller = new AbortController();
@@ -70,12 +79,14 @@ export function createWorkerHost(
       }),
     });
     try {
-      const events = makeAgent(deps).run(start.request, { signal: controller.signal });
+      agent = makeAgent(deps);
+      const events = agent.run(start.request, { signal: controller.signal });
       for await (const event of events) post({ type: 'event', event: event as RunEvent });
     } catch (error) {
       post({ type: 'error', message: error instanceof Error ? error.message : String(error) });
     } finally {
       controller = null;
+      agent = null;
       post({ type: 'end' });
     }
   };
@@ -92,6 +103,11 @@ export function createWorkerHost(
       }
       if (parsed.data.type === 'cancel') {
         controller?.abort();
+        return;
+      }
+      if (parsed.data.type === 'answer') {
+        // A stale answer (question already closed, run over) is not a failure of the run.
+        if (agent && canAnswer(agent)) agent.answer(parsed.data.questionId, parsed.data.text);
         return;
       }
       if (controller) {

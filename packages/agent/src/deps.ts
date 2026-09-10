@@ -4,8 +4,14 @@ import type { StageName } from './harness/stage';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-/** Spec 05 §9.5 / §12.1: which model a stage talks to; the host builds it from the provider layer. */
-export type ModelResolver = (stage: StageName) => LanguageModel;
+/**
+ * Who is asking for a model: a workflow-era stage, the D14′ main loop, or one of its sub-agents.
+ * `'auto'` routing sends `plan` / `review` / `critiquePlan` to the `fast` provider (spec 05 §9.5).
+ */
+export type ModelRole = StageName | 'main' | 'critiquePlan';
+
+/** Spec 05 §9.5 / §12.1: which model a role talks to; the host builds it from the provider layer. */
+export type ModelResolver = (role: ModelRole) => LanguageModel;
 
 /**
  * Everything the core needs from its host. Both hosts (browser Worker and the Node runtime)

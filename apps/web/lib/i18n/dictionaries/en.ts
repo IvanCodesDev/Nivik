@@ -320,7 +320,11 @@ export const en = {
     stages: {
       understanding: 'Understanding',
       planning: 'Planning',
+      thinking: 'Thinking',
+      reading: 'Reading',
       building: 'Building',
+      reviewing: 'Reviewing',
+      asking: 'Waiting for your answer',
       connecting: 'Connecting',
       validating: 'Validating',
       done: 'Done',

@@ -297,7 +297,11 @@ export const zhCN: Dictionary = {
     stages: {
       understanding: '理解需求',
       planning: '规划结构',
+      thinking: '思考',
+      reading: '查看上下文',
       building: '生成节点',
+      reviewing: '审查',
+      asking: '等你回答',
       connecting: '连接关系',
       validating: '校验',
       done: '完成',

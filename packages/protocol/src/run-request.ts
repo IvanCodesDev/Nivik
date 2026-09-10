@@ -44,6 +44,54 @@ export const RunHintsSchema = z
   .strict();
 export type RunHints = z.infer<typeof RunHintsSchema>;
 
+/** One earlier exchange on this diagram, as the agent gets to see it (spec 09 §5.3, D14′). */
+export const SessionTurnSchema = z.object({
+  runId: z.string().min(1),
+  at: z.number().int(),
+  user: z.string().max(4_000),
+  agent: z.object({
+    replies: z.array(z.string().max(2_000)).max(10).default([]),
+    questions: z
+      .array(z.object({ text: z.string().max(600), answer: z.string().max(2_000).nullable() }))
+      .max(10)
+      .default([]),
+    changes: z
+      .array(
+        z.object({
+          documentId: IdSchema,
+          summary: z.string().max(300),
+          counts: z.record(z.string(), z.number().int().min(0)).default({}),
+        }),
+      )
+      .max(10)
+      .default([]),
+    outcome: z.string().max(40),
+  }),
+});
+export type SessionTurn = z.infer<typeof SessionTurnSchema>;
+
+/** Cross-run memory: a rolling summary plus the most recent turns verbatim. */
+export const SessionSchema = z.object({
+  recentTurns: z.array(SessionTurnSchema).max(6).default([]),
+  summary: z.string().max(4_000).nullable().default(null),
+});
+export type Session = z.infer<typeof SessionSchema>;
+
+/** What the host registered beyond the isomorphic core (spec 05 §9.4: Node-only tools live in the runtime). */
+export const RunCapabilitiesSchema = z.object({
+  runtimeTools: z.boolean().default(false),
+});
+export type RunCapabilities = z.infer<typeof RunCapabilitiesSchema>;
+
+/** Spec 05 §12.5 soft budget; `0` means unlimited (JSON has no Infinity). */
+export const RunBudgetSchema = z.object({
+  maxTokens: z.number().int().min(0).default(400_000),
+  maxMs: z.number().int().min(0).default(600_000),
+});
+export type RunBudget = z.infer<typeof RunBudgetSchema>;
+
+export const DEFAULT_RUN_BUDGET: RunBudget = { maxTokens: 400_000, maxMs: 600_000 };
+
 /** Wire form of spec 05 §2 `RunInput`. Validated on both ends of the transport. */
 export const RunRequestSchema = z.object({
   /** Client-generated so it can cancel before the first event arrives; runtime mints one if absent. */
@@ -62,7 +110,18 @@ export const RunRequestSchema = z.object({
     retries: 1,
     thinking: false,
   }),
+  /** D14′: cross-run memory, host capabilities and the soft budget; all optional on the wire. */
+  session: SessionSchema.default({ recentTurns: [], summary: null }),
+  capabilities: RunCapabilitiesSchema.default({ runtimeTools: false }),
+  budget: RunBudgetSchema.default(DEFAULT_RUN_BUDGET),
 });
 
 export type RunRequestInput = z.input<typeof RunRequestSchema>;
 export type RunRequest = z.output<typeof RunRequestSchema>;
+
+/** Body of `POST /v1/runs/:id/answer` and of the Worker `answer` message: the user's reply to an `ask`. */
+export const AnswerRequestSchema = z.object({
+  questionId: z.string().min(1),
+  text: z.string().max(4_000),
+});
+export type AnswerRequest = z.infer<typeof AnswerRequestSchema>;

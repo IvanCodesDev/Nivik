@@ -8,6 +8,8 @@ export const RUNTIME_ROUTES = {
   runs: '/v1/runs',
   run: (runId: string) => `/v1/runs/${encodeURIComponent(runId)}`,
   cancel: (runId: string) => `/v1/runs/${encodeURIComponent(runId)}/cancel`,
+  /** D14′: the user's reply to a pending `ask` (spec 09 §3.2); body is `AnswerRequest`. */
+  answer: (runId: string) => `/v1/runs/${encodeURIComponent(runId)}/answer`,
   /** Spec 06 §6.2 stateless LLM proxy; upstream and credentials travel in `PROXY_HEADERS`. */
   proxy: '/v1/proxy/llm',
 } as const;

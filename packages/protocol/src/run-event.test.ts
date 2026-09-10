@@ -25,6 +25,50 @@ describe('RunRequestSchema', () => {
       retries: 1,
       thinking: false,
     });
+    // D14′: memory, host capabilities and the soft budget all have wire defaults.
+    expect(parsed.session).toEqual({ recentTurns: [], summary: null });
+    expect(parsed.capabilities).toEqual({ runtimeTools: false });
+    expect(parsed.budget).toEqual({ maxTokens: 400_000, maxMs: 600_000 });
+  });
+
+  it('carries session turns, capabilities and an unlimited budget when given', () => {
+    const parsed = RunRequestSchema.parse({
+      diagram: diagram(),
+      prompt: 'Continue',
+      hints: { renderer: 'excalidraw' },
+      session: {
+        summary: 'We drew a login flow.',
+        recentTurns: [
+          {
+            runId: 'run_1',
+            at: 1,
+            user: 'Draw a login flow',
+            agent: {
+              replies: ['Done.'],
+              questions: [{ text: 'Include SSO?', answer: 'Yes' }],
+              changes: [
+                { documentId: 'd_test0001', summary: 'Added 5 nodes', counts: { added: 5 } },
+              ],
+              outcome: 'finished',
+            },
+          },
+        ],
+      },
+      capabilities: { runtimeTools: true },
+      budget: { maxTokens: 0, maxMs: 0 },
+    });
+    expect(parsed.session.recentTurns).toHaveLength(1);
+    expect(parsed.session.recentTurns[0]?.agent.questions[0]?.answer).toBe('Yes');
+    expect(parsed.capabilities.runtimeTools).toBe(true);
+    expect(parsed.budget).toEqual({ maxTokens: 0, maxMs: 0 });
+    expect(
+      RunRequestSchema.safeParse({
+        diagram: diagram(),
+        prompt: 'x',
+        hints: { renderer: 'excalidraw' },
+        budget: { maxTokens: -1 },
+      }).success,
+    ).toBe(false);
   });
 
   it('requires a real Diagram IR', () => {
@@ -129,6 +173,78 @@ describe('RunEventSchema', () => {
     }
   });
 
+  it('round-trips the D14′ tool-loop events and fields', () => {
+    const events = [
+      { type: 'status', stage: 'thinking' },
+      { type: 'status', stage: 'asking' },
+      { type: 'reply', text: 'I will add the payment step.', final: false },
+      {
+        type: 'action',
+        documentId: 'd_test0001',
+        index: 3,
+        action: addNode,
+        ok: false,
+        error: 'E_UNKNOWN_REF',
+      },
+      {
+        type: 'document',
+        op: 'create',
+        document: { id: 'd_test0002', name: 'Payments', type: 'sequence' },
+      },
+      {
+        type: 'question',
+        questionId: 'q_1',
+        text: 'Include SSO?',
+        choices: ['Yes', 'No'],
+        allowFreeText: true,
+      },
+      { type: 'answer', questionId: 'q_1', text: 'Yes' },
+      { type: 'subagent', role: 'review', status: 'start' },
+      {
+        type: 'subagent',
+        role: 'review',
+        status: 'end',
+        issues: [{ severity: 'info', message: 'Fine', ids: [] }],
+        usage: { inputTokens: 100, outputTokens: 20, calls: 1 },
+      },
+      {
+        type: 'changeSet',
+        documentId: 'd_test0002',
+        changeSet: { ...changeSet, diagramId: 'd_test0002' },
+      },
+      {
+        type: 'budget',
+        used: { inputTokens: 1000, outputTokens: 200, calls: 3, elapsedMs: 4500 },
+        limit: { inputTokens: 0, outputTokens: 0, calls: 0, elapsedMs: 600000 },
+        phase: 'wrapping-up',
+      },
+      {
+        type: 'tool',
+        name: 'findElements',
+        durationMs: 2,
+        call: 'c1',
+        input: { query: 'login' },
+        status: 'end',
+        summary: '3 matches',
+      },
+      {
+        type: 'done',
+        runId: 'run_0123456789',
+        outcome: 'budget-exhausted',
+        summary: 'Delivered what was built',
+        unresolved: ['Payment retries'],
+      },
+    ];
+    for (const event of events) {
+      const parsed = RunEventSchema.parse(JSON.parse(JSON.stringify(event)));
+      expect(parsed).toEqual(event);
+    }
+    const ok = (event: unknown) => RunEventSchema.safeParse(event).success;
+    expect(ok({ type: 'done', runId: 'run_0123456789', outcome: 'gave-up' })).toBe(false);
+    expect(ok({ type: 'question', questionId: 'q', text: '', allowFreeText: true })).toBe(false);
+    expect(ok({ type: 'budget', used: {}, limit: {}, phase: 'normal' })).toBe(false);
+  });
+
   it('validates action, change-set and plan payloads with the IR schemas', () => {
     const ok = (event: unknown) => RunEventSchema.safeParse(event).success;
     expect(
@@ -177,7 +293,7 @@ describe('RunEventSchema', () => {
 
   it('rejects unknown event types and stages', () => {
     expect(RunEventSchema.safeParse({ type: 'progress', value: 1 }).success).toBe(false);
-    expect(RunEventSchema.safeParse({ type: 'status', stage: 'thinking' }).success).toBe(false);
+    expect(RunEventSchema.safeParse({ type: 'status', stage: 'daydreaming' }).success).toBe(false);
     expect(
       RunEventSchema.safeParse({ type: 'error', code: 'E_NOPE', message: '', recoverable: false })
         .success,

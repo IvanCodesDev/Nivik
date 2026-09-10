@@ -26,6 +26,9 @@ vi.mock('@phosphor-icons/react', () => {
 const push = vi.hoisted(() => vi.fn());
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 
+const download = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/download', () => ({ download }));
+
 let counter = 0;
 let repo: DiagramRepository;
 
@@ -114,6 +117,35 @@ describe('DiagramLibrary (PRD §5.3, spec 07 §4)', () => {
     await user.click(screen.getByRole('button', { name: 'Delete diagram' }));
     await waitFor(() => expect(cardNames()).toEqual([]));
     expect(await repo.get('d_lib000006')).toBeUndefined();
+  });
+
+  it('exports a diagram as a Nivik document and imports one back as a new diagram', async () => {
+    await repo.create(
+      createDiagram({ id: 'd_lib000008', name: 'Payment flow', type: 'flow', now: 1 }),
+    );
+    const user = userEvent.setup();
+    renderLibrary();
+    await waitFor(() => expect(cardNames()).toEqual(['Payment flow']));
+
+    await user.click(screen.getByRole('button', { name: 'More options for Payment flow' }));
+    await user.click(await screen.findByRole('button', { name: 'Export…' }));
+    await user.click(await screen.findByRole('button', { name: 'Nivik document (.nivik.json)' }));
+    await waitFor(() => expect(download).toHaveBeenCalledTimes(1));
+    const [blob, filename] = download.mock.calls[0] as [Blob, string];
+    expect(filename).toBe('Payment-flow.nivik.json');
+    const text = await blob.text();
+    expect(JSON.parse(text)).toMatchObject({ schema: 'nivik.diagram/1', name: 'Payment flow' });
+
+    await user.click(screen.getByRole('button', { name: 'New Diagram' }));
+    await user.click(await screen.findByRole('button', { name: 'Import from file…' }));
+    const input = screen.getByLabelText('Import from file…') as HTMLInputElement;
+    await user.upload(input, new File([text], 'payment.nivik.json', { type: 'application/json' }));
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    const [target] = push.mock.calls[0] as [string];
+    expect(target).toMatch(/^\/canvas\/d_/);
+    expect(target).not.toBe('/canvas/d_lib000008');
+    await waitFor(() => expect(cardNames()).toEqual(['Payment flow', 'Payment flow']));
+    expect((await repo.list()).map((d) => d.version)).toEqual([1, 1]);
   });
 
   it('opens a diagram and offers the three ways to start a new one', async () => {

@@ -88,6 +88,18 @@ export const zhCN: Dictionary = {
     deleteConfirm: '删除图表',
     deleted: (title) => `已删除 ${title}。`,
     actionFailed: (message) => `操作失败：${message}`,
+    export: '导出…',
+    exportTitle: (title) => `导出 ${title}`,
+    exportDescription:
+      'Nivik 文档保留全部信息，可在这里重新打开；Excalidraw 文件供 Excalidraw 应用使用，部分结构可能被近似。',
+    exportNivik: 'Nivik 文档（.nivik.json）',
+    exportExcalidraw: 'Excalidraw 场景（.excalidraw）',
+    exported: (filename) => `已下载 ${filename}。`,
+    importFile: '从文件导入…',
+    imported: (title) => `已导入 ${title}。`,
+    unknownFormat:
+      '这个文件既不是 Nivik 文档（.nivik.json），也不是 Excalidraw 场景（.excalidraw）。',
+    fidelityLost: (count, reasons) => `${count} 项未能带过来（${reasons}）。`,
     details: {
       description: '这张图在本设备上保存的信息。',
       type: '类型',

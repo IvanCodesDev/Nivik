@@ -92,6 +92,19 @@ export const en = {
     deleteConfirm: 'Delete diagram',
     deleted: (title: string) => `${title} deleted.`,
     actionFailed: (message: string) => `That didn’t work: ${message}`,
+    export: 'Export…',
+    exportTitle: (title: string) => `Export ${title}`,
+    exportDescription:
+      'Nivik JSON keeps everything and opens again here. Excalidraw is for the Excalidraw app; some structure may be approximated.',
+    exportNivik: 'Nivik document (.nivik.json)',
+    exportExcalidraw: 'Excalidraw scene (.excalidraw)',
+    exported: (filename: string) => `${filename} downloaded.`,
+    importFile: 'Import from file…',
+    imported: (title: string) => `${title} imported.`,
+    unknownFormat:
+      'That file is neither a Nivik document (.nivik.json) nor an Excalidraw scene (.excalidraw).',
+    fidelityLost: (count: number, reasons: string) =>
+      `${count} ${count === 1 ? 'item' : 'items'} could not be carried over (${reasons}).`,
     details: {
       description: 'What is stored for this diagram on this device.',
       type: 'Type',

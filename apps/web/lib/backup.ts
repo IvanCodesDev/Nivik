@@ -13,6 +13,7 @@ export const BACKUP_TABLES = [
   'changeSets',
   'runs',
   'sources',
+  'sessions',
   'templates',
   'providers',
   'settings',
@@ -98,6 +99,8 @@ export const BackupSchema = z
       changeSets: z.array(keyed('id')),
       runs: z.array(keyed('id')),
       sources: z.array(keyed('id')),
+      // Older backups predate the sessions table (Dexie v2); they restore without memory.
+      sessions: z.array(keyed('id')).default([]),
       templates: z.array(keyed('id')),
       providers: z.array(keyed('id')),
       settings: z.array(keyed('key')),

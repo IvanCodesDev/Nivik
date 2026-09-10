@@ -2,10 +2,12 @@
 
 import { cn, IconButton } from '@nivik/ui';
 import { CheckCircle, WarningCircle, X } from '@phosphor-icons/react';
+import Link from 'next/link';
 import { useEffect } from 'react';
 import { useT } from '@/lib/i18n/provider';
-import type { RunView } from '@/lib/stores/run-store';
+import { budgetRatio, type RunView } from '@/lib/stores/run-store';
 import styles from './canvas.module.css';
+import trace from './run-drawer.module.css';
 
 interface RunDrawerProps {
   open: boolean;
@@ -13,7 +15,12 @@ interface RunDrawerProps {
   onClose(): void;
 }
 
-/** Spec 07 §3 `<RunDrawer/>`, minimal: plan, action timeline, validation, errors, usage. */
+const fmtMs = (ms: number) => (ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`);
+
+/**
+ * Spec 07 §3 `<RunDrawer/>`: plan, the loop's trace (replies, tool calls, questions, reviewer
+ * notes, other diagrams, budget), action timeline, validation, errors, usage.
+ */
 export function RunDrawer({ open, run, onClose }: RunDrawerProps) {
   const t = useT();
 
@@ -68,6 +75,88 @@ export function RunDrawer({ open, run, onClose }: RunDrawerProps) {
             )}
           </section>
 
+          {(run.replies.length > 0 || run.pendingReply || run.summary) && (
+            <section>
+              <h3>{t.canvas.drawerReplies}</h3>
+              <ul className={trace.replies}>
+                {run.replies.map((reply, index) => (
+                  <li key={`${index}-${reply.slice(0, 16)}`}>{reply}</li>
+                ))}
+                {run.pendingReply && <li>{run.pendingReply}</li>}
+                {run.summary && !run.replies.includes(run.summary) && <li>{run.summary}</li>}
+              </ul>
+              {run.outcome && (
+                <p className={trace.outcome}>
+                  {t.canvas.drawerOutcome[run.outcome]}
+                  {run.unresolved.length > 0 &&
+                    ` · ${t.canvas.drawerUnresolved}: ${run.unresolved.join('; ')}`}
+                </p>
+              )}
+            </section>
+          )}
+
+          {run.questions.length > 0 && (
+            <section>
+              <h3>{t.canvas.drawerQuestions}</h3>
+              <ul className={trace.questions}>
+                {run.questions.map((q) => (
+                  <li key={q.questionId}>
+                    <strong>{q.text}</strong>
+                    <em>{q.answer ?? t.canvas.drawerUnanswered}</em>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {run.trace.length > 0 && (
+            <section>
+              <h3>
+                {t.canvas.drawerTrace} · {run.trace.length}
+              </h3>
+              <ol className={trace.trace}>
+                {run.trace.map((entry) => (
+                  <li key={entry.call} data-status={entry.status}>
+                    <code>{entry.name}</code>
+                    <em>{entry.summary ?? ''}</em>
+                    <span>{entry.status === 'end' ? fmtMs(entry.durationMs) : ''}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {run.subagentIssues.length > 0 && (
+            <section>
+              <h3>{t.canvas.drawerReview}</h3>
+              <ul className={styles.drawerIssues}>
+                {run.subagentIssues.flatMap(({ role, issues }, i) =>
+                  issues.map((issue, j) => (
+                    <li key={`${role}-${i}-${j}`} data-severity={issue.severity}>
+                      <code>{role}</code> {issue.message}
+                    </li>
+                  )),
+                )}
+              </ul>
+            </section>
+          )}
+
+          {run.documents.length > 0 && (
+            <section>
+              <h3>{t.canvas.drawerDocuments}</h3>
+              <ul className={trace.documents}>
+                {run.documents.map((doc) => (
+                  <li key={doc.id}>
+                    <Link href={`/canvas/${doc.id}`} tabIndex={open ? 0 : -1}>
+                      {doc.name}
+                    </Link>{' '}
+                    <span className={styles.drawerMeta}>{doc.type}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section>
             <h3>
               {t.canvas.drawerActions} · {run.actions.length}
@@ -117,6 +206,28 @@ export function RunDrawer({ open, run, onClose }: RunDrawerProps) {
                   </li>
                 ))}
               </ul>
+            </section>
+          )}
+
+          {run.budget && (
+            <section>
+              <h3>{t.canvas.drawerBudget}</h3>
+              <div className={trace.budget} data-phase={run.budget.phase}>
+                <div className={trace.budgetBar} aria-hidden="true">
+                  <div
+                    className={trace.budgetFill}
+                    style={{ width: `${Math.round(100 * budgetRatio(run.budget))}%` }}
+                  />
+                </div>
+                <span>
+                  {t.canvas.budgetLine(
+                    run.budget.used.inputTokens + run.budget.used.outputTokens,
+                    run.budget.limit.inputTokens + run.budget.limit.outputTokens,
+                    Math.round(run.budget.used.elapsedMs / 1000),
+                  )}
+                  {run.budget.phase !== 'normal' && ` · ${t.canvas.budgetPhase[run.budget.phase]}`}
+                </span>
+              </div>
             </section>
           )}
 

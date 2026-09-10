@@ -1,6 +1,6 @@
 import type { Plan, RunEvent } from '@nivik/protocol';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { newRunView, reduceRunEvent, useRunStore } from './run-store';
+import { type BudgetView, budgetRatio, newRunView, reduceRunEvent, useRunStore } from './run-store';
 
 const plan: Plan = {
   intent: 'generate',
@@ -51,6 +51,106 @@ describe('reduceRunEvent', () => {
     expect(view.usage?.calls).toBe(1);
     expect(view.status).toBe('running');
     expect(view.applied).toBe(0);
+    expect(view.outcome).toBe('finished');
+  });
+
+  it('projects the loop events: replies, questions, trace, sub-agents, documents, budget, outcome', () => {
+    const loop: RunEvent[] = [
+      { type: 'status', stage: 'thinking' },
+      { type: 'reply', text: 'Looking at ', final: false },
+      { type: 'reply', text: 'the diagram.', final: true },
+      { type: 'tool', name: 'setPlan', durationMs: 0, call: 'c1', status: 'start' },
+      {
+        type: 'tool',
+        name: 'setPlan',
+        durationMs: 12,
+        call: 'c1',
+        status: 'end',
+        summary: 'flow · layered',
+      },
+      { type: 'tool', name: 'ask', durationMs: 0, call: 'c2', status: 'start' },
+      {
+        type: 'question',
+        questionId: 'q1',
+        text: 'Retry?',
+        choices: ['Yes', 'No'],
+        allowFreeText: true,
+      },
+      { type: 'answer', questionId: 'q1', text: 'Yes' },
+      {
+        type: 'tool',
+        name: 'ask',
+        durationMs: 3000,
+        call: 'c2',
+        status: 'end',
+        summary: 'answer: Yes',
+      },
+      { type: 'subagent', role: 'review', status: 'start' },
+      {
+        type: 'subagent',
+        role: 'review',
+        status: 'end',
+        issues: [{ severity: 'warning', message: 'Orphan node', ids: ['x'] }],
+        usage: { inputTokens: 5, outputTokens: 1, calls: 1 },
+      },
+      { type: 'document', op: 'create', document: { id: 'd_side', name: 'Board', type: 'kanban' } },
+      { type: 'document', op: 'switch', document: { id: 'd_side', name: 'Board', type: 'kanban' } },
+      {
+        type: 'budget',
+        used: { inputTokens: 900, outputTokens: 100, calls: 3, elapsedMs: 4_000 },
+        limit: { inputTokens: 2_000, outputTokens: 0, calls: 0, elapsedMs: 0 },
+        phase: 'normal',
+      },
+      { type: 'reply', text: 'Half way', final: false },
+      {
+        type: 'done',
+        runId: 'run_1',
+        outcome: 'budget-exhausted',
+        summary: 'Ran out',
+        unresolved: ['Board'],
+      },
+    ];
+    const view = loop.reduce(reduceRunEvent, newRunView('run_1', 5));
+    expect(view.replies).toEqual(['Looking at the diagram.']);
+    expect(view.pendingReply).toBe('Half way');
+    expect(view.questions).toEqual([
+      {
+        questionId: 'q1',
+        text: 'Retry?',
+        choices: ['Yes', 'No'],
+        allowFreeText: true,
+        answer: 'Yes',
+      },
+    ]);
+    expect(view.trace).toEqual([
+      { call: 'c1', name: 'setPlan', status: 'end', summary: 'flow · layered', durationMs: 12 },
+      { call: 'c2', name: 'ask', status: 'end', summary: 'answer: Yes', durationMs: 3000 },
+    ]);
+    expect(view.subagentIssues).toEqual([
+      { role: 'review', issues: [{ severity: 'warning', message: 'Orphan node', ids: ['x'] }] },
+    ]);
+    expect(view.documents).toEqual([{ id: 'd_side', name: 'Board', type: 'kanban' }]);
+    expect(view.budget?.phase).toBe('normal');
+    expect(budgetRatio(view.budget as BudgetView)).toBe(0.5);
+    expect(view).toMatchObject({
+      outcome: 'budget-exhausted',
+      summary: 'Ran out',
+      unresolved: ['Board'],
+    });
+  });
+
+  it('measures the budget by whichever of tokens and time is further along', () => {
+    const limit = { inputTokens: 1_000, outputTokens: 0, calls: 0, elapsedMs: 10_000 };
+    const at = (tokens: number, ms: number): BudgetView => ({
+      used: { inputTokens: tokens, outputTokens: 0, calls: 1, elapsedMs: ms },
+      limit,
+      phase: 'normal',
+    });
+    expect(budgetRatio(at(100, 9_000))).toBe(0.9);
+    expect(budgetRatio(at(1_500, 0))).toBe(1);
+    expect(
+      budgetRatio({ ...at(500, 500), limit: { ...limit, inputTokens: 0, elapsedMs: 0 } }),
+    ).toBe(0);
   });
 });
 

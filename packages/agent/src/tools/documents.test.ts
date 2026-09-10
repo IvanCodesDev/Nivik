@@ -140,8 +140,12 @@ describe('Documents.applyActions (spec 05 §4.1–4.2)', () => {
       origin: 'ai',
       runId: 'run_test0001',
     });
-    expect(created2?.changeSet.actions).toHaveLength(3);
-    expect(created2?.changeSet.actions.some((a) => a.op === 'setDiagram')).toBe(false);
+    // Created documents carry their own type / layout so the host can rebuild them from id + name.
+    expect(created2?.changeSet.actions).toHaveLength(4);
+    expect(created2?.changeSet.actions[0]).toMatchObject({
+      op: 'setDiagram',
+      patch: { type: 'sequence', layout: { algorithm: 'sequence' } },
+    });
   });
 
   it('converges to no-changes when nothing was accepted anywhere', () => {

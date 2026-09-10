@@ -1,5 +1,5 @@
 import type { Affected, ChangeSet, Diagram, DiagramType, Id, SourceRef } from '@nivik/ir';
-import type { Plan, RunEvent } from '@nivik/protocol';
+import type { Plan, RunEvent, SessionTurn } from '@nivik/protocol';
 
 /** Table row types of `nivik-db` (spec 06 §2.1). Every row carries an `id` and is cloud-migratable. */
 
@@ -104,5 +104,23 @@ export interface SecretRecord {
 export interface SettingRecord {
   key: string;
   value: unknown;
+  updatedAt: number;
+}
+
+/**
+ * One turn of the conversation over a diagram (spec 06 §2.1 `sessions`, design D14′ §4): what the
+ * person asked, what the agent replied, asked and changed. Stored in the wire shape, because the
+ * recent turns travel verbatim with the next RunRequest.
+ */
+export type SessionTurnRecord = SessionTurn;
+
+export interface SessionRecord {
+  /** One session per diagram, keyed by the diagram id. */
+  id: Id;
+  diagramId: Id;
+  /** Newest last; bounded — older turns are folded into `summary`. */
+  turns: SessionTurnRecord[];
+  /** Compressed history of the turns no longer in `turns`; `null` until something was folded. */
+  summary: string | null;
   updatedAt: number;
 }

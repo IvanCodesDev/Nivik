@@ -11,6 +11,7 @@ import { orderPlatformLaidOut, randomChangeSets } from '@nivik/ir/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 import { NivikDB } from './db';
 import type { StoragePolicy } from './policy';
+import type { SessionTurnRecord } from './records';
 import { DiagramRepository, StorageError } from './repository';
 
 const T0 = 1_800_000_000_000;
@@ -463,5 +464,78 @@ describe('restore (spec 06 §3.3)', () => {
     const ir = orderPlatformLaidOut();
     await repo.create(ir);
     await expect(repo.restore(ir.id, 99)).rejects.toMatchObject({ code: 'E_VERSION_NOT_FOUND' });
+  });
+});
+
+describe('sessions (D14′ conversation memory)', () => {
+  const turn = (i: number, over: Partial<SessionTurnRecord['agent']> = {}): SessionTurnRecord => ({
+    runId: `run_${i}`,
+    at: T0 + i * MIN,
+    user: `Request number ${i}`,
+    agent: {
+      replies: [`Did thing ${i}`],
+      questions: [],
+      changes: [{ documentId: 'd_x', summary: `Change ${i}`, counts: {} }],
+      outcome: 'finished',
+      ...over,
+    },
+  });
+
+  it('starts empty, appends turns and is removed with the diagram', async () => {
+    const { repo, db } = setup();
+    const ir = orderPlatformLaidOut();
+    await repo.create(ir);
+    expect(await repo.getSession(ir.id)).toBeUndefined();
+
+    const first = await repo.appendSessionTurn(ir.id, turn(1));
+    expect(first).toMatchObject({ id: ir.id, diagramId: ir.id, summary: null, updatedAt: T0 });
+    expect(first?.turns.map((t) => t.runId)).toEqual(['run_1']);
+    await repo.appendSessionTurn(ir.id, turn(2));
+    expect((await repo.getSession(ir.id))?.turns).toHaveLength(2);
+
+    await repo.remove(ir.id);
+    expect(await db.sessions.count()).toBe(0);
+  });
+
+  it('keeps the last N turns verbatim and folds the rest into a bounded summary', async () => {
+    const { repo } = setup();
+    const ir = orderPlatformLaidOut();
+    await repo.create(ir);
+    for (let i = 1; i <= 8; i += 1) {
+      await repo.appendSessionTurn(
+        ir.id,
+        turn(i, i === 3 ? { outcome: 'aborted', changes: [] } : {}),
+        {
+          keepTurns: 3,
+        },
+      );
+    }
+    const session = await repo.getSession(ir.id);
+    expect(session?.turns.map((t) => t.runId)).toEqual(['run_6', 'run_7', 'run_8']);
+    const lines = session?.summary?.split('\n') ?? [];
+    expect(lines).toHaveLength(5);
+    expect(lines[0]).toBe('- "Request number 1" → changed: Change 1 — Did thing 1');
+    expect(lines[2]).toBe('- "Request number 3" → aborted — Did thing 3');
+
+    for (let i = 9; i <= 40; i += 1) {
+      await repo.appendSessionTurn(ir.id, turn(i), { keepTurns: 3, maxSummaryChars: 300 });
+    }
+    const bounded = await repo.getSession(ir.id);
+    expect(bounded?.summary?.length).toBeLessThanOrEqual(300);
+    expect(bounded?.summary).toContain('Request number 37');
+    expect(bounded?.summary).not.toContain('Request number 1"');
+  });
+
+  it('ignores turns for diagrams that no longer exist and can be cleared', async () => {
+    const { repo, db } = setup();
+    expect(await repo.appendSessionTurn('ghost', turn(1))).toBeUndefined();
+    expect(await db.sessions.count()).toBe(0);
+
+    const ir = orderPlatformLaidOut();
+    await repo.create(ir);
+    await repo.appendSessionTurn(ir.id, turn(1));
+    await repo.clearSession(ir.id);
+    expect(await repo.getSession(ir.id)).toBeUndefined();
+    expect(await repo.get(ir.id)).toBeDefined();
   });
 });

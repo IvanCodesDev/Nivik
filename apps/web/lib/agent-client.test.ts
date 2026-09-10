@@ -2,7 +2,13 @@ import { createDefaultDeps, createMockAgent } from '@nivik/agent';
 import { createDiagram } from '@nivik/ir';
 import type { RunEvent } from '@nivik/protocol';
 import { describe, expect, it } from 'vitest';
-import { LocalAgentClient } from './agent-client';
+import {
+  HttpAgentClient,
+  hasUsableProvider,
+  LocalAgentClient,
+  resolveAgentClient,
+  WorkerAgentClient,
+} from './agent-client';
 import { buildRunRequest } from './run-request';
 
 const request = (prompt: string) =>
@@ -49,5 +55,48 @@ describe('LocalAgentClient', () => {
     expect(events.at(-1)).toMatchObject({ type: 'error', code: 'E_ABORTED', recoverable: false });
     expect(events.some((e) => e.type === 'changeSet')).toBe(false);
     expect(events.some((e) => e.type === 'done' && e.runId === 'run_fixed')).toBe(false);
+  });
+});
+
+describe('resolveAgentClient', () => {
+  const provider = {
+    id: 'p1',
+    name: 'Qwen',
+    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    compatibility: 'openai' as const,
+    kind: 'openai-compatible' as const,
+    model: 'qwen-plus',
+    transport: 'auto' as const,
+    capabilities: null,
+    verified: null,
+  };
+  const base = { agentRuntimeUrl: '', providers: [provider], defaultModel: 'p1', fastModel: '' };
+  const withWorker = <T>(fn: () => T): T => {
+    const g = globalThis as { Worker?: unknown };
+    const had = g.Worker;
+    g.Worker = class {};
+    try {
+      return fn();
+    } finally {
+      if (had === undefined) delete g.Worker;
+      else g.Worker = had;
+    }
+  };
+
+  it('runs the real loop in a Worker only when a provider has a key; otherwise the sketch agent', () => {
+    expect(hasUsableProvider(base, { p1: 'sk-x' })).toBe(true);
+    expect(hasUsableProvider(base, {})).toBe(false);
+    expect(hasUsableProvider({ ...base, providers: [] }, { p1: 'sk-x' })).toBe(false);
+    withWorker(() => {
+      expect(resolveAgentClient(base, { p1: 'sk-x' })).toBeInstanceOf(WorkerAgentClient);
+      expect(resolveAgentClient(base, {})).toBeInstanceOf(LocalAgentClient);
+    });
+    expect(resolveAgentClient(base, { p1: 'sk-x' })).toBeInstanceOf(LocalAgentClient);
+  });
+
+  it('prefers a configured runtime over everything else', () => {
+    expect(
+      resolveAgentClient({ ...base, agentRuntimeUrl: 'http://localhost:3400' }, {}),
+    ).toBeInstanceOf(HttpAgentClient);
   });
 });

@@ -32,7 +32,14 @@ export function converge(
   const out: ConvergedDocument[] = [];
   for (const doc of documents.changed()) {
     const fromPlan: AgentAction[] = [];
-    if (!doc.created && plan) {
+    if (doc.created) {
+      // The host only knows the created document by id / name (the `document` event); the change
+      // set carries its type and layout so a bare new diagram at version 1 rebuilds it faithfully.
+      fromPlan.push({
+        op: 'setDiagram',
+        patch: { type: doc.initial.type, layout: doc.initial.layout },
+      });
+    } else if (plan) {
       const patch = diagramPatchFromPlan(plan, doc.initial);
       if (patch) fromPlan.push({ op: 'setDiagram', patch });
     }

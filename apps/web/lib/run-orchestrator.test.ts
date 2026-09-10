@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
-import { createDefaultDeps, createMockAgent } from '@nivik/agent';
+import { createDefaultDeps, createLoopAgent, createMockAgent } from '@nivik/agent';
+import { createMockModel, type MockTurn } from '@nivik/agent/providers';
 import { type ChangeSet, createDiagram } from '@nivik/ir';
 import { DefaultMeasurer } from '@nivik/layout';
 import type { RunEvent, RunRequestInput } from '@nivik/protocol';
@@ -40,6 +41,7 @@ describe('RunOrchestrator', () => {
   let diagram: ReturnType<typeof createDiagramStore>;
   let fake: ReturnType<typeof fakeSession>;
   let notices: RunNotice[];
+  let repo: DiagramRepository;
   const current = () => {
     const d = diagram.getState().diagram;
     if (!d) throw new Error('no diagram');
@@ -48,7 +50,7 @@ describe('RunOrchestrator', () => {
   const labels = () => current().nodes.map((n) => n.label);
 
   beforeEach(async () => {
-    const repo = new DiagramRepository(new NivikDB(`orch-${Math.random().toString(36).slice(2)}`), {
+    repo = new DiagramRepository(new NivikDB(`orch-${Math.random().toString(36).slice(2)}`), {
       now: () => 100,
     });
     fake = fakeSession();
@@ -184,6 +186,7 @@ describe('RunOrchestrator', () => {
         runId: '',
         status: 'noop',
         changeSets: [],
+        documents: [],
       },
     );
     orchestrator.abort();
@@ -247,5 +250,200 @@ describe('RunOrchestrator', () => {
     expect(current().nodes[1]?.label).toBe('B');
     expect(current().nodes[1]?.position).toEqual({ x: 5, y: 5 });
     expect(useRunStore.getState().review).toBeNull();
+  });
+
+  describe('with the tool loop (D14′)', () => {
+    const plan = {
+      intent: 'generate',
+      diagramType: 'flow',
+      scope: { kind: 'all' },
+      summary: 'Sketch the flow and a side board',
+      steps: ['Flow', 'Board'],
+      layout: { algorithm: 'layered', direction: 'RIGHT' },
+      estimatedNodes: 4,
+    };
+    const loopClient = (turns: MockTurn[], requests: RunRequestInput[] = []): AgentClient => {
+      const inner = new LocalAgentClient(
+        createLoopAgent(
+          createDefaultDeps({
+            now: () => 100,
+            newRunId: () => 'run_00000001',
+            model: () => createMockModel(turns),
+          }),
+        ),
+      );
+      return {
+        start(request, options) {
+          requests.push(request);
+          return inner.start(request, options);
+        },
+      };
+    };
+
+    it('persists side documents, lists them, and remembers the turn for the next request', async () => {
+      const requests: RunRequestInput[] = [];
+      const client = loopClient(
+        [
+          { toolCalls: [{ name: 'setPlan', input: plan }] },
+          {
+            toolCalls: [
+              {
+                name: 'applyActions',
+                input: {
+                  actions: [
+                    { op: 'addNode', node: { id: 'login', type: 'box', label: 'Login' } },
+                    { op: 'addNode', node: { id: 'home', type: 'box', label: 'Home' } },
+                    {
+                      op: 'addEdge',
+                      edge: { id: 'e1', type: 'flow', source: 'login', target: 'home' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          {
+            toolCalls: [
+              {
+                name: 'createDiagram',
+                input: { name: 'Release board', type: 'kanban', layout: { algorithm: 'grid' } },
+              },
+            ],
+          },
+          {
+            toolCalls: [
+              {
+                name: 'applyActions',
+                input: {
+                  actions: [
+                    {
+                      op: 'addGroup',
+                      group: { id: 'todo', label: 'To do', role: 'lane', cell: { col: 0, row: 0 } },
+                    },
+                    {
+                      op: 'addNode',
+                      node: {
+                        id: 'card-1',
+                        type: 'rounded',
+                        label: 'Ship login',
+                        cell: { col: 0, row: 0 },
+                      },
+                    },
+                    { op: 'setParent', ids: ['card-1'], parent: 'todo' },
+                  ],
+                },
+              },
+            ],
+          },
+          {
+            text: 'Sketched the login flow and started a release board.',
+            toolCalls: [{ name: 'finish', input: { summary: 'Login flow plus a release board.' } }],
+          },
+        ],
+        requests,
+      );
+      const orchestrator = createRunOrchestrator({
+        diagram,
+        run: useRunStore,
+        client: () => client,
+        repo: () => repo,
+        onNotice: (n) => notices.push(n),
+        now: () => 100,
+      });
+
+      const outcome = await orchestrator.start({
+        prompt: 'Login flow',
+        renderer: 'excalidraw',
+        settings,
+      });
+      expect(outcome.status).toBe('done');
+      expect(labels()).toEqual(['Login', 'Home']);
+      expect(current().type).toBe('flow');
+      expect(outcome.documents).toHaveLength(1);
+      const boardId = outcome.documents[0]?.id ?? '';
+      const board = await repo.require(boardId);
+      expect(board.name).toBe('Release board');
+      expect(board.ir.type).toBe('kanban');
+      expect(board.ir.layout.algorithm).toBe('grid');
+      expect(board.ir.nodes.map((n) => n.label)).toEqual(['Ship login']);
+      expect(board.ir.nodes[0]?.parent).toBe('todo');
+      expect(board.ir.nodes.every((n) => n.position && n.size)).toBe(true);
+      expect((await repo.listVersions(boardId)).map((v) => v.reason)).toEqual(['import', 'ai-run']);
+      expect(
+        outcome.changeSets.filter((cs) => cs.diagramId === boardId).map((cs) => cs.origin),
+      ).toEqual(['ai', 'system']);
+      expect(notices.map((n) => n.kind)).toEqual(['done', 'documents']);
+      // Undo covers the canvas only: the board stays in the library.
+      expect(diagram.getState().history.undo.every((e) => e.forward.diagramId === 'd1')).toBe(true);
+
+      const archived = useRunStore.getState().recent[0];
+      expect(archived?.documents.map((d) => d.name)).toEqual(['Release board']);
+      expect(archived?.replies).toEqual(['Sketched the login flow and started a release board.']);
+      expect(archived?.outcome).toBe('finished');
+      expect(archived?.trace.map((t) => t.name)).toEqual([
+        'setPlan',
+        'applyActions',
+        'createDiagram',
+        'applyActions',
+        'finish',
+      ]);
+      expect(archived?.trace.every((t) => t.status === 'end')).toBe(true);
+
+      expect(requests[0]?.session).toEqual({ recentTurns: [], summary: null });
+      expect(requests[0]?.capabilities).toEqual({ runtimeTools: false, ask: false });
+      const session = await repo.getSession('d1');
+      expect(session?.turns).toHaveLength(1);
+      expect(session?.turns[0]).toMatchObject({
+        runId: outcome.runId,
+        user: 'Login flow',
+        agent: {
+          replies: [
+            'Sketched the login flow and started a release board.',
+            'Login flow plus a release board.',
+          ],
+          outcome: 'finished',
+        },
+      });
+      expect(session?.turns[0]?.agent.changes.map((c) => c.documentId)).toEqual(['d1', boardId]);
+      expect(session?.turns[0]?.agent.changes[0]?.counts).toEqual({
+        setDiagram: 1,
+        addNode: 2,
+        addEdge: 1,
+      });
+
+      await orchestrator.start({ prompt: 'Add logout', renderer: 'excalidraw', settings });
+      expect(requests[1]?.session?.recentTurns?.map((turn) => turn.user)).toEqual(['Login flow']);
+      expect((await repo.getSession('d1'))?.turns).toHaveLength(2);
+    });
+
+    it('reports a budget-exhausted run as done-with-notice and remembers the outcome', async () => {
+      const client = loopClient([
+        { toolCalls: [{ name: 'setPlan', input: plan }], usage: { input: 900, output: 100 } },
+        {
+          toolCalls: [
+            {
+              name: 'applyActions',
+              input: { actions: [{ op: 'addNode', node: { id: 'a', type: 'box', label: 'A' } }] },
+            },
+          ],
+          usage: { input: 900, output: 100 },
+        },
+        { text: 'still going', usage: { input: 900, output: 100 } },
+      ]);
+      const orchestrator = createRunOrchestrator({
+        diagram,
+        run: useRunStore,
+        client: () => client,
+        repo: () => repo,
+        budget: () => ({ maxTokens: 2_000, maxMs: 0 }),
+        onNotice: (n) => notices.push(n),
+        now: () => 100,
+      });
+      const outcome = await orchestrator.start({ prompt: 'A', renderer: 'excalidraw', settings });
+      expect(outcome.status).toBe('done');
+      expect(labels()).toEqual(['A']);
+      expect(notices[0]).toMatchObject({ kind: 'budget-exhausted', unresolved: ['Flow', 'Board'] });
+      expect((await repo.getSession('d1'))?.turns[0]?.agent.outcome).toBe('budget-exhausted');
+    });
   });
 });

@@ -242,6 +242,14 @@ export class WorkerAgentClient implements AgentClient {
  * `NEXT_PUBLIC_NIVIK_AGENT_URL`) means HTTP; otherwise the agent runs locally in a Worker, and on
  * the main thread where Workers are unavailable.
  */
+/** Whether at least one saved provider has a key this page can hand to the Worker. */
+export function hasUsableProvider(
+  settings: Pick<Settings, 'providers' | 'defaultModel' | 'fastModel'>,
+  keys: Record<string, string>,
+): boolean {
+  return Object.keys(agentBootstrap(settings, keys).keys).length > 0;
+}
+
 export function resolveAgentClient(
   settings: Pick<Settings, 'agentRuntimeUrl' | 'providers' | 'defaultModel' | 'fastModel'>,
   keys: Record<string, string>,
@@ -249,7 +257,8 @@ export function resolveAgentClient(
   const configured = settings.agentRuntimeUrl.trim();
   const runtimeUrl = configured || BUILD_RUNTIME_URL;
   if (runtimeUrl) return new HttpAgentClient(runtimeUrl);
-  if (typeof Worker !== 'undefined') {
+  // No key to drive a model with: the scripted sketch agent keeps the canvas usable (spec 07 §1.1).
+  if (typeof Worker !== 'undefined' && hasUsableProvider(settings, keys)) {
     return new WorkerAgentClient(() => ({ ...agentBootstrap(settings, keys), runtimeUrl: null }));
   }
   return new LocalAgentClient();

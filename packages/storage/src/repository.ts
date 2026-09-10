@@ -20,6 +20,8 @@ import {
 import type {
   ChangeSetRecord,
   DiagramRecord,
+  SessionRecord,
+  SessionTurnRecord,
   SourceRecord,
   VersionReason,
   VersionRecord,
@@ -88,6 +90,32 @@ export interface UpdateOptions {
   thumbnail?: Blob;
 }
 
+export interface AppendTurnOptions {
+  /** How many turns stay verbatim; older ones fold into `summary`. Default 6 (design D14′ §4). */
+  keepTurns?: number;
+  /** Upper bound of the folded summary; the oldest lines drop first. Default 2000 chars. */
+  maxSummaryChars?: number;
+}
+
+const DEFAULT_KEEP_TURNS = 6;
+const DEFAULT_MAX_SUMMARY_CHARS = 2_000;
+
+const oneLine = (text: string, max: number) => text.replace(/\s+/g, ' ').trim().slice(0, max);
+
+/** One line per folded turn — enough for the model to know what already happened. */
+export function foldTurn(turn: SessionTurnRecord): string {
+  const head = oneLine(turn.user, 120);
+  const changes = turn.agent.changes.map((c) => c.summary).filter(Boolean);
+  const outcome =
+    turn.agent.outcome === 'finished'
+      ? changes.length
+        ? `changed: ${oneLine(changes.join('; '), 160)}`
+        : 'no change'
+      : turn.agent.outcome;
+  const reply = oneLine(turn.agent.replies.at(-1) ?? '', 120);
+  return `- "${head}" → ${outcome}${reply ? ` — ${reply}` : ''}`;
+}
+
 const versionRecordId = (diagramId: Id, version: number) => `${diagramId}@${version}`;
 
 /**
@@ -151,20 +179,66 @@ export class DiagramRepository {
     return this.db.sources.where('diagramId').equals(id).toArray();
   }
 
-  /** Deletes the diagram with its snapshots, change sets, runs and sources. */
+  /** Deletes the diagram with its snapshots, change sets, runs, sources and session. */
   async remove(id: Id): Promise<void> {
     const { db } = this;
     await db.transaction(
       'rw',
-      [db.diagrams, db.versions, db.changeSets, db.runs, db.sources],
+      [db.diagrams, db.versions, db.changeSets, db.runs, db.sources, db.sessions],
       async () => {
         await db.diagrams.delete(id);
         await db.versions.where('diagramId').equals(id).delete();
         await db.changeSets.where('diagramId').equals(id).delete();
         await db.runs.where('diagramId').equals(id).delete();
         await db.sources.where('diagramId').equals(id).delete();
+        await db.sessions.delete(id);
       },
     );
+  }
+
+  /** The conversation over a diagram so far (`undefined` before the first run). */
+  getSession(diagramId: Id): Promise<SessionRecord | undefined> {
+    return this.db.sessions.get(diagramId);
+  }
+
+  /**
+   * Design D14′ §4: append a turn, keep the last `keepTurns` verbatim and fold the rest into a
+   * bounded summary. Runs whose diagram no longer exists leave no session behind.
+   */
+  async appendSessionTurn(
+    diagramId: Id,
+    turn: SessionTurnRecord,
+    opts: AppendTurnOptions = {},
+  ): Promise<SessionRecord | undefined> {
+    const keep = opts.keepTurns ?? DEFAULT_KEEP_TURNS;
+    const maxChars = opts.maxSummaryChars ?? DEFAULT_MAX_SUMMARY_CHARS;
+    const { db } = this;
+    return db.transaction('rw', [db.diagrams, db.sessions], async () => {
+      if (!(await db.diagrams.get(diagramId))) return undefined;
+      const existing = await db.sessions.get(diagramId);
+      const turns = [...(existing?.turns ?? []), turn];
+      const overflow = turns.splice(0, Math.max(0, turns.length - keep));
+      let summary = existing?.summary ?? null;
+      if (overflow.length) {
+        const lines = [...(summary ? summary.split('\n') : []), ...overflow.map(foldTurn)];
+        while (lines.length > 1 && lines.join('\n').length > maxChars) lines.shift();
+        summary = lines.join('\n').slice(-maxChars);
+      }
+      const record: SessionRecord = {
+        id: diagramId,
+        diagramId,
+        turns,
+        summary,
+        updatedAt: this.now(),
+      };
+      await db.sessions.put(record);
+      return record;
+    });
+  }
+
+  /** Forget the conversation (the diagram stays). */
+  clearSession(diagramId: Id): Promise<void> {
+    return this.db.sessions.delete(diagramId);
   }
 
   /** Record-level metadata; never creates a version. Favorite/tag edits bump `updatedAt`. */

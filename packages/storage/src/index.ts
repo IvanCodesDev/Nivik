@@ -16,6 +16,8 @@ export type {
   RunRecord,
   RunStatus,
   SecretRecord,
+  SessionRecord,
+  SessionTurnRecord,
   SettingRecord,
   SourceRecord,
   StoredRunEvent,
@@ -24,9 +26,11 @@ export type {
   VersionRecord,
 } from './records';
 export {
+  type AppendTurnOptions,
   type CreateOptions,
   DiagramRepository,
   type DiagramSummary,
+  foldTurn,
   type PersistOptions,
   type PersistResult,
   type PersistSuccess,

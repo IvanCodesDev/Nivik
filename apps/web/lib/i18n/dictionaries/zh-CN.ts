@@ -345,6 +345,28 @@ export const zhCN: Dictionary = {
     drawerValidation: '校验',
     drawerErrors: '错误',
     drawerUsage: '用量',
+    drawerTrace: '轨迹',
+    drawerReplies: 'AI 说',
+    drawerQuestions: '提问',
+    drawerUnanswered: '（尚未回答）',
+    drawerReview: '审阅意见',
+    drawerDocuments: '其他图',
+    drawerBudget: '预算',
+    drawerOutcome: {
+      finished: '已完成',
+      'budget-exhausted': '预算用尽而停止',
+      'no-changes': '没有改动',
+      'clarify-pending': '等待回答',
+    },
+    drawerUnresolved: '未完成',
+    budgetLine: (tokens: number, limit: number, seconds: number) =>
+      limit > 0
+        ? `${tokens.toLocaleString()} / ${limit.toLocaleString()} tokens · ${seconds} 秒`
+        : `${tokens.toLocaleString()} tokens · ${seconds} 秒`,
+    budgetPhase: {
+      'wrapping-up': '正在收尾',
+      exhausted: '已用尽',
+    },
     drawerEmpty: '还没有运行记录。在下方描述一张图就会开始。',
     drawerStatus: {
       running: '进行中',

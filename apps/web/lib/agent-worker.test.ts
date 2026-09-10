@@ -187,7 +187,11 @@ describe('WorkerAgentClient', () => {
       () => worker,
     );
     const events: RunEvent[] = [];
-    for await (const event of client.start(request('Deploy it'))) {
+    // A host with a question card declares it; the canvas will once its card lands (1.7-UI).
+    for await (const event of client.start({
+      ...request('Deploy it'),
+      capabilities: { runtimeTools: false, ask: true },
+    })) {
       events.push(event);
       if (event.type === 'question') {
         expect(event.choices).toEqual(['EU', 'US']);

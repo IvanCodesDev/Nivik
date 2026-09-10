@@ -368,6 +368,28 @@ export const en = {
     drawerValidation: 'Validation',
     drawerErrors: 'Errors',
     drawerUsage: 'Usage',
+    drawerTrace: 'Trace',
+    drawerReplies: 'Agent said',
+    drawerQuestions: 'Questions',
+    drawerUnanswered: '(no answer yet)',
+    drawerReview: 'Reviewer notes',
+    drawerDocuments: 'Other diagrams',
+    drawerBudget: 'Budget',
+    drawerOutcome: {
+      finished: 'Finished',
+      'budget-exhausted': 'Stopped by the budget',
+      'no-changes': 'No changes',
+      'clarify-pending': 'Waiting for an answer',
+    },
+    drawerUnresolved: 'Not done',
+    budgetLine: (tokens: number, limit: number, seconds: number): string =>
+      limit > 0
+        ? `${tokens.toLocaleString()} / ${limit.toLocaleString()} tokens · ${seconds}s`
+        : `${tokens.toLocaleString()} tokens · ${seconds}s`,
+    budgetPhase: {
+      'wrapping-up': 'Wrapping up',
+      exhausted: 'Exhausted',
+    },
     drawerEmpty: 'No runs yet. Describe a diagram below to start one.',
     drawerStatus: {
       running: 'Running',

@@ -9,9 +9,11 @@ const provider: ProviderConfig = {
   name: 'Qwen',
   url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
   compatibility: 'openai',
+  kind: 'qwen',
   model: 'qwen-plus',
-  tested: false,
-  latency: null,
+  transport: 'auto',
+  capabilities: null,
+  verified: null,
 };
 
 const settings: Settings = { ...DEFAULT_SETTINGS, providers: [provider] };

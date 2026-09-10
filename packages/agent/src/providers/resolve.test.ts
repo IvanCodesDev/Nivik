@@ -30,6 +30,24 @@ describe('resolveProvider (spec 05 §9.5, minimal)', () => {
     expect(resolveProvider('auto', providers).id).toBe('p1');
   });
 
+  it('auto sends the plan stage to the fast provider and every other stage to the default', () => {
+    const opts = { defaultProviderId: 'p1', fastProviderId: 'p2' };
+    expect(resolveProvider('auto', providers, { ...opts, stage: 'plan' }).id).toBe('p2');
+    expect(resolveProvider('auto', providers, { ...opts, stage: 'build' }).id).toBe('p1');
+    expect(resolveProvider('auto', providers, { ...opts, stage: 'review' }).id).toBe('p1');
+    expect(resolveProvider('auto', providers, opts).id).toBe('p1');
+    expect(
+      resolveProvider('auto', providers, { ...opts, fastProviderId: 'gone', stage: 'plan' }).id,
+    ).toBe('p1');
+    // An explicit reference ignores the tags.
+    expect(
+      resolveProvider({ providerId: 'p1', model: 'p1-model' }, providers, {
+        ...opts,
+        stage: 'plan',
+      }).id,
+    ).toBe('p1');
+  });
+
   it('reports unknown or absent providers as auth problems the UI can route to Settings', () => {
     expect(() => resolveProvider({ providerId: 'nope', model: 'm' }, providers)).toThrow(
       expect.objectContaining({ code: 'E_PROVIDER_AUTH' }),
@@ -56,6 +74,24 @@ describe('createModelResolver', () => {
     expect(result.text).toBe('OK');
     expect(seen[0]?.url).toBe('https://p2.example.com/v1/chat/completions');
     expect(seen[0]?.headers.authorization).toBe('Bearer sk-p2');
+  });
+
+  it('hands each stage the model its routing picked', async () => {
+    const { fetch } = fakeVendor(VENDOR_REPLIES.openai);
+    const resolve = createModelResolver({
+      providers,
+      keys: { p1: 'sk-p1', p2: 'sk-p2' },
+      ref: 'auto',
+      runtimeUrl: null,
+      defaultProviderId: 'p1',
+      fastProviderId: 'p2',
+      fetch,
+    });
+    const modelId = (model: ReturnType<typeof resolve>) =>
+      typeof model === 'string' ? model : model.modelId;
+    expect(modelId(resolve('plan'))).toBe('p2-model');
+    expect(modelId(resolve('build'))).toBe('p1-model');
+    expect(resolve('build')).toBe(resolve('review'));
   });
 
   it('refuses to build a model without a key', () => {

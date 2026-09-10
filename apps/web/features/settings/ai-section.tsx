@@ -190,9 +190,7 @@ function ProviderRow({
           {provider.model} · {copy.formats[provider.compatibility]} · {hostOf(provider.url)}
         </p>
         <p className={styles.providerCaps}>
-          {provider.tested && provider.latency !== null
-            ? copy.tested(provider.latency)
-            : copy.notTested}
+          {provider.verified ? copy.tested(provider.verified.latencyMs) : copy.notTested}
         </p>
       </div>
       <div className={styles.providerActions}>

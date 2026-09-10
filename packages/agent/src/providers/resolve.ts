@@ -1,18 +1,25 @@
 import { type ModelRef, type ProviderConfig, RunError } from '@nivik/protocol';
 import type { LanguageModel } from 'ai';
 import type { ModelResolver } from '../deps';
+import type { StageName } from '../harness/stage';
 import { createLanguageModel } from './factory';
 import { createTransportFetch, type FetchLike, type TransportFetch } from './transport';
 
 export interface ResolveModelOptions {
   /** The provider marked as default in Settings; `'auto'` falls back to it, then to the first one. */
   defaultProviderId?: string | null;
+  /** The provider tagged `fast` in Settings: `'auto'` sends the plan stage there (spec 05 §9.5). */
+  fastProviderId?: string | null;
+  stage?: StageName;
 }
 
+/** Stages that trade a little quality for latency under `nivik-auto` (spec 05 §9.5). */
+const FAST_STAGES: ReadonlySet<StageName> = new Set(['plan']);
+
 /**
- * Spec 05 §9.5, minimal form: an explicit reference must match a configured provider (the request
- * may override its model); `'auto'` picks the default provider. Stage-specific `fast` routing
- * arrives with the Settings work (task 1.10).
+ * Spec 05 §9.5: an explicit reference must match a configured provider (the request may override
+ * its model); `'auto'` routes the plan stage to the `fast` provider when one is tagged and every
+ * other stage to the default provider, then to the first one configured.
  */
 export function resolveProvider(
   ref: ModelRef,
@@ -26,10 +33,10 @@ export function resolveProvider(
     }
     return match.model === ref.model ? match : { ...match, model: ref.model };
   }
-  const preferred = opts.defaultProviderId
-    ? providers.find((p) => p.id === opts.defaultProviderId)
-    : undefined;
-  const chosen = preferred ?? providers[0];
+  const byId = (id: string | null | undefined) =>
+    id ? providers.find((p) => p.id === id) : undefined;
+  const fast = opts.stage && FAST_STAGES.has(opts.stage) ? byId(opts.fastProviderId) : undefined;
+  const chosen = fast ?? byId(opts.defaultProviderId) ?? providers[0];
   if (!chosen) throw new RunError('E_PROVIDER_AUTH', 'No model provider is configured');
   return chosen;
 }
@@ -68,8 +75,8 @@ export function createModelResolver(opts: ModelResolverOptions): ModelResolver {
     return transport;
   };
 
-  return () => {
-    const config = resolveProvider(opts.ref, opts.providers, opts);
+  return (stage) => {
+    const config = resolveProvider(opts.ref, opts.providers, { ...opts, stage });
     const cacheKey = `${config.id}:${config.model}`;
     const cached = models.get(cacheKey);
     if (cached) return cached;

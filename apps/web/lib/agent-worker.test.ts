@@ -23,7 +23,13 @@ const request = (prompt: string, runId = 'run_worker_0001'): RunRequestInput => 
 const mockAgent = () => (deps: Parameters<typeof createMockAgent>[0]) =>
   createMockAgent(deps, { paceMs: 0 });
 
-const bootstrap = { providers: [], keys: {}, defaultProviderId: null, runtimeUrl: null };
+const bootstrap = {
+  providers: [],
+  keys: {},
+  defaultProviderId: null,
+  fastProviderId: null,
+  runtimeUrl: null,
+};
 
 describe('createWorkerHost', () => {
   it('streams the run as event messages and closes with end', async () => {

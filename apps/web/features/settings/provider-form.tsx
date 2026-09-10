@@ -1,5 +1,6 @@
 'use client';
 
+import { inferProviderKind } from '@nivik/protocol';
 import { Button, cn, Input, Select, type SelectOption, useToast } from '@nivik/ui';
 import { ArrowLeft, ArrowsClockwise } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
@@ -259,14 +260,20 @@ export function ProviderForm({ providerId, onDone }: ProviderFormProps) {
     if (!name) return toast(copy.nameRequired);
 
     const id = existing?.id ?? crypto.randomUUID();
+    const verifiedNow =
+      test.status === 'ok' && test.elapsedMs !== null
+        ? { at: Date.now(), latencyMs: test.elapsedMs, detected: false }
+        : null;
     upsertProvider({
       id,
       name,
       url: url.url,
       compatibility: form.compatibility,
+      kind: inferProviderKind(url.url, form.compatibility),
       model,
-      tested: test.status === 'ok',
-      latency: test.status === 'ok' ? test.elapsedMs : null,
+      transport: existing?.transport ?? 'auto',
+      capabilities: existing?.capabilities ?? null,
+      verified: verifiedNow ?? existing?.verified ?? null,
     });
     if (form.apiKey.trim()) setKey(id, form.apiKey.trim());
     toast(copy.saved);

@@ -1,4 +1,13 @@
-import type { ModelRef } from '@nivik/protocol';
+import {
+  inferProviderKind,
+  type ModelRef,
+  PROVIDER_KINDS,
+  type ProviderCapabilities,
+  ProviderCapabilitiesSchema,
+  type ProviderKind,
+  type Transport,
+  TransportSchema,
+} from '@nivik/protocol';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { LANGUAGE_SETTINGS } from '@/lib/i18n/locales';
@@ -10,20 +19,34 @@ export { THEMES };
 export const API_COMPATIBILITIES = ['openai', 'anthropic', 'gemini'] as const;
 export type ApiCompatibility = (typeof API_COMPATIBILITIES)[number];
 
+/** What Test Connection established, and when (spec 05 §9.3). `at: 0` marks a result from before probing existed. */
+export interface ProviderVerification {
+  at: number;
+  latencyMs: number;
+  /** True when the capabilities were probed rather than assumed. */
+  detected: boolean;
+}
+
 /**
- * One configured model: an endpoint, the format it speaks and the model id to request. Any general
- * chat model is enough for the agent, so there is no capability declaration to maintain. The API
- * key is not part of this record (see `useProviderKeys`).
+ * One configured model: an endpoint, the format it speaks, the driver family (`kind`, derived from
+ * the endpoint unless the user overrides it) and what probing found out about it. The API key is
+ * not part of this record (see `useProviderKeys`).
  */
 export interface ProviderConfig {
   id: string;
   name: string;
   url: string;
   compatibility: ApiCompatibility;
+  kind: ProviderKind;
   model: string;
-  tested: boolean;
-  latency: number | null;
+  transport: Transport;
+  capabilities: ProviderCapabilities | null;
+  verified: ProviderVerification | null;
 }
+
+/** Spec 06 §6.1: where API keys live between page loads. */
+export const KEY_STORAGES = ['session', 'device'] as const;
+export type KeyStorage = (typeof KEY_STORAGES)[number];
 
 export const AVATAR_COLORS = ['violet', 'sage', 'sky', 'peach', 'slate'] as const;
 export type AvatarColor = (typeof AVATAR_COLORS)[number];
@@ -81,8 +104,11 @@ export interface Settings {
    * request then carries `model: 'auto'`). Generation parameters are the runtime's defaults.
    */
   defaultModel: string | null;
-  /** Base URL of the Agent Runtime (`apps/agent`); empty = build-time default. */
+  /** `ProviderConfig.id` the plan stage prefers (spec 05 §9.5 `fast`), or null to use the default. */
+  fastModel: string | null;
+  /** Base URL of the Agent Runtime (`apps/agent`); empty = local mode (the agent runs in a Worker). */
   agentRuntimeUrl: string;
+  keyStorage: KeyStorage;
   // Canvas & Appearance
   canvasPattern: CanvasPattern;
   gridSize: (typeof GRID_SIZES)[number];
@@ -106,7 +132,9 @@ export const DEFAULT_SETTINGS: Settings = {
   autoSave: true,
   language: 'auto',
   defaultModel: null,
+  fastModel: null,
   agentRuntimeUrl: '',
+  keyStorage: 'session',
   canvasPattern: 'dots',
   gridSize: '24',
   canvasBackground: 'soft',
@@ -166,23 +194,44 @@ function oneOf<T extends string>(allowed: readonly T[], value: unknown, fallback
 const nonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value.trim() !== '';
 
+const finiteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+function normalizeVerification(input: unknown): ProviderVerification | null {
+  if (!isRecord(input) || !finiteNumber(input.latencyMs)) return null;
+  return {
+    at: finiteNumber(input.at) ? input.at : 0,
+    latencyMs: input.latencyMs,
+    detected: input.detected === true,
+  };
+}
+
 /**
  * Keeps only what a configured model needs; returns null for entries that cannot be used (stale
- * storage, hand-edited exports). Retired fields such as `type`, `context` and `capabilities` fall
- * away here.
+ * storage, hand-edited exports). Retired fields such as `type` and `context` fall away here; the
+ * pre-v7 `tested` / `latency` pair becomes a `verified` entry stamped `at: 0`, and a missing or
+ * unknown `kind` is derived from the endpoint.
  */
 export function normalizeProvider(input: unknown): ProviderConfig | null {
   if (!isRecord(input)) return null;
-  const { id, name, url, model, compatibility, tested, latency } = input;
+  const { id, name, url, model, compatibility, kind, transport, capabilities, verified } = input;
   if (!nonEmptyString(id) || !nonEmptyString(url) || !nonEmptyString(model)) return null;
+  const wire = oneOf(API_COMPATIBILITIES, compatibility, 'openai');
+  const parsedCapabilities = ProviderCapabilitiesSchema.safeParse(capabilities);
+  const legacy =
+    input.tested === true && finiteNumber(input.latency)
+      ? { at: 0, latencyMs: input.latency, detected: false }
+      : null;
   return {
     id,
     name: typeof name === 'string' ? name : '',
     url,
-    compatibility: oneOf(API_COMPATIBILITIES, compatibility, 'openai'),
+    compatibility: wire,
+    kind: oneOf(PROVIDER_KINDS, kind, inferProviderKind(url, wire)),
     model,
-    tested: tested === true,
-    latency: typeof latency === 'number' && Number.isFinite(latency) ? latency : null,
+    transport: oneOf(TransportSchema.options, transport, 'auto'),
+    capabilities: parsedCapabilities.success ? parsedCapabilities.data : null,
+    verified: normalizeVerification(verified) ?? legacy,
   };
 }
 
@@ -215,12 +264,14 @@ export function normalizeSettings(input: Partial<Settings> | undefined): Setting
     nodeStyle: oneOf(NODE_STYLES, merged.nodeStyle, DEFAULT_SETTINGS.nodeStyle),
     edgeStyle: oneOf(EDGE_STYLES, merged.edgeStyle, DEFAULT_SETTINGS.edgeStyle),
     avatarColor: oneOf(AVATAR_COLORS, merged.avatarColor, DEFAULT_SETTINGS.avatarColor),
+    keyStorage: oneOf(KEY_STORAGES, merged.keyStorage, DEFAULT_SETTINGS.keyStorage),
     providers,
     defaultModel: providers.some((p) => p.id === merged.defaultModel) ? merged.defaultModel : null,
+    fastModel: providers.some((p) => p.id === merged.fastModel) ? merged.fastModel : null,
   };
 }
 
-const SETTINGS_VERSION = 6;
+const SETTINGS_VERSION = 7;
 
 /**
  * v1 stored the option labels shown in the UI; v2 stores protocol / IR ids. v1 also had a
@@ -229,7 +280,9 @@ const SETTINGS_VERSION = 6;
  * removed the hosted `nivik-auto` model, generation parameters and provider capability
  * declarations; `normalizeSettings` / `normalizeProvider` strip them, so no explicit step is needed.
  * v5 stores the canvas background as a tint instead of a light-theme hex colour. v6 replaced the
- * `showGrid` switch with the `canvasPattern` choice.
+ * `showGrid` switch with the `canvasPattern` choice. v7 gives providers `kind` / `transport` /
+ * `capabilities` / `verified` (the old `tested` + `latency` pair folds into `verified`) and adds
+ * `keyStorage` and `fastModel`; `normalizeProvider` / `normalizeSettings` perform that upgrade.
  */
 const V1_RENDERERS: Record<string, SettingsRenderer> = {
   Excalidraw: 'excalidraw',
@@ -284,7 +337,8 @@ export const useSettingsStore = create<SettingsState>()(
           const providers = state.draft.providers.filter((p) => p.id !== id);
           const defaultModel =
             state.draft.defaultModel === id ? (providers[0]?.id ?? null) : state.draft.defaultModel;
-          return { draft: { ...state.draft, providers, defaultModel } };
+          const fastModel = state.draft.fastModel === id ? null : state.draft.fastModel;
+          return { draft: { ...state.draft, providers, defaultModel, fastModel } };
         }),
       save: () => set({ saved: clone(get().draft) }),
       discard: () => set({ draft: clone(get().saved) }),
@@ -311,11 +365,18 @@ export function selectIsDirty(state: Pick<SettingsState, 'saved' | 'draft'>): bo
   return JSON.stringify(state.saved) !== JSON.stringify(state.draft);
 }
 
-/** API keys live only in tab memory (never persisted, never exported). */
+/**
+ * API keys in tab memory — the only place the app reads them from. Never part of settings or
+ * exports. With `keyStorage: 'device'` they are additionally written through to the encrypted
+ * vault and restored on load (`lib/provider-keys.ts`); this store does not know about that.
+ */
 interface ProviderKeysState {
   keys: Record<string, string>;
   setKey: (id: string, key: string) => void;
   deleteKey: (id: string) => void;
+  /** Replaces the whole set (restore from the device vault on load). */
+  hydrate: (keys: Record<string, string>) => void;
+  clear: () => void;
 }
 
 export const useProviderKeys = create<ProviderKeysState>()((set) => ({
@@ -326,4 +387,6 @@ export const useProviderKeys = create<ProviderKeysState>()((set) => ({
       const { [id]: _removed, ...rest } = state.keys;
       return { keys: rest };
     }),
+  hydrate: (keys) => set({ keys: { ...keys } }),
+  clear: () => set({ keys: {} }),
 }));

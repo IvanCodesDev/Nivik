@@ -19,9 +19,11 @@ const provider: ProviderConfig = {
   name: 'DeepSeek',
   url: 'https://api.deepseek.com/v1',
   compatibility: 'openai',
+  kind: 'deepseek',
   model: 'deepseek-chat',
-  tested: true,
-  latency: 420,
+  transport: 'auto',
+  capabilities: null,
+  verified: { at: 1_700_000_000_000, latencyMs: 420, detected: true },
 };
 
 const second: ProviderConfig = {
@@ -29,9 +31,22 @@ const second: ProviderConfig = {
   name: 'Relay',
   url: 'https://relay.example.com/v1',
   compatibility: 'openai',
+  kind: 'openai-compatible',
   model: 'gpt-4o-mini',
-  tested: false,
-  latency: null,
+  transport: 'auto',
+  capabilities: null,
+  verified: null,
+};
+
+/** The shape settings were stored in before v7 (no kind, `tested` + `latency`). */
+const legacyProvider = {
+  id: 'p1',
+  name: 'DeepSeek',
+  url: 'https://api.deepseek.com/v1',
+  compatibility: 'openai',
+  model: 'deepseek-chat',
+  tested: true,
+  latency: 420,
 };
 
 describe('DEFAULT_SETTINGS', () => {
@@ -94,7 +109,7 @@ describe('normalizeProvider', () => {
     expect(normalizeProvider('nope')).toBeNull();
   });
 
-  it('falls back to OpenAI-compatible for unknown formats and defaults test metadata', () => {
+  it('falls back to OpenAI-compatible for unknown formats and derives the driver from the endpoint', () => {
     expect(
       normalizeProvider({
         id: 'x',
@@ -108,10 +123,48 @@ describe('normalizeProvider', () => {
       name: 'X',
       url: 'https://x.test',
       compatibility: 'openai',
+      kind: 'openai-compatible',
       model: 'm',
-      tested: false,
-      latency: null,
+      transport: 'auto',
+      capabilities: null,
+      verified: null,
     });
+    expect(
+      normalizeProvider({ ...provider, kind: 'azure', transport: 'carrier-pigeon' }),
+    ).toMatchObject({
+      kind: 'deepseek',
+      transport: 'auto',
+    });
+    expect(
+      normalizeProvider({
+        ...provider,
+        url: 'https://api.anthropic.com/v1',
+        compatibility: 'anthropic',
+      })?.kind,
+    ).toBe('deepseek');
+  });
+
+  it('upgrades the pre-v7 tested / latency pair into an undated verification', () => {
+    expect(normalizeProvider(legacyProvider)).toEqual({
+      ...provider,
+      verified: { at: 0, latencyMs: 420, detected: false },
+    });
+    expect(normalizeProvider({ ...legacyProvider, tested: false })?.verified).toBeNull();
+  });
+
+  it('keeps probed capabilities only when they are complete', () => {
+    const capabilities = {
+      text: true,
+      vision: false,
+      tools: true,
+      json: true,
+      thinking: false,
+      contextLength: 128_000,
+    };
+    expect(normalizeProvider({ ...provider, capabilities })?.capabilities).toEqual(capabilities);
+    expect(
+      normalizeProvider({ ...provider, capabilities: { text: true } })?.capabilities,
+    ).toBeNull();
   });
 });
 
@@ -226,10 +279,48 @@ describe('migrateSettings', () => {
     expect('showGrid' in pattern({ showGrid: false })).toBe(false);
   });
 
+  it('gives v6 providers a driver kind and folds their test result into a verification', () => {
+    const { saved } = migrateSettings(
+      { saved: { providers: [legacyProvider], defaultModel: 'p1' } },
+      6,
+    );
+    expect(saved.providers).toEqual([
+      { ...provider, verified: { at: 0, latencyMs: 420, detected: false } },
+    ]);
+    expect(saved.keyStorage).toBe('session');
+    expect(saved.fastModel).toBeNull();
+    expect('tested' in (saved.providers[0] ?? {})).toBe(false);
+  });
+
   it('is a no-op for current-version state and garbage input', () => {
     const current = { saved: { ...DEFAULT_SETTINGS, renderer: 'drawio' as const } };
-    expect(migrateSettings(current, 6)).toEqual(current);
+    expect(migrateSettings(current, 7)).toEqual(current);
     expect(migrateSettings(null, 0)).toEqual({ saved: DEFAULT_SETTINGS });
+  });
+});
+
+describe('key storage and fast model', () => {
+  it('default to session keys and no fast model', () => {
+    expect(DEFAULT_SETTINGS.keyStorage).toBe('session');
+    expect(DEFAULT_SETTINGS.fastModel).toBeNull();
+  });
+
+  it('only keep a fast model that exists and a known storage mode', () => {
+    expect(
+      normalizeSettings({ providers: [provider], fastModel: 'p1', keyStorage: 'device' }),
+    ).toMatchObject({ fastModel: 'p1', keyStorage: 'device' });
+    expect(
+      normalizeSettings({ providers: [provider], fastModel: 'gone', keyStorage: 'cloud' } as never),
+    ).toMatchObject({ fastModel: null, keyStorage: 'session' });
+  });
+
+  it('forgets the fast model when its provider is removed', () => {
+    useSettingsStore.setState((state) => ({
+      draft: { ...state.draft, providers: [provider, second], defaultModel: 'p1', fastModel: 'p2' },
+    }));
+    useSettingsStore.getState().removeProvider('p2');
+    expect(useSettingsStore.getState().draft.fastModel).toBeNull();
+    expect(useSettingsStore.getState().draft.defaultModel).toBe('p1');
   });
 });
 

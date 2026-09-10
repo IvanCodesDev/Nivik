@@ -7,14 +7,16 @@ const web = (over: Partial<WebProviderConfig> = {}): WebProviderConfig => ({
   name: 'Moonshot',
   url: 'https://api.moonshot.cn/v1/',
   compatibility: 'openai',
+  kind: 'moonshot',
   model: 'kimi-k2',
-  tested: true,
-  latency: 320,
+  transport: 'auto',
+  capabilities: null,
+  verified: { at: 1_700_000_000_000, latencyMs: 320, detected: true },
   ...over,
 });
 
 describe('toProviderConfig', () => {
-  it('infers the driver from the endpoint and normalises the url', () => {
+  it('carries the v7 fields across and normalises the url', () => {
     const config = toProviderConfig(web());
     expect(config).toMatchObject({
       id: 'p1',
@@ -23,54 +25,68 @@ describe('toProviderConfig', () => {
       baseUrl: 'https://api.moonshot.cn/v1',
       model: 'kimi-k2',
       transport: 'auto',
+      verified: { at: 1_700_000_000_000, latencyMs: 320, detected: true },
     });
     expect(config.params.timeoutMs).toBe(120_000);
+    expect(config.capabilities).toBeUndefined();
     expect('apiKey' in config).toBe(false);
   });
 
-  it('maps the wire formats the Settings page offers', () => {
-    expect(
-      toProviderConfig(web({ url: 'https://api.anthropic.com/v1', compatibility: 'anthropic' }))
-        .kind,
-    ).toBe('anthropic');
-    expect(
-      toProviderConfig(
-        web({ url: 'https://generativelanguage.googleapis.com/v1beta', compatibility: 'gemini' }),
-      ).kind,
-    ).toBe('google');
-    expect(toProviderConfig(web({ url: 'https://relay.example.com/v1' })).kind).toBe(
-      'openai-compatible',
-    );
-    expect(toProviderConfig(web({ url: 'http://localhost:11434/v1' })).kind).toBe(
-      'openai-compatible',
-    );
+  it('keeps probed capabilities and the chosen transport', () => {
+    const capabilities = {
+      text: true,
+      vision: false,
+      tools: true,
+      json: true,
+      thinking: false,
+      contextLength: 131_072,
+    };
+    const config = toProviderConfig(web({ capabilities, transport: 'proxy' }));
+    expect(config.capabilities).toEqual(capabilities);
+    expect(config.transport).toBe('proxy');
   });
 
-  it('falls back to the url as the display name', () => {
-    expect(toProviderConfig(web({ name: '' })).name).toBe('https://api.moonshot.cn/v1/');
+  it('drops a pre-probing verification (at: 0) and falls back to the url as the name', () => {
+    const config = toProviderConfig(
+      web({ name: '', verified: { at: 0, latencyMs: 9, detected: false } }),
+    );
+    expect(config.name).toBe('https://api.moonshot.cn/v1/');
+    expect(config.verified).toBeUndefined();
   });
 });
 
 describe('agentBootstrap', () => {
-  it('lists every provider, only the keys that exist, and validates the default', () => {
-    const settings = {
-      providers: [
-        web(),
-        web({ id: 'p2', url: 'https://api.deepseek.com/v1', model: 'deepseek-chat' }),
-      ],
-      defaultModel: 'p2',
-    };
+  const settings = {
+    providers: [
+      web(),
+      web({
+        id: 'p2',
+        kind: 'deepseek',
+        url: 'https://api.deepseek.com/v1',
+        model: 'deepseek-chat',
+      }),
+    ],
+    defaultModel: 'p2',
+    fastModel: 'p1',
+  };
+
+  it('lists every provider, only the keys that exist, and validates default and fast', () => {
     const bootstrap = agentBootstrap(settings, { p1: 'sk-1', p9: 'stale' });
     expect(bootstrap.providers.map((p) => p.kind)).toEqual(['moonshot', 'deepseek']);
     expect(bootstrap.keys).toEqual({ p1: 'sk-1' });
     expect(bootstrap.defaultProviderId).toBe('p2');
+    expect(bootstrap.fastProviderId).toBe('p1');
     expect(
-      agentBootstrap({ ...settings, defaultModel: 'missing' }, {}).defaultProviderId,
-    ).toBeNull();
-    expect(agentBootstrap({ providers: [], defaultModel: '' }, {})).toEqual({
+      agentBootstrap({ ...settings, defaultModel: 'missing', fastModel: 'gone' }, {}),
+    ).toMatchObject({
+      defaultProviderId: null,
+      fastProviderId: null,
+    });
+    expect(agentBootstrap({ providers: [], defaultModel: null, fastModel: null }, {})).toEqual({
       providers: [],
       keys: {},
       defaultProviderId: null,
+      fastProviderId: null,
     });
   });
 });

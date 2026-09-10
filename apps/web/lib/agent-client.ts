@@ -138,6 +138,7 @@ export interface WorkerBootstrap {
   providers: ProviderConfig[];
   keys: Record<string, string>;
   defaultProviderId: string | null;
+  fastProviderId: string | null;
   runtimeUrl: string | null;
 }
 
@@ -224,7 +225,7 @@ export class WorkerAgentClient implements AgentClient {
  * the main thread where Workers are unavailable.
  */
 export function resolveAgentClient(
-  settings: Pick<Settings, 'agentRuntimeUrl' | 'providers' | 'defaultModel'>,
+  settings: Pick<Settings, 'agentRuntimeUrl' | 'providers' | 'defaultModel' | 'fastModel'>,
   keys: Record<string, string>,
 ): AgentClient {
   const configured = settings.agentRuntimeUrl.trim();

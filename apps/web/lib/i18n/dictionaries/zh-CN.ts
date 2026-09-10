@@ -146,6 +146,7 @@ export const zhCN: Dictionary = {
     renderer: '渲染器',
     useTemplate: '使用模板',
     generateWithAi: '用 AI 生成',
+    createFailed: (message) => `无法基于此模板创建图表：${message}`,
     note: '模板为 AI 提供了可理解、可扩展的结构上下文，生成的图表会沿用这一架构。',
     catalog: {
       microservices: {

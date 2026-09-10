@@ -29,8 +29,10 @@ import {
 } from '@/lib/data/templates';
 import { useT } from '@/lib/i18n/provider';
 import { templateCopy } from '@/lib/i18n/template-copy';
+import { getRepository } from '@/lib/repository';
 import { useFavoritesStore } from '@/lib/stores/favorites-store';
 import { useSettingsStore } from '@/lib/stores/settings-store';
+import { createFromTemplate } from '@/lib/template-actions';
 import { TemplateCard } from './template-card';
 import { TemplateDetailDialog } from './template-detail-dialog';
 import styles from './templates.module.css';
@@ -98,14 +100,27 @@ export function Templates() {
     });
   }, [category, query, t]);
 
-  const applyTemplate = (template: DiagramTemplate, renderer: RendererId, withAi: boolean) => {
-    const params = new URLSearchParams({
-      template: template.id,
-      renderer,
-      prompt: templatePrompt(template, withAi),
-    });
+  // Spec 06 §5: the template becomes a real diagram here; the canvas just opens it. "Generate with
+  // AI" additionally hands the composer a starter prompt and focuses it (no run starts by itself).
+  const applyTemplate = async (
+    template: DiagramTemplate,
+    renderer: RendererId,
+    withAi: boolean,
+  ) => {
     setSelected(null);
-    router.push(`/canvas/new?${params.toString()}`);
+    try {
+      const record = await createFromTemplate(getRepository(), template.id, { renderer });
+      const params = new URLSearchParams({ template: template.id, renderer });
+      if (withAi) {
+        params.set('prompt', templatePrompt(template, true));
+        params.set('focus', 'composer');
+      }
+      router.push(`/canvas/${record.id}?${params.toString()}`);
+    } catch (error) {
+      toast(t.templates.createFailed(error instanceof Error ? error.message : String(error)), {
+        tone: 'light',
+      });
+    }
   };
 
   const onToggleFavorite = (template: DiagramTemplate) => {

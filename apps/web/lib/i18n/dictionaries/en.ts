@@ -155,6 +155,8 @@ export const en = {
     renderer: 'Renderer',
     useTemplate: 'Use Template',
     generateWithAi: 'Generate with AI',
+    createFailed: (message: string) =>
+      `Could not create the diagram from this template: ${message}`,
     note: 'This template provides structural context that AI can understand and extend. Your generated diagram will follow this architecture.',
     catalog: {
       microservices: {
